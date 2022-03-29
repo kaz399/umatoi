@@ -1,11 +1,15 @@
+use log::{debug, error};
 use std::error::Error;
 use std::time::Duration;
+use thiserror::Error;
 use tokio::time;
 
-use btleplug::api::{Central, Manager as _, Peripheral, ScanFilter};
-use btleplug::platform::Manager;
+use btleplug::api::{Central, Manager as _, Peripheral as _, ScanFilter};
+use btleplug::platform::{Manager, Peripheral};
 
-pub async fn scan(filter: ScanFilter) -> Result<(), Box<dyn Error>> {
+pub async fn scan_example(
+    filter: ScanFilter,
+) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
     let manager = Manager::new().await?;
     let adapter_list = manager.adapters().await?;
 
@@ -46,7 +50,6 @@ pub async fn scan(filter: ScanFilter) -> Result<(), Box<dyn Error>> {
                 println!(
                     "Now connected ({:?}) to peripheral {:?}...",
                     is_connected, &local_name
-
                 );
                 peripheral.discover_services().await?;
                 println!("Discover peripheral {:?} services...", &local_name);
@@ -72,12 +75,51 @@ pub async fn scan(filter: ScanFilter) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+#[derive(Error, Debug, PartialEq)]
+pub enum ScannerError {
+    #[error("bluetooth adapter is not found")]
+    AdapterNotFound,
+    #[error("internal error of scanner.rs")]
+    FoundBug,
+}
+
+pub async fn scan(
+    filter: ScanFilter,
+    wait: Duration,
+) -> Result<Vec<Peripheral>, Box<dyn Error + Send + Sync + 'static>> {
+    let mut peripheral_list: Vec<Peripheral> = Vec::new();
+    let manager = Manager::new().await?;
+    let adapter_list = manager.adapters().await?;
+
+    if adapter_list.is_empty() {
+        error!("No Bluetooth adapters found");
+        return Err(Box::new(ScannerError::AdapterNotFound));
+    }
+
+    for adapter in adapter_list.iter() {
+        println!("Starting scan on {}...", adapter.adapter_info().await?);
+        adapter.start_scan(filter.clone()).await?;
+        time::sleep(wait).await;
+        peripheral_list.extend(adapter.peripherals().await?);
+    }
+    for (index, peripheral) in peripheral_list.iter().enumerate() {
+        debug!("{} {:?}", index, peripheral);
+    }
+    debug!("total {} peripherals found", peripheral_list.len());
+    Ok(peripheral_list)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-#[tokio::test]
+    fn _setup() {
+        let _ = env_logger::builder().is_test(true).try_init();
+    }
+
+    #[tokio::test]
     async fn scanner_scan_cube() {
-        let _scan_result = scan(ScanFilter::default()).await;
+        _setup();
+        let _scan_result = scan(ScanFilter::default(), Duration::from_secs(2)).await;
     }
 }
