@@ -1,12 +1,12 @@
-use std::collections::HashMap;
-use uuid::Uuid;
 use log::{debug, error};
+use std::collections::HashMap;
 use std::error::Error;
 use thiserror::Error;
+use uuid::Uuid;
 
 pub type NotifyDataType = u8;
 pub type NotifyDataVec = Vec<NotifyDataType>;
-pub type NotifyFunction = Box<dyn FnMut(NotifyDataVec) + Send + 'static>;
+pub type NotifyFunction = Box<dyn FnMut(NotifyDataVec) + Send + Sync + 'static>;
 
 pub struct NotifyManager<K, F> {
     order: Vec<K>,
@@ -33,7 +33,10 @@ impl NotifyManager<uuid::Uuid, NotifyFunction> {
     }
 
     /// register notify handler
-    pub fn register(&mut self, func: NotifyFunction) -> Result<uuid::Uuid, Box<dyn Error + Send + Sync +'static>> {
+    pub fn register(
+        &mut self,
+        func: NotifyFunction,
+    ) -> Result<uuid::Uuid, Box<dyn Error + Send + Sync + 'static>> {
         let id = Uuid::new_v4();
         debug!("uuid: {}", id);
         if !self.order.contains(&id) {
@@ -46,7 +49,10 @@ impl NotifyManager<uuid::Uuid, NotifyFunction> {
     }
 
     /// unregister notify handler
-    pub fn unregister(&mut self, id: uuid::Uuid) -> Result<bool, Box<dyn Error + Send + Sync +'static>> {
+    pub fn unregister(
+        &mut self,
+        id: uuid::Uuid,
+    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
         for (index, registered_id) in self.order.iter().enumerate() {
             if id == *registered_id {
                 self.handlers.remove(registered_id);
@@ -58,7 +64,10 @@ impl NotifyManager<uuid::Uuid, NotifyFunction> {
     }
 
     /// invoke all handlers
-    pub fn invoke_all_handlers(&mut self, data: NotifyDataVec) -> Result<bool, Box<dyn Error + Send + Sync +'static>> {
+    pub fn invoke_all_handlers(
+        &mut self,
+        data: NotifyDataVec,
+    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
         for id in self.order.iter() {
             debug!("invoke handler {}", id);
             if let Some(handler) = self.handlers.get_mut(id) {
@@ -69,7 +78,6 @@ impl NotifyManager<uuid::Uuid, NotifyFunction> {
         }
         Ok(true)
     }
-
 }
 
 #[cfg(test)]
@@ -97,7 +105,7 @@ mod tests {
         assert_eq!(NOTIF_DATA_ARRAY.to_vec(), data);
     }
 
-#[test]
+    #[test]
     fn notify_manager_register() {
         _setup();
         let mut notify_manager = NotifyManager::new();
@@ -109,7 +117,7 @@ mod tests {
         assert_eq!(notify_manager.handlers.len(), 3);
     }
 
-#[test]
+    #[test]
     fn notify_manager_unregister1() {
         _setup();
         let mut notify_manager = NotifyManager::new();
@@ -127,7 +135,7 @@ mod tests {
         assert_eq!(notify_manager.handlers.len(), 0);
     }
 
-#[test]
+    #[test]
     fn notify_manager_unregister2() {
         _setup();
         let mut notify_manager = NotifyManager::new();
@@ -145,7 +153,7 @@ mod tests {
         assert_eq!(notify_manager.handlers.len(), 0);
     }
 
-#[test]
+    #[test]
     fn notify_manager_invoke() {
         _setup();
         let mut notify_manager = NotifyManager::new();
