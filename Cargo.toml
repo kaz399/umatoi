@@ -10,6 +10,7 @@ repository = "https://github.com/kaz399/rs_toio_core_cube/"
 homepage = "https://github.com/kaz399/rs_toio_core_cube/"
 
 [dependencies]
+futures = "0.3"
 async-trait = "0.1.53"
 thiserror = "1.0.30"
 env_logger = "0.9.0"

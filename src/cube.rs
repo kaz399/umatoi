@@ -1,11 +1,12 @@
 use async_trait::async_trait;
-use btleplug::api::{BDAddr, Characteristic, Peripheral as _, ScanFilter, WriteType};
+use btleplug::api::{BDAddr, Characteristic, Peripheral as _, ScanFilter, WriteType, CharPropFlags, ValueNotification};
 use btleplug::platform::Peripheral;
 use log::{debug, error, info};
 use std::collections::HashMap;
 use std::error::Error;
 use std::time::Duration;
 use thiserror::Error;
+use futures::stream::StreamExt;
 use uuid::Uuid;
 
 use crate::ble::BleInterface;
@@ -23,6 +24,18 @@ pub const TOIO_UUID_LIGHT_CTRL: Uuid = Uuid::from_u128(0x10B20103_5B3B_4571_9508
 pub const TOIO_UUID_SOUND_CTRL: Uuid = Uuid::from_u128(0x10B20104_5B3B_4571_9508_CF3EFCD7BBAE);
 pub const TOIO_UUID_CONFIG: Uuid = Uuid::from_u128(0x10B201FF_5B3B_4571_9508_CF3EFCD7BBAE);
 
+const CORE_CUBE_SERVICE_LIST: [Uuid; 9] = [
+    TOIO_UUID_SERVICE,
+    TOIO_UUID_ID_INFO,
+    TOIO_UUID_SENSOR_INFO,
+    TOIO_UUID_BUTTON_INFO,
+    TOIO_UUID_BATTERY_INFO,
+    TOIO_UUID_MOTOR_CTRL,
+    TOIO_UUID_LIGHT_CTRL,
+    TOIO_UUID_SOUND_CTRL,
+    TOIO_UUID_CONFIG,
+];
+
 #[derive(Error, Debug, PartialEq)]
 pub enum CoreCubeError {
     #[error("toio core cube is not found")]
@@ -34,51 +47,79 @@ pub enum CoreCubeError {
 }
 
 pub struct CoreCube {
+    pub id: Uuid,
     pub local_name: Option<String>,
     pub address: Option<BDAddr>,
     ble_peripheral: Option<Peripheral>,
     ble_characteristics: HashMap<Uuid, Characteristic>,
-    notify_handlers: HashMap<Uuid, NotifyManager<Uuid, NotifyFunction>>,
+    notify_enabled: Vec<Uuid>,
+    notify_manager: NotifyManager<Uuid, NotifyFunction>,
 }
 
-impl CoreCube {
-    pub fn new() -> Self {
+impl Default for CoreCube {
+    fn default() -> Self {
         Self {
+            id: Uuid::new_v4(),
             local_name: None,
             address: None,
             ble_peripheral: None,
             ble_characteristics: HashMap::new(),
-            notify_handlers: HashMap::new(),
+            notify_enabled: Vec::new(),
+            notify_manager: NotifyManager::new(),
         }
+    }
+}
+
+impl CoreCube {
+    pub fn new() -> Self {
+        CoreCube::default()
     }
 
     pub fn new_with_name(name: String) -> Self {
         Self {
+            id: Uuid::new_v4(),
             local_name: Some(name),
             address: None,
             ble_peripheral: None,
             ble_characteristics: HashMap::new(),
-            notify_handlers: HashMap::new(),
+            notify_enabled: Vec::new(),
+            notify_manager: NotifyManager::new(),
         }
     }
 
     pub fn new_with_address(addr: BDAddr) -> Self {
         Self {
+            id: Uuid::new_v4(),
             local_name: None,
             address: Some(addr),
             ble_peripheral: None,
             ble_characteristics: HashMap::new(),
-            notify_handlers: HashMap::new(),
+            notify_enabled: Vec::new(),
+            notify_manager: NotifyManager::new(),
         }
     }
 
     pub fn new_with_name_address(name: String, addr: BDAddr) -> Self {
         Self {
+            id: Uuid::new_v4(),
             local_name: Some(name),
             address: Some(addr),
             ble_peripheral: None,
             ble_characteristics: HashMap::new(),
-            notify_handlers: HashMap::new(),
+            notify_enabled: Vec::new(),
+            notify_manager: NotifyManager::new(),
+        }
+    }
+
+    pub async fn receive_notify(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+        if let Some(ble) = &self.ble_peripheral {
+            let mut notification_stream = ble.notifications().await?.take(1);
+            if let Some(data) = notification_stream.next().await {
+                self.notify_manager.invoke_all_handlers(data.value)?;
+            }
+            Ok(())
+        } else {
+            Err(Box::new(CoreCubeError::NoBlePeripherals))
         }
     }
 }
@@ -89,11 +130,16 @@ impl BleInterface for CoreCube {
         if let Some(ble) = &self.ble_peripheral {
             ble.connect().await?;
             let is_connected = ble.is_connected().await?;
-            assert_eq!(is_connected, true);
+            assert!(is_connected);
             ble.discover_services().await?;
             for service in ble.services() {
                 for characteristic in service.characteristics {
                     println!("characteristic uuid: {:?}", characteristic.uuid);
+                    if characteristic.properties.contains(CharPropFlags::NOTIFY) {
+                        self.notify_enabled.push(characteristic.uuid);
+                        debug!("enable notify uuid: {:?}", characteristic.uuid);
+                        ble.subscribe(&characteristic).await?;
+                    }
                     self.ble_characteristics
                         .insert(characteristic.uuid, characteristic);
                 }
@@ -106,9 +152,13 @@ impl BleInterface for CoreCube {
 
     async fn disconnect(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         if let Some(ble) = &self.ble_peripheral {
+            for notified in &self.notify_enabled {
+                debug!("disable notify uuid: {:?}", notified);
+                ble.unsubscribe(&self.ble_characteristics[notified]).await?;
+            }
             ble.disconnect().await?;
             let is_connected = ble.is_connected().await?;
-            assert_eq!(is_connected, false);
+            assert!(is_connected);
             self.ble_characteristics.clear();
             Ok(())
         } else {
@@ -126,11 +176,10 @@ impl BleInterface for CoreCube {
         }
     }
 
-    // write data to specified characteristic
     async fn write(
         &self,
         uuid: Uuid,
-        bytes: &Vec<u8>,
+        bytes: &[u8],
     ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
         if let Some(ble) = &self.ble_peripheral {
             let characteristic = self.ble_characteristics.get(&uuid).unwrap();
@@ -156,11 +205,6 @@ impl BleInterface for CoreCube {
     }
 }
 
-impl Drop for CoreCube {
-    fn drop(&mut self) {
-        debug!("Drop: CoreCube");
-    }
-}
 
 pub async fn search_cube(
     cube: &mut CoreCube,
@@ -205,7 +249,7 @@ pub async fn search_cube(
                 }
             }
             cube.local_name = Some(device_local_name.clone());
-            cube.address = Some(device_address.clone());
+            cube.address = Some(device_address);
             cube.ble_peripheral = Some(peripheral);
             info!(
                 "found toio core cube: local_name: {}, addr: {}",
@@ -284,14 +328,8 @@ mod tests {
             BDAddr::from([0xc1, 0xd5, 0x19, 0x31, 0x5f, 0xce]),
         );
         let result = search_cube(&mut cube2, Duration::from_secs(3)).await;
-        match result {
-            Ok(_) => panic!(),
-            Err(_) => (),
-        }
+        if result.is_ok() { panic!(); }
         let result = cube2.connect().await;
-        match result {
-            Ok(_) => panic!(),
-            Err(_) => (),
-        }
+        if result.is_ok() { panic!(); }
     }
 }

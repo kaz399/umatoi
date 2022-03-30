@@ -17,7 +17,7 @@ pub trait BleInterface {
     async fn write(
         &self,
         uuid: Uuid,
-        bytes: &Vec<u8>,
+        bytes: &[u8],
     ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>>;
 
     // register handler function to specified notify

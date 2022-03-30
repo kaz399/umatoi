@@ -23,13 +23,19 @@ pub enum NotifyManagerError {
     FoundBug,
 }
 
-impl NotifyManager<uuid::Uuid, NotifyFunction> {
-    /// create
-    pub fn new() -> Self {
+impl Default for NotifyManager<uuid::Uuid, NotifyFunction> {
+    fn default() -> Self {
         Self {
             order: Vec::new(),
             handlers: HashMap::new(),
         }
+    }
+}
+
+impl NotifyManager<uuid::Uuid, NotifyFunction> {
+    /// create
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// register notify handler
@@ -40,8 +46,8 @@ impl NotifyManager<uuid::Uuid, NotifyFunction> {
         let id = Uuid::new_v4();
         debug!("uuid: {}", id);
         if !self.order.contains(&id) {
-            self.order.push(id.clone());
-            self.handlers.insert(id.clone(), func);
+            self.order.push(id);
+            self.handlers.insert(id, func);
             Ok(id)
         } else {
             Err(NotifyManagerError::HandlerNameIsUsed(id).into())

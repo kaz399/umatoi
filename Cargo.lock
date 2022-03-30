@@ -813,6 +813,7 @@ dependencies = [
  "clap",
  "ctrlc",
  "env_logger",
+ "futures",
  "lazy_static",
  "log",
  "rand",

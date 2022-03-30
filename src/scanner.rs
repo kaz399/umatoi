@@ -34,7 +34,7 @@ pub async fn scan_example(
                 let local_name = properties
                     .unwrap()
                     .local_name
-                    .unwrap_or(String::from("(peripheral name unknown)"));
+                    .unwrap_or_else(|| String::from("(peripheral name unknown)"));
                 println!(
                     "Peripheral {:?} is connected {:?}",
                     local_name, is_connected
