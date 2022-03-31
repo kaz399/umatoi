@@ -2,10 +2,10 @@ use async_trait::async_trait;
 use std::error::Error;
 use uuid::Uuid;
 
-use crate::handler::NotifyFunction;
-
 #[async_trait]
 pub trait BleInterface {
+    type NotifyHandler;
+
     async fn connect(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
 
     async fn disconnect(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
@@ -22,8 +22,13 @@ pub trait BleInterface {
 
     // register handler function to specified notify
     async fn register_notify_handler(
-        &self,
-        uuid: Uuid,
-        func: NotifyFunction,
+        &mut self,
+        func: Self::NotifyHandler,
+    ) -> Result<uuid::Uuid, Box<dyn Error + Send + Sync + 'static>>;
+
+    // register handler function to specified notify
+    async fn unregister_notify_handler(
+        &mut self,
+        id_handler: Uuid,
     ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>>;
 }

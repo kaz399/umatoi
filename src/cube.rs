@@ -1,16 +1,21 @@
 use async_trait::async_trait;
-use btleplug::api::{BDAddr, Characteristic, Peripheral as _, ScanFilter, WriteType, CharPropFlags, ValueNotification};
+use btleplug::api::{
+    BDAddr, CharPropFlags, Characteristic, Peripheral as _, ScanFilter, ValueNotification,
+    WriteType,
+};
 use btleplug::platform::Peripheral;
+use futures;
+use futures::stream::StreamExt;
 use log::{debug, error, info};
 use std::collections::HashMap;
 use std::error::Error;
+use std::sync::mpsc;
 use std::time::Duration;
 use thiserror::Error;
-use futures::stream::StreamExt;
 use uuid::Uuid;
 
 use crate::ble::BleInterface;
-use crate::handler::{NotifyFunction, NotifyManager};
+use crate::handler::{HandlerFunction, NotifyManager};
 use crate::scanner;
 
 // UUIDs
@@ -24,7 +29,7 @@ pub const TOIO_UUID_LIGHT_CTRL: Uuid = Uuid::from_u128(0x10B20103_5B3B_4571_9508
 pub const TOIO_UUID_SOUND_CTRL: Uuid = Uuid::from_u128(0x10B20104_5B3B_4571_9508_CF3EFCD7BBAE);
 pub const TOIO_UUID_CONFIG: Uuid = Uuid::from_u128(0x10B201FF_5B3B_4571_9508_CF3EFCD7BBAE);
 
-const CORE_CUBE_SERVICE_LIST: [Uuid; 9] = [
+pub const CORE_CUBE_SERVICE_LIST: [Uuid; 9] = [
     TOIO_UUID_SERVICE,
     TOIO_UUID_ID_INFO,
     TOIO_UUID_SENSOR_INFO,
@@ -35,6 +40,12 @@ const CORE_CUBE_SERVICE_LIST: [Uuid; 9] = [
     TOIO_UUID_SOUND_CTRL,
     TOIO_UUID_CONFIG,
 ];
+
+pub enum CoreCubeNotifyControl {
+    Run,
+    Pause,
+    Quit,
+}
 
 #[derive(Error, Debug, PartialEq)]
 pub enum CoreCubeError {
@@ -53,7 +64,7 @@ pub struct CoreCube {
     ble_peripheral: Option<Peripheral>,
     ble_characteristics: HashMap<Uuid, Characteristic>,
     notify_enabled: Vec<Uuid>,
-    notify_manager: NotifyManager<Uuid, NotifyFunction>,
+    root_notify_manager: NotifyManager<ValueNotification>,
 }
 
 impl Default for CoreCube {
@@ -65,12 +76,12 @@ impl Default for CoreCube {
             ble_peripheral: None,
             ble_characteristics: HashMap::new(),
             notify_enabled: Vec::new(),
-            notify_manager: NotifyManager::new(),
+            root_notify_manager: NotifyManager::new(),
         }
     }
 }
 
-impl CoreCube {
+impl<'a> CoreCube {
     pub fn new() -> Self {
         CoreCube::default()
     }
@@ -83,7 +94,7 @@ impl CoreCube {
             ble_peripheral: None,
             ble_characteristics: HashMap::new(),
             notify_enabled: Vec::new(),
-            notify_manager: NotifyManager::new(),
+            root_notify_manager: NotifyManager::new(),
         }
     }
 
@@ -95,7 +106,7 @@ impl CoreCube {
             ble_peripheral: None,
             ble_characteristics: HashMap::new(),
             notify_enabled: Vec::new(),
-            notify_manager: NotifyManager::new(),
+            root_notify_manager: NotifyManager::new(),
         }
     }
 
@@ -107,7 +118,7 @@ impl CoreCube {
             ble_peripheral: None,
             ble_characteristics: HashMap::new(),
             notify_enabled: Vec::new(),
-            notify_manager: NotifyManager::new(),
+            root_notify_manager: NotifyManager::new(),
         }
     }
 
@@ -115,8 +126,31 @@ impl CoreCube {
         if let Some(ble) = &self.ble_peripheral {
             let mut notification_stream = ble.notifications().await?.take(1);
             if let Some(data) = notification_stream.next().await {
-                self.notify_manager.invoke_all_handlers(data.value)?;
+                self.root_notify_manager.invoke_all_handlers(data)?;
             }
+            Ok(())
+        } else {
+            Err(Box::new(CoreCubeError::NoBlePeripherals))
+        }
+    }
+
+    pub async fn run_notify_receiver(
+        &self,
+        rx: mpsc::Receiver<CoreCubeNotifyControl>,
+    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+        if let Some(ble) = &self.ble_peripheral {
+            let mut notification_stream = ble.notifications().await?;
+            while let Some(data) = notification_stream.next().await {
+                if let Ok(ctrl) = rx.try_recv() {
+                    match ctrl {
+                        CoreCubeNotifyControl::Quit => break,
+                        CoreCubeNotifyControl::Pause => continue,
+                        _ => (),
+                    }
+                }
+                self.root_notify_manager.invoke_all_handlers(data)?;
+            }
+            debug!("stop notify receiver");
             Ok(())
         } else {
             Err(Box::new(CoreCubeError::NoBlePeripherals))
@@ -126,6 +160,8 @@ impl CoreCube {
 
 #[async_trait]
 impl BleInterface for CoreCube {
+    type NotifyHandler = HandlerFunction<ValueNotification>;
+
     async fn connect(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         if let Some(ble) = &self.ble_peripheral {
             ble.connect().await?;
@@ -134,7 +170,7 @@ impl BleInterface for CoreCube {
             ble.discover_services().await?;
             for service in ble.services() {
                 for characteristic in service.characteristics {
-                    println!("characteristic uuid: {:?}", characteristic.uuid);
+                    //println!("characteristic uuid: {:?}", characteristic.uuid);
                     if characteristic.properties.contains(CharPropFlags::NOTIFY) {
                         self.notify_enabled.push(characteristic.uuid);
                         debug!("enable notify uuid: {:?}", characteristic.uuid);
@@ -192,19 +228,21 @@ impl BleInterface for CoreCube {
     }
 
     async fn register_notify_handler(
-        &self,
-        uuid: Uuid,
-        func: NotifyFunction,
+        &mut self,
+        func: Self::NotifyHandler,
+    ) -> Result<Uuid, Box<dyn Error + Send + Sync + 'static>> {
+        let id_handler = self.root_notify_manager.register(func)?;
+        Ok(id_handler)
+    }
+
+    async fn unregister_notify_handler(
+        &mut self,
+        id_handler: Uuid,
     ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
-        if let Some(ble) = &self.ble_peripheral {
-            let characteristic = self.ble_characteristics.get(&uuid).unwrap();
-            Ok(true)
-        } else {
-            Err(Box::new(CoreCubeError::NoBlePeripherals))
-        }
+        self.root_notify_manager.unregister(id_handler)?;
+        Ok(true)
     }
 }
-
 
 pub async fn search_cube(
     cube: &mut CoreCube,
@@ -265,9 +303,18 @@ pub async fn search_cube(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Duration;
+    use tokio::time;
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
+    }
+
+    fn notify_handler(data: ValueNotification) {
+        println!(
+            "notify handler1: uuid: {:?} value: {:?}",
+            data.uuid, data.value
+        );
     }
 
     #[tokio::test]
@@ -328,8 +375,54 @@ mod tests {
             BDAddr::from([0xc1, 0xd5, 0x19, 0x31, 0x5f, 0xce]),
         );
         let result = search_cube(&mut cube2, Duration::from_secs(3)).await;
-        if result.is_ok() { panic!(); }
+        if result.is_ok() {
+            panic!();
+        }
         let result = cube2.connect().await;
-        if result.is_ok() { panic!(); }
+        if result.is_ok() {
+            panic!();
+        }
+    }
+
+    #[tokio::test]
+    async fn cube_notify1() {
+        _setup();
+        let (tx, rx) = mpsc::channel::<CoreCubeNotifyControl>();
+        let mut cube = CoreCube::new();
+
+        search_cube(&mut cube, Duration::from_secs(3))
+            .await
+            .unwrap();
+
+        cube.connect().await.unwrap();
+        let handler_uuid = cube
+            .register_notify_handler(Box::new(&notify_handler))
+            .await
+            .unwrap();
+        info!("handler uuid {:?}", handler_uuid);
+
+        let data: ValueNotification = ValueNotification {
+            uuid: Uuid::new_v4(),
+            value: [1, 2, 3].to_vec(),
+        };
+        cube.root_notify_manager.invoke_all_handlers(data).unwrap();
+
+        //cube.receive_notify().await.unwrap();
+
+        let notify_receiver = cube.run_notify_receiver(rx);
+        let timer = async {
+            tx.send(CoreCubeNotifyControl::Run).unwrap();
+            time::sleep(Duration::from_secs(8)).await;
+            tx.send(CoreCubeNotifyControl::Quit).unwrap();
+        };
+
+        let _ = tokio::join!(notify_receiver, timer);
+
+        if cube.unregister_notify_handler(handler_uuid).await.is_err() {
+            panic!();
+        }
+        if cube.disconnect().await.is_err() {
+            panic!()
+        }
     }
 }

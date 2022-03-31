@@ -4,13 +4,11 @@ use std::error::Error;
 use thiserror::Error;
 use uuid::Uuid;
 
-pub type NotifyDataType = u8;
-pub type NotifyDataVec = Vec<NotifyDataType>;
-pub type NotifyFunction = Box<dyn FnMut(NotifyDataVec) + Send + Sync + 'static>;
+pub type HandlerFunction<T> = Box<dyn Fn(T) + Send + Sync + 'static>;
 
-pub struct NotifyManager<K, F> {
-    order: Vec<K>,
-    pub handlers: HashMap<K, F>,
+pub struct NotifyManager<T> {
+    order: Vec<uuid::Uuid>,
+    pub handlers: HashMap<uuid::Uuid, HandlerFunction<T>>,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -23,7 +21,7 @@ pub enum NotifyManagerError {
     FoundBug,
 }
 
-impl Default for NotifyManager<uuid::Uuid, NotifyFunction> {
+impl<T> Default for NotifyManager<T> {
     fn default() -> Self {
         Self {
             order: Vec::new(),
@@ -32,16 +30,18 @@ impl Default for NotifyManager<uuid::Uuid, NotifyFunction> {
     }
 }
 
-impl NotifyManager<uuid::Uuid, NotifyFunction> {
-    /// create
+impl<T> NotifyManager<T>
+where
+    T: Clone + Send + Sync,
+{
     pub fn new() -> Self {
-        Self::default()
+        NotifyManager::default()
     }
 
     /// register notify handler
     pub fn register(
         &mut self,
-        func: NotifyFunction,
+        func: HandlerFunction<T>,
     ) -> Result<uuid::Uuid, Box<dyn Error + Send + Sync + 'static>> {
         let id = Uuid::new_v4();
         debug!("uuid: {}", id);
@@ -71,12 +71,12 @@ impl NotifyManager<uuid::Uuid, NotifyFunction> {
 
     /// invoke all handlers
     pub fn invoke_all_handlers(
-        &mut self,
-        data: NotifyDataVec,
+        &self,
+        data: T,
     ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
         for id in self.order.iter() {
             debug!("invoke handler {}", id);
-            if let Some(handler) = self.handlers.get_mut(id) {
+            if let Some(handler) = self.handlers.get(id) {
                 handler(data.clone());
             } else {
                 return Err(NotifyManagerError::FoundBug.into());
@@ -90,31 +90,31 @@ impl NotifyManager<uuid::Uuid, NotifyFunction> {
 mod tests {
     use super::*;
 
-    const NOTIF_DATA_ARRAY: [NotifyDataType; 9] = [1, 2, 3, 4, 5, 66, 77, 88, 99];
+    const NOTIF_DATA_ARRAY: [u8; 9] = [1, 2, 3, 4, 5, 66, 77, 88, 99];
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
     }
 
-    fn func1(data: NotifyDataVec) {
+    fn func1(data: Vec<u8>) {
         println!("func 1 {:?}", data);
-        assert_eq!(NOTIF_DATA_ARRAY.to_vec(), data);
+        assert_eq!(NOTIF_DATA_ARRAY.to_vec(), *data);
     }
 
-    fn func2(data: NotifyDataVec) {
+    fn func2(data: Vec<u8>) {
         println!("func 2 {:?}", data);
-        assert_eq!(NOTIF_DATA_ARRAY.to_vec(), data);
+        assert_eq!(NOTIF_DATA_ARRAY.to_vec(), *data);
     }
 
-    fn func3(data: NotifyDataVec) {
+    fn func3(data: Vec<u8>) {
         println!("func 3 {:?}", data);
-        assert_eq!(NOTIF_DATA_ARRAY.to_vec(), data);
+        assert_eq!(NOTIF_DATA_ARRAY.to_vec(), *data);
     }
 
     #[test]
     fn notify_manager_register() {
         _setup();
-        let mut notify_manager = NotifyManager::new();
+        let mut notify_manager: NotifyManager<Vec<u8>> = NotifyManager::new();
 
         let _handler1 = notify_manager.register(Box::new(&func1)).unwrap();
         let _handler2 = notify_manager.register(Box::new(&func2)).unwrap();
@@ -126,7 +126,7 @@ mod tests {
     #[test]
     fn notify_manager_unregister1() {
         _setup();
-        let mut notify_manager = NotifyManager::new();
+        let mut notify_manager: NotifyManager<Vec<u8>> = NotifyManager::new();
 
         let handler1 = notify_manager.register(Box::new(&func1)).unwrap();
         let handler2 = notify_manager.register(Box::new(&func2)).unwrap();
@@ -144,7 +144,7 @@ mod tests {
     #[test]
     fn notify_manager_unregister2() {
         _setup();
-        let mut notify_manager = NotifyManager::new();
+        let mut notify_manager: NotifyManager<Vec<u8>> = NotifyManager::new();
 
         let handler1 = notify_manager.register(Box::new(&func1)).unwrap();
         let handler2 = notify_manager.register(Box::new(&func2)).unwrap();
@@ -162,7 +162,7 @@ mod tests {
     #[test]
     fn notify_manager_invoke() {
         _setup();
-        let mut notify_manager = NotifyManager::new();
+        let mut notify_manager: NotifyManager<Vec<u8>> = NotifyManager::new();
 
         let handler1 = notify_manager.register(Box::new(&func1)).unwrap();
         let handler2 = notify_manager.register(Box::new(&func2)).unwrap();
@@ -170,7 +170,8 @@ mod tests {
 
         assert_eq!(notify_manager.handlers.len(), 3);
 
-        let result = notify_manager.invoke_all_handlers(NOTIF_DATA_ARRAY.to_vec());
+        let data = Vec::from(NOTIF_DATA_ARRAY);
+        let result = notify_manager.invoke_all_handlers(data);
         assert!(result.is_ok());
 
         notify_manager.unregister(handler1).unwrap();
