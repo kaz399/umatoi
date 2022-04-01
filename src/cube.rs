@@ -6,7 +6,7 @@ use btleplug::api::{
 use btleplug::platform::Peripheral;
 use futures;
 use futures::stream::StreamExt;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::mpsc;
@@ -384,6 +384,10 @@ mod tests {
         if result.is_ok() {
             panic!();
         }
+        if cube.disconnect().await.is_err() {
+            panic!()
+        }
+        drop(cube);
     }
 
     #[tokio::test]
@@ -426,5 +430,9 @@ mod tests {
         if cube.disconnect().await.is_err() {
             panic!()
         }
+        drop(cube);
+
+        // wait to complete the disconnection process of the cube
+        time::sleep(Duration::from_secs(5)).await;
     }
 }
