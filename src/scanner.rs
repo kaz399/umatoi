@@ -100,6 +100,7 @@ pub async fn scan(
         println!("Starting scan on {}...", adapter.adapter_info().await?);
         adapter.start_scan(filter.clone()).await?;
         time::sleep(wait).await;
+        adapter.stop_scan().await?;
         peripheral_list.extend(adapter.peripherals().await?);
     }
     for (index, peripheral) in peripheral_list.iter().enumerate() {
