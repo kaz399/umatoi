@@ -277,7 +277,9 @@ pub async fn search_cube(
                     continue;
                 }
             }
-            if let Some(cube_address) = &cube.address {
+            if cfg!(target_os = "macos") {
+                warn!("scanning cube with BDAddress is not supported on MacOS");
+            } else if let Some(cube_address) = &cube.address {
                 if device_address != *cube_address {
                     debug!(
                         "address does not match (device:{}, specifiled:{})",
