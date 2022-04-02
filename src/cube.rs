@@ -193,8 +193,11 @@ impl BleInterface for CoreCube {
                 ble.unsubscribe(&self.ble_characteristics[notified]).await?;
             }
             ble.disconnect().await?;
-            let is_connected = ble.is_connected().await?;
-            assert!(is_connected);
+            // windows: is_connected is not turned off when device disconnect.
+            if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
+                let is_connected = ble.is_connected().await?;
+                assert!(!is_connected);
+            }
             self.ble_characteristics.clear();
             Ok(())
         } else {
