@@ -11,7 +11,6 @@ const TOIO_UUID_LIGHT_CTRL: Uuid = Uuid::from_u128(0x10B20103_5B3B_4571_9508_CF3
 const TOIO_UUID_SOUND_CTRL: Uuid = Uuid::from_u128(0x10B20104_5B3B_4571_9508_CF3EFCD7BBAE);
 const TOIO_UUID_CONFIG: Uuid = Uuid::from_u128(0x10B201FF_5B3B_4571_9508_CF3EFCD7BBAE);
 
-
 pub enum CoreCubeUuid {
     Service,
     IdInfo,
@@ -62,8 +61,11 @@ mod test {
     fn uuid_1() {
         let uuid_service = CoreCubeUuid::Service;
         println!("{}", CoreCubeUuid::Service.name());
-        println!("name: '{}', uuid: {:?}", uuid_service.name(), uuid_service.uuid());
+        println!(
+            "name: '{}', uuid: {:?}",
+            uuid_service.name(),
+            uuid_service.uuid()
+        );
         assert_eq!("Service", uuid_service.name());
     }
 }
-

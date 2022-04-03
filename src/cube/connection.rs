@@ -15,9 +15,9 @@ use thiserror::Error;
 use uuid::Uuid;
 
 use crate::ble::BleInterface;
+use crate::cube::uuid::CoreCubeUuid;
 use crate::handler::{HandlerFunction, NotifyManager};
 use crate::scanner;
-use crate::cube::uuid::CoreCubeUuid;
 
 pub enum CoreCubeNotifyControl {
     Run,
