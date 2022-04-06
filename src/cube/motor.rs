@@ -1,12 +1,14 @@
 //! https://toio.github.io/toio-spec/en/docs/ble_motor
 
 use crate::cube::connection::CoreCube;
-use crate::position::MatPosition;
+use crate::position::{Point, MatPosition};
 use log::debug;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::error::Error;
 use std::time;
 use thiserror::Error;
+
+/// Errors
 
 #[derive(Error, Debug, PartialEq)]
 pub enum MotorError {
@@ -16,34 +18,13 @@ pub enum MotorError {
     FoundBug,
 }
 
+/// Response type
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ResponseType {
     SingleMotorControl,
     MultipleMotorControl,
     CubeSpeed,
-}
-
-/// Control command
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-enum MotorCommand {
-    Run,
-    Period,
-    TargetPosition,
-    MultlTargetPositions,
-    Acceleration,
-}
-
-impl MotorCommand {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            MotorCommand::Run => Some(1u8),
-            MotorCommand::Period => Some(2u8),
-            MotorCommand::TargetPosition => Some(3u8),
-            MotorCommand::MultlTargetPositions => Some(4u8),
-            MotorCommand::Acceleration => Some(5u8),
-        }
-    }
 }
 
 /// Response code from cube
@@ -87,6 +68,39 @@ impl ResponseCode {
             7 => ResponseCode::ErrorNotSupported,
             8 => ResponseCode::ErrorFailToAppend,
             _ => ResponseCode::Undefined,
+        }
+    }
+}
+
+/// Response/Notify data from cube
+
+#[derive(Debug, Copy, Clone)]
+pub struct MotorInfo {
+    pub time: time::Instant,
+    pub response_type: ResponseType,
+    pub id: usize,
+    pub response_code: ResponseCode,
+}
+
+/// Control command
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+enum MotorCommand {
+    Run,
+    Period,
+    TargetPosition,
+    MultlTargetPositions,
+    Acceleration,
+}
+
+impl MotorCommand {
+    pub fn to_binary(self) -> Option<u8> {
+        match self {
+            MotorCommand::Run => Some(1u8),
+            MotorCommand::Period => Some(2u8),
+            MotorCommand::TargetPosition => Some(3u8),
+            MotorCommand::MultlTargetPositions => Some(4u8),
+            MotorCommand::Acceleration => Some(5u8),
         }
     }
 }
@@ -145,7 +159,9 @@ impl Direction {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+/// Period for running
+
+#[derive(Serialize, Debug)]
 pub enum RunningPeriod {
     Forever,
     Period(time::Duration),
@@ -177,24 +193,71 @@ impl RunningPeriod {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-pub struct MotorInfo {
-    pub time: time::Instant,
-    pub response_type: ResponseType,
-    pub id: usize,
-    pub response_code: ResponseCode,
+/// Movement type
+
+#[derive(Serialize, Debug)]
+pub enum MovementType {
+    Curve,
+    CuverWithoutReverse,
+    Liner,
 }
 
-/// Moving parameter of a motor
+impl MovementType {
+    pub fn to_binary(self) -> Option<u8> {
+        match self {
+            MovementType::Curve => Some(0u8),
+            MovementType::CuverWithoutReverse => Some(1u8),
+            MovementType::Liner => Some(2u8),
+        }
+    }
+}
 
-#[derive(Serialize, Deserialize, Debug)]
-struct MovingParameter {
+/// Speed change type
+
+#[derive(Serialize, Debug)]
+pub enum SpeedChangeType {
+    Constant,
+    Acceleration,
+    Deceleration,
+    AccelerationAndDeceleration,
+}
+
+impl SpeedChangeType {
+    pub fn to_binary(self) -> Option<u8> {
+        match self {
+            SpeedChangeType::Constant => Some(0u8),
+            SpeedChangeType::Acceleration => Some(1u8),
+            SpeedChangeType::Deceleration => Some(2u8),
+            SpeedChangeType::AccelerationAndDeceleration => Some(3u8),
+        }
+    }
+}
+
+/// Timeout
+
+#[derive(Serialize, Debug)]
+pub enum Timeout {
+    Second(u8),
+}
+
+impl Timeout {
+    pub fn to_binary(self) -> Option<u8> {
+        match self {
+            Timeout::Second(t) => Some(t),
+        }
+    }
+}
+
+/// Motor drive parameter
+
+#[derive(Serialize, Debug)]
+struct MotorDriveParameter {
     id: u8,
     direction: u8,
     speed: u8,
 }
 
-impl MovingParameter {
+impl MotorDriveParameter {
     pub fn new(
         motor_id: MotorId,
         value: i16,
@@ -222,32 +285,49 @@ impl MovingParameter {
 
 /// Binary parameter representation of https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 struct MotorControl {
     command: u8,
-    left: MovingParameter,
-    right: MovingParameter,
+    left: MotorDriveParameter,
+    right: MotorDriveParameter,
 }
 
 /// Binary parameter representation of https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-specified-duration
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 struct MotorControlPeriod {
     command: u8,
-    left: MovingParameter,
-    right: MovingParameter,
+    left: MotorDriveParameter,
+    right: MotorDriveParameter,
     period: u8,
 }
 
-pub trait MotorControlData {
-    fn bincode_run(
+/// Binary parameter representation of https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified
+
+#[derive(Serialize, Debug)]
+struct MotorControlTarget {
+    command: u8,
+    id: u8,
+    timeout: u8,
+    movement_type: u8,
+    max_speed: u8,
+    speed_change_type: SpeedChangeType,
+    _reserved_1: u8,
+    target_point: Point,
+    angle: u16,
+}
+
+
+
+pub trait MotorBleData {
+    fn encode_run(
         &self,
         left: i16,
         right: i16,
         duration: RunningPeriod,
-    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-        let left_param = MovingParameter::new(MotorId::Left, left)?;
-        let right_param = MovingParameter::new(MotorId::Right, right)?;
+    ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
+        let left_param = MotorDriveParameter::new(MotorId::Left, left)?;
+        let right_param = MotorDriveParameter::new(MotorId::Right, right)?;
         let control_data = match duration {
             RunningPeriod::Forever => bincode::serialize(&MotorControl {
                 command: MotorCommand::Run.to_binary().unwrap(),
@@ -267,20 +347,36 @@ pub trait MotorControlData {
             }
         };
         println!("byte code: {:?}", control_data);
-        Ok(())
+        Ok(control_data)
     }
 
-    fn bincode_run_to_target_position(
+    fn encode_run_to_target_position(
         &self,
-        left: i16,
-        right: i16,
-        target: MatPosition,
-    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-        Ok(())
+        timeout: Timeout,
+        movement_type: MovementType,
+        max_speed: u8,
+        speed_change_type: SpeedChangeType,
+        position: MatPosition,
+        angle: u16,
+    ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
+        let control_data = bincode::serialize(&MotorControlTarget {
+            command: MotorCommand::TargetPosition.to_binary().unwrap(),
+            id: 0xbb,
+            timeout: timeout.to_binary().unwrap(),
+            movement_type: movement_type.to_binary().unwrap(),
+            max_speed,
+            speed_change_type,
+            _reserved_1: 0xff,
+            target_point: position.absorite_point(),
+            angle,
+        })
+        .unwrap();
+        println!("byte code: {:?}", control_data);
+        Ok(control_data)
     }
 }
 
-pub trait Motor: MotorControlData {
+pub trait Motor: MotorBleData {
     fn run(
         &self,
         left: i16,
@@ -300,7 +396,7 @@ mod test {
     use super::*;
 
     struct MotorTest {}
-    impl MotorControlData for MotorTest {}
+    impl MotorBleData for MotorTest {}
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
@@ -311,17 +407,27 @@ mod test {
         _setup();
         let test1 = MotorTest {};
 
-        assert!(test1.bincode_run(10, 20, RunningPeriod::Forever).is_ok());
-        assert!(test1.bincode_run(-10, 20, RunningPeriod::Forever).is_ok());
-        assert!(test1.bincode_run(10, -20, RunningPeriod::Forever).is_ok());
+        assert!(test1.encode_run(10, 20, RunningPeriod::Forever).is_ok());
+        assert!(test1.encode_run(-10, 20, RunningPeriod::Forever).is_ok());
+        assert!(test1.encode_run(10, -20, RunningPeriod::Forever).is_ok());
         assert!(test1
-            .bincode_run(1000, -20, RunningPeriod::Forever)
+            .encode_run(1000, -20, RunningPeriod::Forever)
             .is_err());
         assert!(test1
-            .bincode_run(
+            .encode_run(
                 10,
                 -20,
                 RunningPeriod::Period(time::Duration::from_millis(200))
+            )
+            .is_ok());
+        assert!(test1
+            .encode_run_to_target_position(
+                Timeout::Second(10),
+                MovementType::Curve,
+                32,
+                SpeedChangeType::Acceleration,
+                MatPosition::default(),
+                50u16,
             )
             .is_ok());
     }

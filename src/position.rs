@@ -1,13 +1,12 @@
 //! https://toio.github.io/toio-spec/docs/hardware_position_id
 
+use serde::{Deserialize, Serialize};
 use std::ops::{Add, Sub};
 
-type FLOAT = f64;
-
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq)]
 pub struct Point {
-    pub x: FLOAT,
-    pub y: FLOAT,
+    pub x: u16,
+    pub y: u16,
 }
 
 impl Add for Point {
@@ -30,16 +29,16 @@ impl Sub for Point {
     }
 }
 
-impl Point {
-    pub fn origin() -> Self {
-        Self { x: 0.0, y: 0.0 }
-    }
-}
 
 impl Point {
-    pub fn distance(&self, p: &Self) -> FLOAT {
+    pub fn origin() -> Self {
+        Self { x: 0, y: 0 }
+    }
+
+    pub fn distance(&self, p: &Self) -> u16 {
         let pd = *self - *p;
-        ((pd.x * pd.x) + (pd.y * pd.y)).sqrt()
+        let square_f64 = ((pd.x * pd.x) + (pd.y * pd.y)) as f64;
+        square_f64.sqrt().round() as u16
     }
 }
 
@@ -51,6 +50,7 @@ pub struct MatRect {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ToioMat {
+    NoMat,
     ToioCollectionMatRing,
     ToioCollectionMatColoredTiles,
     PicotonsPlayMatFront,
@@ -64,57 +64,61 @@ pub enum ToioMat {
 impl ToioMat {
     pub fn rect(&self) -> MatRect {
         match self {
+            ToioMat::NoMat => MatRect {
+                top_left: Point { x:0, y:0 },
+                bottom_right: Point { x: u16::MAX, y: u16::MAX },
+            },
             ToioMat::ToioCollectionMatRing => MatRect {
-                top_left: Point { x: 45.0, y: 45.0 },
-                bottom_right: Point { x: 455.0, y: 455.0 },
+                top_left: Point { x: 45, y: 45 },
+                bottom_right: Point { x: 455, y: 455 },
             },
             ToioMat::ToioCollectionMatColoredTiles => MatRect {
-                top_left: Point { x: 545.0, y: 45.0 },
-                bottom_right: Point { x: 955.0, y: 455.0 },
+                top_left: Point { x: 545, y: 45 },
+                bottom_right: Point { x: 955, y: 455 },
             },
             ToioMat::PicotonsPlayMatFront => MatRect {
-                top_left: Point { x: 59.0, y: 2088.0 },
+                top_left: Point { x: 59, y: 2088 },
                 bottom_right: Point {
-                    x: 437.0,
-                    y: 2285.0,
+                    x: 437,
+                    y: 2285,
                 },
             },
             ToioMat::PicotonsPlayMatBack => MatRect {
-                top_left: Point { x: 59.0, y: 2303.0 },
+                top_left: Point { x: 59, y: 2303 },
                 bottom_right: Point {
-                    x: 437.0,
-                    y: 2499.0,
+                    x: 437,
+                    y: 2499,
                 },
             },
             ToioMat::PicotonsControlMat => MatRect {
                 top_left: Point {
-                    x: 764.0,
-                    y: 2093.0,
+                    x: 764,
+                    y: 2093,
                 },
                 bottom_right: Point {
-                    x: 953.0,
-                    y: 2290.0,
+                    x: 953,
+                    y: 2290,
                 },
             },
             ToioMat::PicotonsAutoplayMat => MatRect {
                 top_left: Point {
-                    x: 554.0,
-                    y: 2093.0,
+                    x: 554,
+                    y: 2093,
                 },
                 bottom_right: Point {
-                    x: 742.0,
-                    y: 2290.0,
+                    x: 742,
+                    y: 2290,
                 },
             },
             ToioMat::SimpleMat => MatRect {
-                top_left: Point { x: 98.0, y: 142.0 },
-                bottom_right: Point { x: 402.0, y: 358.0 },
+                top_left: Point { x: 98, y: 142 },
+                bottom_right: Point { x: 402, y: 358 },
             },
             ToioMat::GesundroidMat => MatRect {
-                top_left: Point { x: 1050.0, y: 45.0 },
+                top_left: Point { x: 1050, y: 45 },
                 bottom_right: Point {
-                    x: 1460.0,
-                    y: 455.0,
+                    x: 1460,
+                    y: 455,
                 },
             },
         }
@@ -130,12 +134,33 @@ impl Default for MatPosition {
     fn default() -> Self {
         Self {
             point: Point::origin(),
-            mat: ToioMat::ToioCollectionMatRing,
+            mat: ToioMat::NoMat,
         }
     }
 }
 
 impl MatPosition {
+    pub fn new_with_point(point: Point) -> Self {
+        Self {
+            point,
+            mat: ToioMat::NoMat,
+        }
+    }
+
+    pub fn new_with_mat(mat: ToioMat) -> Self {
+        Self {
+            point: Point::origin(),
+            mat,
+        }
+    }
+
+    pub fn new_with_point_mat(point: Point, mat: ToioMat) -> Self {
+        Self {
+            point,
+            mat,
+        }
+    }
+
     pub fn absorite_point(&self) -> Point {
         self.point + self.mat.rect().top_left
     }
@@ -147,15 +172,15 @@ mod test {
 
     #[test]
     fn position_1() {
-        let p1: Point = Point { x: 10.0, y: 20.0 };
-        let p2: Point = Point { x: 20.0, y: 40.0 };
+        let p1: Point = Point { x: 10, y: 20 };
+        let p2: Point = Point { x: 20, y: 40 };
         assert_eq!(p2 - p1, p1);
     }
 
     #[test]
     fn position_2() {
-        let p1: Point = Point { x: 10.0, y: 10.0 };
-        let p2: Point = Point { x: 20.0, y: 20.0 };
+        let p1: Point = Point { x: 10, y: 10 };
+        let p2: Point = Point { x: 20, y: 20 };
         let distance = p1.distance(&p2);
         println!("{}", distance);
         assert_eq!(p2 - p1, p1);
