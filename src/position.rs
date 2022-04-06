@@ -72,7 +72,7 @@ impl Add for CubeLocation {
                 } else {
                     new_angle
                 }
-            }
+            },
         }
     }
 }
@@ -88,11 +88,10 @@ impl Sub for CubeLocation {
                 } else {
                     360 + (self.angle % 360) - (p.angle % 360)
                 }
-            }
+            },
         }
     }
 }
-
 
 /// Mat size
 
@@ -119,8 +118,11 @@ impl ToioMat {
     pub fn rect(&self) -> MatRect {
         match self {
             ToioMat::NoMat => MatRect {
-                top_left: Point { x:0, y:0 },
-                bottom_right: Point { x: u16::MAX, y: u16::MAX },
+                top_left: Point { x: 0, y: 0 },
+                bottom_right: Point {
+                    x: u16::MAX,
+                    y: u16::MAX,
+                },
             },
             ToioMat::ToioCollectionMatRing => MatRect {
                 top_left: Point { x: 45, y: 45 },
@@ -132,37 +134,19 @@ impl ToioMat {
             },
             ToioMat::PicotonsPlayMatFront => MatRect {
                 top_left: Point { x: 59, y: 2088 },
-                bottom_right: Point {
-                    x: 437,
-                    y: 2285,
-                },
+                bottom_right: Point { x: 437, y: 2285 },
             },
             ToioMat::PicotonsPlayMatBack => MatRect {
                 top_left: Point { x: 59, y: 2303 },
-                bottom_right: Point {
-                    x: 437,
-                    y: 2499,
-                },
+                bottom_right: Point { x: 437, y: 2499 },
             },
             ToioMat::PicotonsControlMat => MatRect {
-                top_left: Point {
-                    x: 764,
-                    y: 2093,
-                },
-                bottom_right: Point {
-                    x: 953,
-                    y: 2290,
-                },
+                top_left: Point { x: 764, y: 2093 },
+                bottom_right: Point { x: 953, y: 2290 },
             },
             ToioMat::PicotonsAutoplayMat => MatRect {
-                top_left: Point {
-                    x: 554,
-                    y: 2093,
-                },
-                bottom_right: Point {
-                    x: 742,
-                    y: 2290,
-                },
+                top_left: Point { x: 554, y: 2093 },
+                bottom_right: Point { x: 742, y: 2290 },
             },
             ToioMat::SimpleMat => MatRect {
                 top_left: Point { x: 98, y: 142 },
@@ -170,10 +154,7 @@ impl ToioMat {
             },
             ToioMat::GesundroidMat => MatRect {
                 top_left: Point { x: 1050, y: 45 },
-                bottom_right: Point {
-                    x: 1460,
-                    y: 455,
-                },
+                bottom_right: Point { x: 1460, y: 455 },
             },
         }
     }

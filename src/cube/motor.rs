@@ -1,8 +1,6 @@
 //! https://toio.github.io/toio-spec/en/docs/ble_motor
 
-use crate::cube::connection::CoreCube;
-use crate::position::{Point, CubeLocation};
-use log::debug;
+use crate::position::{CubeLocation, Point};
 use serde::Serialize;
 use std::error::Error;
 use std::time;
@@ -319,7 +317,7 @@ struct MotorControlTargetPosition {
 /// Binary parameter representation of https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-multiple-targets-specified
 
 #[derive(Serialize, Debug)]
-struct MotorControlMultiTargetPositions {
+struct MotorControlMultiTargetPositionsHeader {
     command: u8,
     id: u8,
     timeout: u8,
@@ -327,7 +325,6 @@ struct MotorControlMultiTargetPositions {
     max_speed: u8,
     speed_change_type: SpeedChangeType,
     _reserved_1: u8,
-    cube_location: Vec<CubeLocation>,
 }
 
 pub trait MotorBleData {
@@ -392,7 +389,8 @@ pub trait MotorBleData {
         speed_change_type: SpeedChangeType,
         cube_location: Vec<CubeLocation>,
     ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
-        let control_data = bincode::serialize(&MotorControlMultiTargetPositions {
+        // create header part
+        let mut control_data = bincode::serialize(&MotorControlMultiTargetPositionsHeader {
             command: MotorCommand::MultlTargetPositions.to_binary().unwrap(),
             id: 0xcc,
             timeout: timeout.to_binary().unwrap(),
@@ -400,9 +398,12 @@ pub trait MotorBleData {
             max_speed,
             speed_change_type,
             _reserved_1: 0xff,
-            cube_location,
         })
         .unwrap();
+        // add body
+        for location in cube_location.iter() {
+            control_data.extend(bincode::serialize(location).unwrap());
+        }
         println!("byte code: {:?}", control_data);
         Ok(control_data)
     }
@@ -445,9 +446,7 @@ mod test {
         assert!(test1.encode_run(10, 20, RunningPeriod::Forever).is_ok());
         assert!(test1.encode_run(-10, 20, RunningPeriod::Forever).is_ok());
         assert!(test1.encode_run(10, -20, RunningPeriod::Forever).is_ok());
-        assert!(test1
-            .encode_run(1000, -20, RunningPeriod::Forever)
-            .is_err());
+        assert!(test1.encode_run(1000, -20, RunningPeriod::Forever).is_err());
         assert!(test1
             .encode_run(
                 10,
@@ -470,7 +469,11 @@ mod test {
                 MovementType::Curve,
                 32,
                 SpeedChangeType::Acceleration,
-                vec![CubeLocation::default(), CubeLocation::default(), CubeLocation::default()],
+                vec![
+                    CubeLocation::default(),
+                    CubeLocation::default(),
+                    CubeLocation::default()
+                ],
             )
             .is_ok());
     }
