@@ -1,7 +1,7 @@
 //! https://toio.github.io/toio-spec/en/docs/ble_motor
 
 use crate::cube::connection::CoreCube;
-use crate::position::{Point, MatPosition};
+use crate::position::{Point, CubeLocation};
 use log::debug;
 use serde::Serialize;
 use std::error::Error;
@@ -286,7 +286,7 @@ impl MotorDriveParameter {
 /// Binary parameter representation of https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control
 
 #[derive(Serialize, Debug)]
-struct MotorControl {
+struct MotorControlRun {
     command: u8,
     left: MotorDriveParameter,
     right: MotorDriveParameter,
@@ -305,7 +305,7 @@ struct MotorControlPeriod {
 /// Binary parameter representation of https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified
 
 #[derive(Serialize, Debug)]
-struct MotorControlTarget {
+struct MotorControlTargetPosition {
     command: u8,
     id: u8,
     timeout: u8,
@@ -313,11 +313,22 @@ struct MotorControlTarget {
     max_speed: u8,
     speed_change_type: SpeedChangeType,
     _reserved_1: u8,
-    target_point: Point,
-    angle: u16,
+    cube_location: CubeLocation,
 }
 
+/// Binary parameter representation of https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-multiple-targets-specified
 
+#[derive(Serialize, Debug)]
+struct MotorControlMultiTargetPositions {
+    command: u8,
+    id: u8,
+    timeout: u8,
+    movement_type: u8,
+    max_speed: u8,
+    speed_change_type: SpeedChangeType,
+    _reserved_1: u8,
+    cube_location: Vec<CubeLocation>,
+}
 
 pub trait MotorBleData {
     fn encode_run(
@@ -329,7 +340,7 @@ pub trait MotorBleData {
         let left_param = MotorDriveParameter::new(MotorId::Left, left)?;
         let right_param = MotorDriveParameter::new(MotorId::Right, right)?;
         let control_data = match duration {
-            RunningPeriod::Forever => bincode::serialize(&MotorControl {
+            RunningPeriod::Forever => bincode::serialize(&MotorControlRun {
                 command: MotorCommand::Run.to_binary().unwrap(),
                 left: left_param,
                 right: right_param,
@@ -356,19 +367,40 @@ pub trait MotorBleData {
         movement_type: MovementType,
         max_speed: u8,
         speed_change_type: SpeedChangeType,
-        position: MatPosition,
-        angle: u16,
+        cube_location: CubeLocation,
     ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
-        let control_data = bincode::serialize(&MotorControlTarget {
+        let control_data = bincode::serialize(&MotorControlTargetPosition {
             command: MotorCommand::TargetPosition.to_binary().unwrap(),
             id: 0xbb,
             timeout: timeout.to_binary().unwrap(),
             movement_type: movement_type.to_binary().unwrap(),
             max_speed,
             speed_change_type,
+            _reserved_1: 0xee,
+            cube_location,
+        })
+        .unwrap();
+        println!("byte code: {:?}", control_data);
+        Ok(control_data)
+    }
+
+    fn encode_run_to_multi_target_positions(
+        &self,
+        timeout: Timeout,
+        movement_type: MovementType,
+        max_speed: u8,
+        speed_change_type: SpeedChangeType,
+        cube_location: Vec<CubeLocation>,
+    ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
+        let control_data = bincode::serialize(&MotorControlMultiTargetPositions {
+            command: MotorCommand::MultlTargetPositions.to_binary().unwrap(),
+            id: 0xcc,
+            timeout: timeout.to_binary().unwrap(),
+            movement_type: movement_type.to_binary().unwrap(),
+            max_speed,
+            speed_change_type,
             _reserved_1: 0xff,
-            target_point: position.absorite_point(),
-            angle,
+            cube_location,
         })
         .unwrap();
         println!("byte code: {:?}", control_data);
@@ -383,12 +415,15 @@ pub trait Motor: MotorBleData {
         right: i16,
         duration: RunningPeriod,
     ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
-    fn run_to_target_position(
+
+    fn encode_run_to_target_position(
         &self,
-        left: i16,
-        right: i16,
-        target: MatPosition,
-    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
+        timeout: Timeout,
+        movement_type: MovementType,
+        max_speed: u8,
+        speed_change_type: SpeedChangeType,
+        cube_location: CubeLocation,
+    ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>>;
 }
 
 #[cfg(test)]
@@ -426,8 +461,16 @@ mod test {
                 MovementType::Curve,
                 32,
                 SpeedChangeType::Acceleration,
-                MatPosition::default(),
-                50u16,
+                CubeLocation::default(),
+            )
+            .is_ok());
+        assert!(test1
+            .encode_run_to_multi_target_positions(
+                Timeout::Second(10),
+                MovementType::Curve,
+                32,
+                SpeedChangeType::Acceleration,
+                vec![CubeLocation::default(), CubeLocation::default(), CubeLocation::default()],
             )
             .is_ok());
     }

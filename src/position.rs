@@ -3,6 +3,8 @@
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Sub};
 
+/// Point
+
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq)]
 pub struct Point {
     pub x: u16,
@@ -29,7 +31,6 @@ impl Sub for Point {
     }
 }
 
-
 impl Point {
     pub fn origin() -> Self {
         Self { x: 0, y: 0 }
@@ -41,6 +42,59 @@ impl Point {
         square_f64.sqrt().round() as u16
     }
 }
+
+/// Loation information of a cube
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq)]
+pub struct CubeLocation {
+    point: Point,
+    angle: u16,
+}
+
+impl Default for CubeLocation {
+    fn default() -> Self {
+        Self {
+            point: Point::origin(),
+            angle: 0,
+        }
+    }
+}
+
+impl Add for CubeLocation {
+    type Output = Self;
+    fn add(self, p: Self) -> Self {
+        Self {
+            point: self.point + p.point,
+            angle: {
+                let new_angle = self.angle + p.angle;
+                if new_angle > 360 {
+                    new_angle % 360
+                } else {
+                    new_angle
+                }
+            }
+        }
+    }
+}
+
+impl Sub for CubeLocation {
+    type Output = Self;
+    fn sub(self, p: Self) -> Self {
+        Self {
+            point: self.point - p.point,
+            angle: {
+                if (self.angle % 360) > (p.angle % 360) {
+                    (self.angle % 360) - (p.angle % 360)
+                } else {
+                    360 + (self.angle % 360) - (p.angle % 360)
+                }
+            }
+        }
+    }
+}
+
+
+/// Mat size
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct MatRect {
@@ -125,44 +179,66 @@ impl ToioMat {
     }
 }
 
-pub struct MatPosition {
-    point: Point,
+/// Cube location on a toio mat
+
+pub struct RelativeCubeLocation {
+    cube_location: CubeLocation,
     mat: ToioMat,
 }
 
-impl Default for MatPosition {
+impl Default for RelativeCubeLocation {
     fn default() -> Self {
         Self {
-            point: Point::origin(),
+            cube_location: CubeLocation::default(),
             mat: ToioMat::NoMat,
         }
     }
 }
 
-impl MatPosition {
-    pub fn new_with_point(point: Point) -> Self {
-        Self {
-            point,
-            mat: ToioMat::NoMat,
+impl Add for RelativeCubeLocation {
+    type Output = Self;
+    fn add(self, p: Self) -> Self {
+        if self.mat == p.mat {
+            Self {
+                cube_location: self.cube_location + p.cube_location,
+                mat: self.mat,
+            }
+        } else {
+            Self {
+                cube_location: self.absorite_cube_location() + p.absorite_cube_location(),
+                mat: ToioMat::NoMat,
+            }
         }
     }
+}
 
-    pub fn new_with_mat(mat: ToioMat) -> Self {
-        Self {
-            point: Point::origin(),
-            mat,
+impl Sub for RelativeCubeLocation {
+    type Output = Self;
+    fn sub(self, p: Self) -> Self {
+        if self.mat == p.mat {
+            Self {
+                cube_location: self.cube_location - p.cube_location,
+                mat: self.mat,
+            }
+        } else {
+            Self {
+                cube_location: self.absorite_cube_location() - p.absorite_cube_location(),
+                mat: ToioMat::NoMat,
+            }
         }
     }
+}
 
-    pub fn new_with_point_mat(point: Point, mat: ToioMat) -> Self {
-        Self {
-            point,
-            mat,
-        }
-    }
-
+impl RelativeCubeLocation {
     pub fn absorite_point(&self) -> Point {
-        self.point + self.mat.rect().top_left
+        self.cube_location.point + self.mat.rect().top_left
+    }
+
+    pub fn absorite_cube_location(&self) -> CubeLocation {
+        CubeLocation {
+            point: self.cube_location.point + self.mat.rect().top_left,
+            angle: self.cube_location.angle,
+        }
     }
 }
 
@@ -171,14 +247,14 @@ mod test {
     use super::*;
 
     #[test]
-    fn position_1() {
+    fn position_point1() {
         let p1: Point = Point { x: 10, y: 20 };
         let p2: Point = Point { x: 20, y: 40 };
         assert_eq!(p2 - p1, p1);
     }
 
     #[test]
-    fn position_2() {
+    fn position_point2() {
         let p1: Point = Point { x: 10, y: 10 };
         let p2: Point = Point { x: 20, y: 20 };
         let distance = p1.distance(&p2);
