@@ -46,6 +46,27 @@ pub enum ResponseType {
     SingleMotorControl,
     MultipleMotorControl,
     CubeSpeed,
+    Undefined,
+}
+
+impl ResponseType {
+    pub fn to_binary(self) -> Option<u8> {
+        match self {
+            ResponseType::SingleMotorControl => Some(0x83u8),
+            ResponseType::MultipleMotorControl => Some(0x84u8),
+            ResponseType::CubeSpeed => Some(0xe0u8),
+            ResponseType::Undefined => None,
+        }
+    }
+
+    pub fn from(binary_code: u8) -> Self {
+        match binary_code {
+            0x83 => ResponseType::SingleMotorControl,
+            0x84 => ResponseType::MultipleMotorControl,
+            0xe0 => ResponseType::CubeSpeed,
+            _ => ResponseType::Undefined,
+        }
+    }
 }
 
 /// Response code from cube
@@ -109,7 +130,6 @@ pub struct MotorInfo {
 pub enum MotorId {
     Left,
     Right,
-    Undefined,
 }
 
 impl MotorId {
@@ -117,15 +137,6 @@ impl MotorId {
         match self {
             MotorId::Left => Some(1u8),
             MotorId::Right => Some(2u8),
-            MotorId::Undefined => None,
-        }
-    }
-
-    pub fn from(binary_code: u8) -> Self {
-        match binary_code {
-            1 => MotorId::Left,
-            2 => MotorId::Right,
-            _ => MotorId::Undefined,
         }
     }
 }
@@ -133,26 +144,16 @@ impl MotorId {
 /// Motor direction
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum Direction {
+pub enum MotorDirection {
     Forward,
     Backward,
-    Undefined,
 }
 
-impl Direction {
+impl MotorDirection {
     pub fn to_binary(self) -> Option<u8> {
         match self {
-            Direction::Forward => Some(1u8),
-            Direction::Backward => Some(2u8),
-            Direction::Undefined => None,
-        }
-    }
-
-    pub fn form(binary_code: u8) -> Self {
-        match binary_code {
-            1 => Direction::Forward,
-            2 => Direction::Backward,
-            _ => Direction::Undefined,
+            MotorDirection::Forward => Some(1u8),
+            MotorDirection::Backward => Some(2u8),
         }
     }
 }
@@ -231,7 +232,6 @@ impl SpeedChangeType {
     }
 }
 
-
 /// Rotation options on the move
 
 #[derive(Serialize, Debug)]
@@ -291,7 +291,9 @@ impl WriteMode {
     }
 }
 
-/// Rotation direction
+/// Rotation direction (MotorCommand::Acceleration)
+
+#[derive(Serialize, Debug)]
 pub enum RotationDirection {
     Positive,
     Negative,
@@ -302,6 +304,40 @@ impl RotationDirection {
         match self {
             RotationDirection::Positive => Some(0u8),
             RotationDirection::Negative => Some(1u8),
+        }
+    }
+}
+
+/// Moving direction (MotorCommand::Acceleration)
+
+#[derive(Serialize, Debug)]
+pub enum MovingDirection {
+    Forward,
+    Backward,
+}
+
+impl MovingDirection {
+    pub fn to_binary(self) -> Option<u8> {
+        match self {
+            MovingDirection::Forward => Some(0u8),
+            MovingDirection::Backward => Some(1u8),
+        }
+    }
+}
+
+/// Priority (MotorCommand::Acceleration)
+
+#[derive(Serialize, Debug)]
+pub enum Priority {
+    TranslationalSpeed,
+    RotationVelocity,
+}
+
+impl Priority {
+    pub fn to_binary(self) -> Option<u8> {
+        match self {
+            Priority::TranslationalSpeed => Some(0u8),
+            Priority::RotationVelocity => Some(1u8),
         }
     }
 }
@@ -341,7 +377,7 @@ impl MotorDriveParameter {
     }
 }
 
-/// Binary parameter representation of https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control
+/// Binary parameter representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control>
 
 #[derive(Serialize, Debug)]
 struct MotorControlRun {
@@ -350,7 +386,7 @@ struct MotorControlRun {
     right: MotorDriveParameter,
 }
 
-/// Binary parameter representation of https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-specified-duration
+/// Binary parameter representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-specified-duration>
 
 #[derive(Serialize, Debug)]
 struct MotorControlPeriod {
@@ -360,7 +396,7 @@ struct MotorControlPeriod {
     period: u8,
 }
 
-/// Binary parameter representation of https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified
+/// Binary parameter representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified>
 
 #[derive(Serialize, Debug)]
 struct MotorControlTargetPosition {
@@ -374,7 +410,7 @@ struct MotorControlTargetPosition {
     cube_location: CubeLocation,
 }
 
-/// Binary parameter representation of https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-multiple-targets-specified
+/// Binary parameter representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-multiple-targets-specified>
 
 #[derive(Serialize, Debug)]
 struct MotorControlMultiTargetPositionsHeader {
@@ -388,19 +424,19 @@ struct MotorControlMultiTargetPositionsHeader {
     write_mode: WriteMode,
 }
 
-/// Binary parameter representation of https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-acceleration-specified
+/// Binary parameter representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-acceleration-specified>
 
 #[derive(Serialize, Debug)]
 struct MotorControlAccleration {
     command: u8,
     id: u8,
-    speed: u8,
+    translational_speed: u8,
     acceleration: u8,
-    rotation_angular_velocity: u16,
+    rotation_velocity: u16,
     rotation_direction: u8,
     moving_direction: u8,
-    mode: u8,
-    period: u8,
+    priority: u8,
+    period: RunningPeriod,
 }
 
 pub trait MotorBleData {
