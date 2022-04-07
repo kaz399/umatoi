@@ -1,10 +1,33 @@
-//! https://toio.github.io/toio-spec/en/docs/ble_motor
+//! Official Specification: <https://toio.github.io/toio-spec/en/docs/ble_motor>
 
 use crate::position::{CubeLocation, Point};
 use serde::Serialize;
 use std::error::Error;
 use std::time;
 use thiserror::Error;
+
+/// Control command
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+enum MotorCommand {
+    Run,
+    Period,
+    TargetPosition,
+    MultlTargetPositions,
+    Acceleration,
+}
+
+impl MotorCommand {
+    pub fn to_binary(self) -> Option<u8> {
+        match self {
+            MotorCommand::Run => Some(1u8),
+            MotorCommand::Period => Some(2u8),
+            MotorCommand::TargetPosition => Some(3u8),
+            MotorCommand::MultlTargetPositions => Some(4u8),
+            MotorCommand::Acceleration => Some(5u8),
+        }
+    }
+}
 
 /// Errors
 
@@ -78,29 +101,6 @@ pub struct MotorInfo {
     pub response_type: ResponseType,
     pub id: usize,
     pub response_code: ResponseCode,
-}
-
-/// Control command
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-enum MotorCommand {
-    Run,
-    Period,
-    TargetPosition,
-    MultlTargetPositions,
-    Acceleration,
-}
-
-impl MotorCommand {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            MotorCommand::Run => Some(1u8),
-            MotorCommand::Period => Some(2u8),
-            MotorCommand::TargetPosition => Some(3u8),
-            MotorCommand::MultlTargetPositions => Some(4u8),
-            MotorCommand::Acceleration => Some(5u8),
-        }
-    }
 }
 
 /// Motor Id
@@ -231,6 +231,34 @@ impl SpeedChangeType {
     }
 }
 
+
+/// Rotation options on the move
+
+#[derive(Serialize, Debug)]
+pub enum RotationOption {
+    AbsoluteOptimal,
+    AbsolutePositive,
+    AbsoluteNegative,
+    RelativePositive,
+    RelativeNegative,
+    WithoutRotation,
+    SameAsAtWriting,
+}
+
+impl RotationOption {
+    pub fn to_binary(self) -> Option<u8> {
+        match self {
+            RotationOption::AbsoluteOptimal => Some(0u8),
+            RotationOption::AbsolutePositive => Some(1u8),
+            RotationOption::AbsoluteNegative => Some(2u8),
+            RotationOption::RelativePositive => Some(3u8),
+            RotationOption::RelativeNegative => Some(4u8),
+            RotationOption::WithoutRotation => Some(5u8),
+            RotationOption::SameAsAtWriting => Some(6u8),
+        }
+    }
+}
+
 /// Timeout
 
 #[derive(Serialize, Debug)]
@@ -242,6 +270,38 @@ impl Timeout {
     pub fn to_binary(self) -> Option<u8> {
         match self {
             Timeout::Second(t) => Some(t),
+        }
+    }
+}
+
+/// Write mode (MotorCommand::MultlTargetPositions)
+
+#[derive(Serialize, Debug)]
+pub enum WriteMode {
+    Overwrite,
+    Append,
+}
+
+impl WriteMode {
+    pub fn to_binary(self) -> Option<u8> {
+        match self {
+            WriteMode::Overwrite => Some(0u8),
+            WriteMode::Append => Some(1u8),
+        }
+    }
+}
+
+/// Rotation direction
+pub enum RotationDirection {
+    Positive,
+    Negative,
+}
+
+impl RotationDirection {
+    pub fn to_binary(self) -> Option<u8> {
+        match self {
+            RotationDirection::Positive => Some(0u8),
+            RotationDirection::Negative => Some(1u8),
         }
     }
 }
@@ -325,6 +385,22 @@ struct MotorControlMultiTargetPositionsHeader {
     max_speed: u8,
     speed_change_type: SpeedChangeType,
     _reserved_1: u8,
+    write_mode: WriteMode,
+}
+
+/// Binary parameter representation of https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-acceleration-specified
+
+#[derive(Serialize, Debug)]
+struct MotorControlAccleration {
+    command: u8,
+    id: u8,
+    speed: u8,
+    acceleration: u8,
+    rotation_angular_velocity: u16,
+    rotation_direction: u8,
+    moving_direction: u8,
+    mode: u8,
+    period: u8,
 }
 
 pub trait MotorBleData {
@@ -387,6 +463,7 @@ pub trait MotorBleData {
         movement_type: MovementType,
         max_speed: u8,
         speed_change_type: SpeedChangeType,
+        write_mode: WriteMode,
         cube_location: Vec<CubeLocation>,
     ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
         // create header part
@@ -397,6 +474,7 @@ pub trait MotorBleData {
             movement_type: movement_type.to_binary().unwrap(),
             max_speed,
             speed_change_type,
+            write_mode,
             _reserved_1: 0xff,
         })
         .unwrap();
@@ -469,6 +547,7 @@ mod test {
                 MovementType::Curve,
                 32,
                 SpeedChangeType::Acceleration,
+                WriteMode::Append,
                 vec![
                     CubeLocation::default(),
                     CubeLocation::default(),

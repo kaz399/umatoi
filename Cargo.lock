@@ -814,26 +814,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "toio_core_cube"
-version = "0.34.0"
-dependencies = [
- "async-trait",
- "bincode",
- "btleplug",
- "clap",
- "ctrlc",
- "env_logger",
- "futures",
- "lazy_static",
- "log",
- "rand",
- "serde",
- "thiserror",
- "tokio",
- "uuid",
-]
-
-[[package]]
 name = "tokio"
 version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -882,6 +862,26 @@ dependencies = [
  "log",
  "pin-project-lite",
  "tokio",
+]
+
+[[package]]
+name = "umatoi"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bincode",
+ "btleplug",
+ "clap",
+ "ctrlc",
+ "env_logger",
+ "futures",
+ "lazy_static",
+ "log",
+ "rand",
+ "serde",
+ "thiserror",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]

@@ -1,4 +1,4 @@
-//! https://toio.github.io/toio-spec/en/docs/ble_button
+//! Official Specification:  <https://toio.github.io/toio-spec/en/docs/ble_button>
 
 use std::time;
 

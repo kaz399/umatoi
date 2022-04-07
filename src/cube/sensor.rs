@@ -1,4 +1,4 @@
-//! https://toio.github.io/toio-spec/en/docs/ble_sensor/
+//! Official Specification: <https://toio.github.io/toio-spec/en/docs/ble_sensor>
 
 use std::time;
 

@@ -1,13 +1,13 @@
 [package]
-name = "toio_core_cube"
-version = "0.34.0"
+name = "umatoi"
+version = "0.1.0"
 authors = ["yabe_z <Kazuhiro.Yabe@gmail.com>"]
 edition = "2021"
 license-file = "LICENSE"
 keywords = [ "toio", "toio_core_cube" ]
 description = "A small library for toio core cube"
-repository = "https://github.com/kaz399/rs_toio_core_cube/"
-homepage = "https://github.com/kaz399/rs_toio_core_cube/"
+repository = "https://github.com/kaz399/umatoi.rs/"
+homepage = "https://github.com/kaz399/umatoi.rs/"
 
 [dependencies]
 futures = "0.3"

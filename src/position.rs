@@ -1,4 +1,4 @@
-//! https://toio.github.io/toio-spec/docs/hardware_position_id
+//! Official Specification: <https://toio.github.io/toio-spec/docs/hardware_position_id>
 
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Sub};
