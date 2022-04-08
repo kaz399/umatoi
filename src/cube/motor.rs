@@ -2,142 +2,189 @@
 
 use crate::position::CubeLocation;
 use serde::Serialize;
+use serde::ser::{Serializer, SerializeSeq};
 use std::error::Error;
 use std::time;
+use log::debug;
 use thiserror::Error;
 
 /// Control command
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 enum MotorCommand {
-    Run,
-    Period,
-    TargetPosition,
-    MultlTargetPositions,
-    Acceleration,
+Run,
+Period,
+TargetPosition,
+MultlTargetPositions,
+Acceleration,
 }
 
-impl MotorCommand {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            MotorCommand::Run => Some(1u8),
-            MotorCommand::Period => Some(2u8),
-            MotorCommand::TargetPosition => Some(3u8),
-            MotorCommand::MultlTargetPositions => Some(4u8),
-            MotorCommand::Acceleration => Some(5u8),
-        }
+impl From<MotorCommand> for u8 {
+fn from(cmd: MotorCommand) -> u8 {
+    match cmd {
+        MotorCommand::Run => 1u8,
+        MotorCommand::Period => 2u8,
+        MotorCommand::TargetPosition => 3u8,
+        MotorCommand::MultlTargetPositions => 4u8,
+        MotorCommand::Acceleration => 5u8,
     }
+}
+}
+
+impl Serialize for MotorCommand {
+fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let byte_string: u8 = u8::from(*self);
+    serializer.serialize_u8(byte_string)
+}
 }
 
 /// Errors
 
 #[derive(Error, Debug, PartialEq)]
 pub enum MotorError {
-    #[error("invalid parameter")]
-    InvalidParameter,
-    #[error("internal error of motor.rs")]
-    FoundBug,
+#[error("invalid parameter")]
+InvalidParameter,
+#[error("internal error of motor.rs")]
+FoundBug,
 }
 
 /// Response type
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ResponseType {
-    SingleMotorControl,
-    MultipleMotorControl,
-    CubeSpeed,
-    Undefined,
+SingleMotorControl,
+MultipleMotorControl,
+CubeSpeed,
+UnknownResponse(u8),
 }
 
-impl ResponseType {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            ResponseType::SingleMotorControl => Some(0x83u8),
-            ResponseType::MultipleMotorControl => Some(0x84u8),
-            ResponseType::CubeSpeed => Some(0xe0u8),
-            ResponseType::Undefined => None,
-        }
-    }
-
-    pub fn from(binary_code: u8) -> Self {
-        match binary_code {
-            0x83 => ResponseType::SingleMotorControl,
-            0x84 => ResponseType::MultipleMotorControl,
-            0xe0 => ResponseType::CubeSpeed,
-            _ => ResponseType::Undefined,
-        }
+impl From<ResponseType> for u8 {
+fn from(response_type: ResponseType) -> u8 {
+    match response_type {
+        ResponseType::SingleMotorControl => 0x83u8,
+        ResponseType::MultipleMotorControl => 0x84u8,
+        ResponseType::CubeSpeed => 0xe0u8,
+        ResponseType::UnknownResponse(x) => x,
     }
 }
+}
+
+impl From<u8> for ResponseType {
+fn from(num: u8) -> ResponseType {
+    match num {
+        0x83 => ResponseType::SingleMotorControl,
+        0x84 => ResponseType::MultipleMotorControl,
+        0xe0 => ResponseType::CubeSpeed,
+        x => ResponseType::UnknownResponse(x),
+    }
+}
+}
+
+impl Serialize for ResponseType {
+fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let byte_string: u8 = u8::from(*self);
+    serializer.serialize_u8(byte_string)
+}
+}
+
 
 /// Response code from cube
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ResponseCode {
-    Success,
-    ErrorTimeout,
-    ErrorIdMissed,
-    ErrorInvalidParameter,
-    ErrorInvalidCubeState,
-    SuccessWithOverwrite,
-    ErrorNotSupported,
-    ErrorFailToAppend,
-    Undefined,
+Success,
+ErrorTimeout,
+ErrorIdMissed,
+ErrorInvalidParameter,
+ErrorInvalidCubeState,
+SuccessWithOverwrite,
+ErrorNotSupported,
+ErrorFailToAppend,
+UnknownError(u8),
 }
 
-impl ResponseCode {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            ResponseCode::Success => Some(0u8),
-            ResponseCode::ErrorTimeout => Some(1u8),
-            ResponseCode::ErrorIdMissed => Some(2u8),
-            ResponseCode::ErrorInvalidParameter => Some(3u8),
-            ResponseCode::ErrorInvalidCubeState => Some(4u8),
-            ResponseCode::SuccessWithOverwrite => Some(5u8),
-            ResponseCode::ErrorNotSupported => Some(6u8),
-            ResponseCode::ErrorFailToAppend => Some(7u8),
-            ResponseCode::Undefined => None,
-        }
+impl From<ResponseCode> for u8 {
+fn from(response_code: ResponseCode) -> u8 {
+    match response_code {
+        ResponseCode::Success => 0u8,
+        ResponseCode::ErrorTimeout => 1u8,
+        ResponseCode::ErrorIdMissed => 2u8,
+        ResponseCode::ErrorInvalidParameter => 3u8,
+        ResponseCode::ErrorInvalidCubeState => 4u8,
+        ResponseCode::SuccessWithOverwrite => 5u8,
+        ResponseCode::ErrorNotSupported => 6u8,
+        ResponseCode::ErrorFailToAppend => 7u8,
+        ResponseCode::UnknownError(x) => x,
     }
+}
+}
 
-    pub fn from(binary_code: u8) -> Self {
-        match binary_code {
-            0 => ResponseCode::Success,
-            1 => ResponseCode::ErrorTimeout,
-            2 => ResponseCode::ErrorIdMissed,
-            4 => ResponseCode::ErrorInvalidParameter,
-            5 => ResponseCode::ErrorInvalidCubeState,
-            6 => ResponseCode::SuccessWithOverwrite,
-            7 => ResponseCode::ErrorNotSupported,
-            8 => ResponseCode::ErrorFailToAppend,
-            _ => ResponseCode::Undefined,
-        }
+impl From<u8> for ResponseCode {
+fn from(binary_code: u8) -> ResponseCode {
+    match binary_code {
+        0 => ResponseCode::Success,
+        1 => ResponseCode::ErrorTimeout,
+        2 => ResponseCode::ErrorIdMissed,
+        4 => ResponseCode::ErrorInvalidParameter,
+        5 => ResponseCode::ErrorInvalidCubeState,
+        6 => ResponseCode::SuccessWithOverwrite,
+        7 => ResponseCode::ErrorNotSupported,
+        8 => ResponseCode::ErrorFailToAppend,
+        x => ResponseCode::UnknownError(x),
     }
+}
+}
+
+impl Serialize for ResponseCode {
+fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let byte_string: u8 = u8::from(*self);
+    serializer.serialize_u8(byte_string)
+}
 }
 
 /// Response/Notify data from cube
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 pub struct MotorInfo {
-    pub time: time::Instant,
-    pub response_type: ResponseType,
-    pub id: usize,
-    pub response_code: ResponseCode,
+pub time: time::Instant,
+pub response_type: ResponseType,
+pub id: usize,
+pub response_code: ResponseCode,
 }
 
 /// Motor Id
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum MotorId {
-    Left,
-    Right,
+Left,
+Right,
 }
 
-impl MotorId {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            MotorId::Left => Some(1u8),
-            MotorId::Right => Some(2u8),
-        }
+impl From<MotorId> for u8 {
+fn from(motor_id: MotorId) -> u8 {
+    match motor_id {
+        MotorId::Left => 1u8,
+        MotorId::Right => 2u8,
+    }
+}
+}
+
+impl Serialize for MotorId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let byte_string: u8 = u8::from(*self);
+        serializer.serialize_u8(byte_string)
     }
 }
 
@@ -149,71 +196,90 @@ pub enum MotorDirection {
     Backward,
 }
 
-impl MotorDirection {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            MotorDirection::Forward => Some(1u8),
-            MotorDirection::Backward => Some(2u8),
+impl From<MotorDirection> for u8 {
+        fn from(moving_direction: MotorDirection) ->u8 {
+        match moving_direction {
+            MotorDirection::Forward => 1u8,
+            MotorDirection::Backward => 2u8,
         }
+    }
+}
+
+impl Serialize for MotorDirection {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let byte_string: u8 = u8::from(*self);
+        serializer.serialize_u8(byte_string)
     }
 }
 
 /// Period for running
 
 #[derive(Serialize, Debug)]
-pub enum RunningPeriod {
-    Forever,
-    Period(time::Duration),
-    Undefined,
+pub struct RunningPeriod {
+    period: u8,
+}
+
+impl From<RunningPeriod> for u8 {
+    fn from(running_period: RunningPeriod) -> u8 {
+        running_period.period
+    }
 }
 
 impl RunningPeriod {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            RunningPeriod::Forever => Some(0u8),
-            RunningPeriod::Period(p) => {
-                let period = p.as_millis() / 10;
-                if period > u8::MAX.into() {
-                    Some(u8::MAX)
-                } else {
-                    Some(period as u8)
-                }
-            }
-            RunningPeriod::Undefined => None,
+    pub fn forever() -> Self {
+        Self {
+            period: 0,
         }
     }
 
-    pub fn from_millis(period: u64) -> Self {
+    pub fn from_millis(perio: u64) -> Self {
+        let period = perio / 10;
         match period {
-            0 => RunningPeriod::Forever,
-            1..=255 => RunningPeriod::Period(time::Duration::from_millis(period)),
-            _ => RunningPeriod::Undefined,
+            1..=255 => RunningPeriod {
+                period: period as u8,
+            },
+            _ => RunningPeriod {
+                period: 0,
+            },
         }
     }
 }
 
 /// Movement type
 
-#[derive(Serialize, Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum MovementType {
     Curve,
     CuverWithoutReverse,
     Liner,
 }
 
-impl MovementType {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            MovementType::Curve => Some(0u8),
-            MovementType::CuverWithoutReverse => Some(1u8),
-            MovementType::Liner => Some(2u8),
+impl From<MovementType> for u8 {
+    fn from(movement_type: MovementType) -> u8 {
+        match movement_type {
+            MovementType::Curve => 0u8,
+            MovementType::CuverWithoutReverse => 1u8,
+            MovementType::Liner => 2u8,
         }
+    }
+}
+
+impl Serialize for MovementType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let byte_string: u8 = u8::from(*self);
+        serializer.serialize_u8(byte_string)
     }
 }
 
 /// Speed change type
 
-#[derive(Serialize, Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum SpeedChangeType {
     Constant,
     Acceleration,
@@ -221,20 +287,30 @@ pub enum SpeedChangeType {
     AccelerationAndDeceleration,
 }
 
-impl SpeedChangeType {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            SpeedChangeType::Constant => Some(0u8),
-            SpeedChangeType::Acceleration => Some(1u8),
-            SpeedChangeType::Deceleration => Some(2u8),
-            SpeedChangeType::AccelerationAndDeceleration => Some(3u8),
+impl From<SpeedChangeType> for u8 {
+    fn from(speed_change_type: SpeedChangeType) -> u8 {
+        match speed_change_type {
+            SpeedChangeType::Constant => 0u8,
+            SpeedChangeType::Acceleration => 1u8,
+            SpeedChangeType::Deceleration => 2u8,
+            SpeedChangeType::AccelerationAndDeceleration => 3u8,
         }
+    }
+}
+
+impl Serialize for SpeedChangeType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let byte_string: u8 = u8::from(*self);
+        serializer.serialize_u8(byte_string)
     }
 }
 
 /// Rotation options on the move
 
-#[derive(Serialize, Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum RotationOption {
     AbsoluteOptimal,
     AbsolutePositive,
@@ -245,100 +321,217 @@ pub enum RotationOption {
     SameAsAtWriting,
 }
 
-impl RotationOption {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            RotationOption::AbsoluteOptimal => Some(0u8),
-            RotationOption::AbsolutePositive => Some(1u8),
-            RotationOption::AbsoluteNegative => Some(2u8),
-            RotationOption::RelativePositive => Some(3u8),
-            RotationOption::RelativeNegative => Some(4u8),
-            RotationOption::WithoutRotation => Some(5u8),
-            RotationOption::SameAsAtWriting => Some(6u8),
+impl From<RotationOption> for u8 {
+        fn from(rotation_option: RotationOption) -> u8 {
+        match rotation_option {
+            RotationOption::AbsoluteOptimal => 0u8,
+            RotationOption::AbsolutePositive => 1u8,
+            RotationOption::AbsoluteNegative => 2u8,
+            RotationOption::RelativePositive => 3u8,
+            RotationOption::RelativeNegative => 4u8,
+            RotationOption::WithoutRotation => 5u8,
+            RotationOption::SameAsAtWriting => 6u8,
         }
+    }
+}
+
+impl Serialize for RotationOption {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let byte_string: u8 = u8::from(*self);
+        serializer.serialize_u8(byte_string)
+    }
+}
+
+/// Move target
+
+#[derive(Debug)]
+pub struct MoveTarget {
+    cube_location: CubeLocation,
+    rotation_option: RotationOption,
+}
+
+impl Default for MoveTarget {
+    fn default() -> Self {
+        Self {
+            cube_location: CubeLocation::default(),
+            rotation_option: RotationOption::AbsoluteOptimal,
+        }
+    }
+}
+
+impl Serialize for MoveTarget {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let rotation_option: u16 = (self.rotation_option as u16) << 13;
+        let combined_data: [u16; 3] = [
+            self.cube_location.point.x,
+            self.cube_location.point.y,
+            (self.cube_location.angle & 0b0001_1111_1111_1111) | rotation_option,
+        ];
+        let mut seq = serializer.serialize_seq(Some(combined_data.len()))?;
+        for e in combined_data {
+            seq.serialize_element(&e)?;
+        }
+        seq.end()
+    }
+
+}
+
+/// List of move target
+
+#[derive(Default, Debug)]
+pub struct MoveTargetList {
+    list: Vec<MoveTarget>,
+}
+
+impl Serialize for MoveTargetList {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.list.len()))?;
+        for target_location in &self.list {
+            seq.serialize_element(&target_location)?;
+        }
+        seq.end()
     }
 }
 
 /// Timeout
 
-#[derive(Serialize, Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Timeout {
     Second(u8),
 }
 
-impl Timeout {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            Timeout::Second(t) => Some(t),
+impl From<Timeout> for u8 {
+    fn from(timeout: Timeout) -> u8 {
+        match timeout {
+            Timeout::Second(t) => t,
         }
+    }
+}
+
+impl Serialize for Timeout {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let byte_string: u8 = u8::from(*self);
+        serializer.serialize_u8(byte_string)
     }
 }
 
 /// Write mode (MotorCommand::MultlTargetPositions)
 
-#[derive(Serialize, Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum WriteMode {
     Overwrite,
     Append,
 }
 
-impl WriteMode {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            WriteMode::Overwrite => Some(0u8),
-            WriteMode::Append => Some(1u8),
+impl From<WriteMode> for u8 {
+        fn from(write_mode: WriteMode) -> u8 {
+        match write_mode {
+            WriteMode::Overwrite => 0u8,
+            WriteMode::Append => 1u8,
         }
+    }
+}
+
+impl Serialize for WriteMode {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let byte_string: u8 = u8::from(*self);
+        serializer.serialize_u8(byte_string)
     }
 }
 
 /// Rotation direction (MotorCommand::Acceleration)
 
-#[derive(Serialize, Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum RotationDirection {
     Positive,
     Negative,
 }
 
-impl RotationDirection {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            RotationDirection::Positive => Some(0u8),
-            RotationDirection::Negative => Some(1u8),
+impl From<RotationDirection> for u8 {
+    fn from(rotation_direction: RotationDirection) -> u8 {
+        match rotation_direction {
+            RotationDirection::Positive => 0u8,
+            RotationDirection::Negative => 1u8,
         }
+    }
+}
+
+impl Serialize for RotationDirection {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let byte_string: u8 = u8::from(*self);
+        serializer.serialize_u8(byte_string)
     }
 }
 
 /// Moving direction (MotorCommand::Acceleration)
 
-#[derive(Serialize, Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum MovingDirection {
     Forward,
     Backward,
 }
 
-impl MovingDirection {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            MovingDirection::Forward => Some(0u8),
-            MovingDirection::Backward => Some(1u8),
+impl From<MovingDirection> for u8 {
+    fn from(moving_direction: MovingDirection) -> u8 {
+        match moving_direction {
+            MovingDirection::Forward => 0u8,
+            MovingDirection::Backward => 1u8,
         }
+    }
+}
+
+impl Serialize for MovingDirection {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let byte_string: u8 = u8::from(*self);
+        serializer.serialize_u8(byte_string)
     }
 }
 
 /// Priority (MotorCommand::Acceleration)
 
-#[derive(Serialize, Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Priority {
     TranslationalSpeed,
     RotationVelocity,
 }
 
-impl Priority {
-    pub fn to_binary(self) -> Option<u8> {
-        match self {
-            Priority::TranslationalSpeed => Some(0u8),
-            Priority::RotationVelocity => Some(1u8),
+impl From<Priority> for u8 {
+    fn from(priority: Priority) -> u8 {
+        match priority {
+            Priority::TranslationalSpeed => 0u8,
+            Priority::RotationVelocity => 1u8,
         }
+    }
+}
+
+impl Serialize for Priority {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let byte_string: u8 = u8::from(*self);
+        serializer.serialize_u8(byte_string)
     }
 }
 
@@ -362,7 +555,7 @@ impl MotorDriveParameter {
         if 0 > value && -value > u8::MAX.into() {
             return Err(Box::new(MotorError::InvalidParameter));
         }
-        let id = motor_id.to_binary().unwrap();
+        let id = motor_id.into();
         let direction = if value >= 0 { 0x01u8 } else { 0x02u8 };
         let speed = if value >= 0 {
             (value & 0xff) as u8
@@ -377,47 +570,47 @@ impl MotorDriveParameter {
     }
 }
 
-/// Binary parameter representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control>
+/// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control>
 
 #[derive(Serialize, Debug)]
 struct MotorControlRun {
-    command: u8,
+    command: MotorCommand,
     left: MotorDriveParameter,
     right: MotorDriveParameter,
 }
 
-/// Binary parameter representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-specified-duration>
+/// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-specified-duration>
 
 #[derive(Serialize, Debug)]
 struct MotorControlPeriod {
-    command: u8,
+    command: MotorCommand,
     left: MotorDriveParameter,
     right: MotorDriveParameter,
-    period: u8,
+    period: RunningPeriod,
 }
 
-/// Binary parameter representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified>
+/// Bite-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified>
 
 #[derive(Serialize, Debug)]
 struct MotorControlTargetPosition {
-    command: u8,
+    command: MotorCommand,
     id: u8,
     timeout: u8,
-    movement_type: u8,
+    movement_type: MovementType,
     max_speed: u8,
     speed_change_type: SpeedChangeType,
     _reserved_1: u8,
     cube_location: CubeLocation,
 }
 
-/// Binary parameter representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-multiple-targets-specified>
+/// Bite-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-multiple-targets-specified>
 
 #[derive(Serialize, Debug)]
 struct MotorControlMultiTargetPositionsHeader {
-    command: u8,
+    command: MotorCommand,
     id: u8,
     timeout: u8,
-    movement_type: u8,
+    movement_type: MovementType,
     max_speed: u8,
     speed_change_type: SpeedChangeType,
     _reserved_1: u8,
@@ -428,15 +621,15 @@ struct MotorControlMultiTargetPositionsHeader {
 
 #[derive(Serialize, Debug)]
 struct MotorControlAccleration {
-    command: u8,
+    command: MotorCommand,
     id: u8,
     translational_speed: u8,
     acceleration: u8,
     rotation_velocity: u16,
-    rotation_direction: u8,
-    moving_direction: u8,
-    priority: u8,
-    period: u8,
+    rotation_direction:  RotationDirection,
+    moving_direction: MovingDirection,
+    priority: Priority,
+    period: RunningPeriod,
 }
 
 pub trait MotorBleData {
@@ -448,25 +641,22 @@ pub trait MotorBleData {
     ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
         let left_param = MotorDriveParameter::new(MotorId::Left, left)?;
         let right_param = MotorDriveParameter::new(MotorId::Right, right)?;
-        let control_data = match duration {
-            RunningPeriod::Forever => bincode::serialize(&MotorControlRun {
-                command: MotorCommand::Run.to_binary().unwrap(),
+        let control_data = match duration.period {
+            0 => bincode::serialize(&MotorControlRun {
+                command: MotorCommand::Run,
                 left: left_param,
                 right: right_param,
             })
             .unwrap(),
-            RunningPeriod::Period(_) => bincode::serialize(&MotorControlPeriod {
-                command: MotorCommand::Period.to_binary().unwrap(),
+            _ => bincode::serialize(&MotorControlPeriod {
+                command: MotorCommand::Period,
                 left: left_param,
                 right: right_param,
-                period: duration.to_binary().unwrap(),
+                period: duration,
             })
             .unwrap(),
-            RunningPeriod::Undefined => {
-                return Err(Box::new(MotorError::InvalidParameter));
-            }
         };
-        println!("byte code: {:?}", control_data);
+        debug!("len: {:2}, data: {:?}", control_data.len(), control_data);
         Ok(control_data)
     }
 
@@ -479,17 +669,17 @@ pub trait MotorBleData {
         cube_location: CubeLocation,
     ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
         let control_data = bincode::serialize(&MotorControlTargetPosition {
-            command: MotorCommand::TargetPosition.to_binary().unwrap(),
+            command: MotorCommand::TargetPosition,
             id: 0xbb,
-            timeout: timeout.to_binary().unwrap(),
-            movement_type: movement_type.to_binary().unwrap(),
+            timeout: timeout.into(),
+            movement_type,
             max_speed,
             speed_change_type,
             _reserved_1: 0xee,
             cube_location,
         })
         .unwrap();
-        println!("byte code: {:?}", control_data);
+        debug!("len: {:2}, data: {:?}", control_data.len(), control_data);
         Ok(control_data)
     }
 
@@ -504,10 +694,10 @@ pub trait MotorBleData {
     ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
         // create header part
         let mut control_data = bincode::serialize(&MotorControlMultiTargetPositionsHeader {
-            command: MotorCommand::MultlTargetPositions.to_binary().unwrap(),
+            command: MotorCommand::MultlTargetPositions,
             id: 0xcc,
-            timeout: timeout.to_binary().unwrap(),
-            movement_type: movement_type.to_binary().unwrap(),
+            timeout: timeout.into(),
+            movement_type,
             max_speed,
             speed_change_type,
             write_mode,
@@ -518,7 +708,7 @@ pub trait MotorBleData {
         for location in cube_location.iter() {
             control_data.extend(bincode::serialize(location).unwrap());
         }
-        println!("byte code: {:?}", control_data);
+        debug!("len: {:2}, data: {:?}", control_data.len(), control_data);
         Ok(control_data)
     }
 
@@ -533,18 +723,18 @@ pub trait MotorBleData {
         period: RunningPeriod,
     ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
         let control_data = bincode::serialize(&MotorControlAccleration {
-            command: MotorCommand::Acceleration.to_binary().unwrap(),
+            command: MotorCommand::Acceleration,
             id: 0xaa,
             translational_speed,
             acceleration,
             rotation_velocity,
-            rotation_direction: rotation_direction.to_binary().unwrap(),
-            moving_direction: moving_direction.to_binary().unwrap(),
-            priority: priority.to_binary().unwrap(),
-            period: period.to_binary().unwrap(),
+            rotation_direction,
+            moving_direction,
+            priority,
+            period,
         })
         .unwrap();
-        println!("byte code: {:?}", control_data);
+        debug!("len: {:2}, data: {:?}", control_data.len(), control_data);
         Ok(control_data)
     }
 
@@ -584,15 +774,15 @@ mod test {
         _setup();
         let test1 = MotorTest {};
 
-        assert!(test1.encode_run(10, 20, RunningPeriod::Forever).is_ok());
-        assert!(test1.encode_run(-10, 20, RunningPeriod::Forever).is_ok());
-        assert!(test1.encode_run(10, -20, RunningPeriod::Forever).is_ok());
-        assert!(test1.encode_run(1000, -20, RunningPeriod::Forever).is_err());
+        assert!(test1.encode_run(10, 20, RunningPeriod::forever()).is_ok());
+        assert!(test1.encode_run(-10, 20, RunningPeriod::forever()).is_ok());
+        assert!(test1.encode_run(10, -20, RunningPeriod::forever()).is_ok());
+        assert!(test1.encode_run(1000, -20, RunningPeriod::forever()).is_err());
         assert!(test1
             .encode_run(
                 10,
                 -20,
-                RunningPeriod::Period(time::Duration::from_millis(200))
+                RunningPeriod::from_millis(200)
             )
             .is_ok());
         assert!(test1

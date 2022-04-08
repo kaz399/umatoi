@@ -1,11 +1,11 @@
 //! Official Specification: <https://toio.github.io/toio-spec/docs/hardware_position_id>
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::ops::{Add, Sub};
 
 /// Point
 
-#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq)]
+#[derive(Serialize, Debug, Copy, Clone, PartialEq)]
 pub struct Point {
     pub x: u16,
     pub y: u16,
@@ -45,10 +45,10 @@ impl Point {
 
 /// Loation information of a cube
 
-#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq)]
+#[derive(Serialize, Debug, Copy, Clone, PartialEq)]
 pub struct CubeLocation {
-    point: Point,
-    angle: u16,
+    pub point: Point,
+    pub angle: u16,
 }
 
 impl Default for CubeLocation {
