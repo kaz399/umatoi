@@ -1,6 +1,6 @@
 //! Official Specification: <https://toio.github.io/toio-spec/en/docs/ble_motor>
 
-use crate::position::{CubeLocation, Point};
+use crate::position::CubeLocation;
 use serde::Serialize;
 use std::error::Error;
 use std::time;
@@ -436,7 +436,7 @@ struct MotorControlAccleration {
     rotation_direction: u8,
     moving_direction: u8,
     priority: u8,
-    period: RunningPeriod,
+    period: u8,
 }
 
 pub trait MotorBleData {
@@ -521,6 +521,33 @@ pub trait MotorBleData {
         println!("byte code: {:?}", control_data);
         Ok(control_data)
     }
+
+    fn encode_run_with_acceleration(
+        &self,
+        translational_speed: u8,
+        acceleration: u8,
+        rotation_velocity: u16,
+        rotation_direction: RotationDirection,
+        moving_direction: MovingDirection,
+        priority: Priority,
+        period: RunningPeriod,
+    ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
+        let control_data = bincode::serialize(&MotorControlAccleration {
+            command: MotorCommand::Acceleration.to_binary().unwrap(),
+            id: 0xaa,
+            translational_speed,
+            acceleration,
+            rotation_velocity,
+            rotation_direction: rotation_direction.to_binary().unwrap(),
+            moving_direction: moving_direction.to_binary().unwrap(),
+            priority: priority.to_binary().unwrap(),
+            period: period.to_binary().unwrap(),
+        })
+        .unwrap();
+        println!("byte code: {:?}", control_data);
+        Ok(control_data)
+    }
+
 }
 
 pub trait Motor: MotorBleData {
