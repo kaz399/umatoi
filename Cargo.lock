@@ -814,6 +814,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "to_vec"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e78d504a6bccd4b4f3dcd7006f1674877e329655b1ec34d5fd7a640681a45ad"
+
+[[package]]
 name = "tokio"
 version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -880,6 +886,7 @@ dependencies = [
  "rand",
  "serde",
  "thiserror",
+ "to_vec",
  "tokio",
  "uuid",
 ]

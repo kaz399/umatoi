@@ -7,6 +7,7 @@ use serde::Serialize;
 use std::error::Error;
 use std::time;
 use thiserror::Error;
+use to_vec::ToVec;
 
 /// Control command
 
@@ -342,7 +343,7 @@ impl Serialize for RotationOption {
 
 /// Move target
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct MoveTarget {
     cube_location: CubeLocation,
     rotation_option: RotationOption,
@@ -356,43 +357,15 @@ impl Default for MoveTarget {
         }
     }
 }
-
-impl Serialize for MoveTarget {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
+impl ToVec<u8> for MoveTarget {
+    fn to_vec(self) -> Vec<u8> {
         let rotation_option: u16 = (self.rotation_option as u16) << 13;
         let combined_data: [u16; 3] = [
             self.cube_location.point.x,
             self.cube_location.point.y,
             (self.cube_location.angle & 0b0001_1111_1111_1111) | rotation_option,
         ];
-        let mut seq = serializer.serialize_seq(Some(combined_data.len()))?;
-        for e in combined_data {
-            seq.serialize_element(&e)?;
-        }
-        seq.end()
-    }
-}
-
-/// List of move target
-
-#[derive(Default, Debug)]
-pub struct MoveTargetList {
-    list: Vec<MoveTarget>,
-}
-
-impl Serialize for MoveTargetList {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut seq = serializer.serialize_seq(Some(self.list.len()))?;
-        for target_location in &self.list {
-            seq.serialize_element(&target_location)?;
-        }
-        seq.end()
+        bincode::serialize(&combined_data).unwrap()
     }
 }
 
@@ -599,8 +572,8 @@ struct MotorControlTargetPosition {
 
 /// Bite-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-multiple-targets-specified>
 
-#[derive(Serialize, Debug)]
-struct MotorControlMultiTargetPositionsHeader {
+#[derive(Debug)]
+pub struct MotorControlMultiTargetPositions {
     command: MotorCommand,
     id: u8,
     timeout: u8,
@@ -609,7 +582,57 @@ struct MotorControlMultiTargetPositionsHeader {
     speed_change_type: SpeedChangeType,
     _reserved_1: u8,
     write_mode: WriteMode,
-    move_target_list: MoveTargetList,
+    target_list: Vec<MoveTarget>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct MotorControlMultiTargetPositionsHeader {
+    command: MotorCommand,
+    id: u8,
+    timeout: u8,
+    movement_type: MovementType,
+    max_speed: u8,
+    speed_change_type: SpeedChangeType,
+    _reserved_1: u8,
+    write_mode: WriteMode,
+}
+
+impl ToVec<u8> for MotorControlMultiTargetPositionsHeader {
+    fn to_vec(self) -> Vec<u8> {
+        bincode::serialize(&self).unwrap()
+    }
+}
+
+impl MotorControlMultiTargetPositions {
+    fn header(&self) -> MotorControlMultiTargetPositionsHeader {
+        MotorControlMultiTargetPositionsHeader {
+            command: self.command,
+            id: self.id,
+            timeout: self.timeout,
+            movement_type: self.movement_type,
+            max_speed: self.max_speed,
+            speed_change_type: self.speed_change_type,
+            _reserved_1: self._reserved_1,
+            write_mode: self.write_mode,
+        }
+    }
+}
+
+impl Serialize for MotorControlMultiTargetPositions {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut vertorized_self = self.header().to_vec();
+        for target in &self.target_list {
+            vertorized_self.extend(&target.to_vec());
+        }
+        let mut seq = serializer.serialize_seq(Some(vertorized_self.len()))?;
+        for byte_data in vertorized_self {
+            seq.serialize_element(&byte_data)?;
+        }
+        seq.end()
+    }
 }
 
 /// Binary parameter representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-acceleration-specified>
@@ -685,10 +708,10 @@ pub trait MotorBleData {
         max_speed: u8,
         speed_change_type: SpeedChangeType,
         write_mode: WriteMode,
-        move_target_list: MoveTargetList,
+        target_list: Vec<MoveTarget>,
     ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
         // create header part
-        let control_data = bincode::serialize(&MotorControlMultiTargetPositionsHeader {
+        let control_data = bincode::serialize(&MotorControlMultiTargetPositions {
             command: MotorCommand::MultlTargetPositions,
             id: 0xcc,
             timeout: timeout.into(),
@@ -697,7 +720,7 @@ pub trait MotorBleData {
             speed_change_type,
             write_mode,
             _reserved_1: 0xff,
-            move_target_list,
+            target_list,
         })
         .unwrap();
         debug!("len: {:2}, data: {:?}", control_data.len(), control_data);
@@ -790,12 +813,10 @@ mod test {
                 32,
                 SpeedChangeType::Acceleration,
                 WriteMode::Append,
-                MoveTargetList {
-                    list: vec![MoveTarget {
-                        cube_location: CubeLocation::default(),
-                        rotation_option: RotationOption::SameAsAtWriting,
-                    },]
-                }
+                vec![MoveTarget {
+                    cube_location: CubeLocation::default(),
+                    rotation_option: RotationOption::SameAsAtWriting,
+                },]
             )
             .is_ok());
     }
