@@ -1,13 +1,13 @@
 //! Official Specification: <https://toio.github.io/toio-spec/en/docs/ble_motor>
 
+use crate::payload::ToPayload;
 use crate::position::CubeLocation;
 use log::debug;
-use serde::ser::{SerializeSeq, Serializer};
+use serde::ser::Serializer;
 use serde::Serialize;
 use std::error::Error;
 use std::time;
 use thiserror::Error;
-use to_vec::ToVec;
 
 /// Control command
 
@@ -357,8 +357,8 @@ impl Default for MoveTarget {
         }
     }
 }
-impl ToVec<u8> for MoveTarget {
-    fn to_vec(self) -> Vec<u8> {
+impl ToPayload<u8> for MoveTarget {
+    fn to_payload(self) -> Vec<u8> {
         let rotation_option: u16 = (self.rotation_option as u16) << 13;
         let combined_data: [u16; 3] = [
             self.cube_location.point.x,
@@ -546,6 +546,12 @@ struct MotorControlRun {
     right: MotorDriveParameter,
 }
 
+impl ToPayload<u8> for MotorControlRun {
+    fn to_payload(self) -> Vec<u8> {
+        bincode::serialize(&self).unwrap()
+    }
+}
+
 /// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-specified-duration>
 
 #[derive(Serialize, Debug)]
@@ -554,6 +560,12 @@ struct MotorControlPeriod {
     left: MotorDriveParameter,
     right: MotorDriveParameter,
     period: RunningPeriod,
+}
+
+impl ToPayload<u8> for MotorControlPeriod {
+    fn to_payload(self) -> Vec<u8> {
+        bincode::serialize(&self).unwrap()
+    }
 }
 
 /// Bite-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified>
@@ -568,6 +580,12 @@ struct MotorControlTargetPosition {
     speed_change_type: SpeedChangeType,
     _reserved_1: u8,
     cube_location: CubeLocation,
+}
+
+impl ToPayload<u8> for MotorControlTargetPosition {
+    fn to_payload(self) -> Vec<u8> {
+        bincode::serialize(&self).unwrap()
+    }
 }
 
 /// Bite-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-multiple-targets-specified>
@@ -597,8 +615,8 @@ pub struct MotorControlMultiTargetPositionsHeader {
     write_mode: WriteMode,
 }
 
-impl ToVec<u8> for MotorControlMultiTargetPositionsHeader {
-    fn to_vec(self) -> Vec<u8> {
+impl ToPayload<u8> for MotorControlMultiTargetPositionsHeader {
+    fn to_payload(self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()
     }
 }
@@ -618,20 +636,13 @@ impl MotorControlMultiTargetPositions {
     }
 }
 
-impl Serialize for MotorControlMultiTargetPositions {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut vertorized_self = self.header().to_vec();
+impl ToPayload<u8> for MotorControlMultiTargetPositions {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload = self.header().to_payload();
         for target in &self.target_list {
-            vertorized_self.extend(&target.to_vec());
+            payload.extend(&target.to_payload());
         }
-        let mut seq = serializer.serialize_seq(Some(vertorized_self.len()))?;
-        for byte_data in vertorized_self {
-            seq.serialize_element(&byte_data)?;
-        }
-        seq.end()
+        payload
     }
 }
 
@@ -650,6 +661,14 @@ struct MotorControlAccleration {
     period: RunningPeriod,
 }
 
+impl ToPayload<u8> for MotorControlAccleration {
+    fn to_payload(self) -> Vec<u8> {
+        bincode::serialize(&self).unwrap()
+    }
+}
+
+// -------------------------------------------------------------------------------
+
 pub trait MotorBleData {
     fn encode_run(
         &self,
@@ -659,23 +678,23 @@ pub trait MotorBleData {
     ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
         let left_param = MotorDriveParameter::new(MotorId::Left, left)?;
         let right_param = MotorDriveParameter::new(MotorId::Right, right)?;
-        let control_data = match duration.period {
-            0 => bincode::serialize(&MotorControlRun {
+        let payload = match duration.period {
+            0 => MotorControlRun {
                 command: MotorCommand::Run,
                 left: left_param,
                 right: right_param,
-            })
-            .unwrap(),
-            _ => bincode::serialize(&MotorControlPeriod {
+            }
+            .to_payload(),
+            _ => MotorControlPeriod {
                 command: MotorCommand::Period,
                 left: left_param,
                 right: right_param,
                 period: duration,
-            })
-            .unwrap(),
+            }
+            .to_payload(),
         };
-        debug!("len: {:2}, data: {:?}", control_data.len(), control_data);
-        Ok(control_data)
+        debug!("len: {:2}, data: {:?}", payload.len(), payload);
+        Ok(payload)
     }
 
     fn encode_run_to_target_position(
@@ -686,7 +705,7 @@ pub trait MotorBleData {
         speed_change_type: SpeedChangeType,
         cube_location: CubeLocation,
     ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
-        let control_data = bincode::serialize(&MotorControlTargetPosition {
+        let payload = MotorControlTargetPosition {
             command: MotorCommand::TargetPosition,
             id: 0xbb,
             timeout: timeout.into(),
@@ -695,10 +714,10 @@ pub trait MotorBleData {
             speed_change_type,
             _reserved_1: 0xee,
             cube_location,
-        })
-        .unwrap();
-        debug!("len: {:2}, data: {:?}", control_data.len(), control_data);
-        Ok(control_data)
+        }
+        .to_payload();
+        debug!("len: {:2}, data: {:?}", payload.len(), payload);
+        Ok(payload)
     }
 
     fn encode_run_to_multi_target_positions(
@@ -710,8 +729,7 @@ pub trait MotorBleData {
         write_mode: WriteMode,
         target_list: Vec<MoveTarget>,
     ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
-        // create header part
-        let control_data = bincode::serialize(&MotorControlMultiTargetPositions {
+        let payload = MotorControlMultiTargetPositions {
             command: MotorCommand::MultlTargetPositions,
             id: 0xcc,
             timeout: timeout.into(),
@@ -721,10 +739,10 @@ pub trait MotorBleData {
             write_mode,
             _reserved_1: 0xff,
             target_list,
-        })
-        .unwrap();
-        debug!("len: {:2}, data: {:?}", control_data.len(), control_data);
-        Ok(control_data)
+        }
+        .to_payload();
+        debug!("len: {:2}, data: {:?}", payload.len(), payload);
+        Ok(payload)
     }
 
     fn encode_run_with_acceleration(
@@ -737,7 +755,7 @@ pub trait MotorBleData {
         priority: Priority,
         period: RunningPeriod,
     ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
-        let control_data = bincode::serialize(&MotorControlAccleration {
+        let control_data = MotorControlAccleration {
             command: MotorCommand::Acceleration,
             id: 0xaa,
             translational_speed,
@@ -747,10 +765,10 @@ pub trait MotorBleData {
             moving_direction,
             priority,
             period,
-        })
-        .unwrap();
-        debug!("len: {:2}, data: {:?}", control_data.len(), control_data);
-        Ok(control_data)
+        };
+        let payload = control_data.to_payload();
+        debug!("len: {:2}, data: {:?}", payload.len(), payload);
+        Ok(payload)
     }
 }
 

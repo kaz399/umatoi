@@ -1,3 +1,7 @@
+use crate::ble::BleInterface;
+use crate::cube::uuid::CoreCubeUuid;
+use crate::handler::{HandlerFunction, NotifyManager};
+use crate::scanner;
 use async_trait::async_trait;
 use btleplug::api::{
     BDAddr, CharPropFlags, Characteristic, Peripheral as _, ScanFilter, ValueNotification,
@@ -13,11 +17,6 @@ use std::sync::mpsc;
 use std::time::Duration;
 use thiserror::Error;
 use uuid::Uuid;
-
-use crate::ble::BleInterface;
-use crate::cube::uuid::CoreCubeUuid;
-use crate::handler::{HandlerFunction, NotifyManager};
-use crate::scanner;
 
 pub enum CoreCubeNotifyControl {
     Run,
