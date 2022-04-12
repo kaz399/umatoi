@@ -1,3 +1,4 @@
+pub mod api;
 pub mod ble;
 pub mod cube;
 pub mod handler;
