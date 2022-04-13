@@ -1,85 +1,112 @@
+use super::def::{CommandId, RequestId, Timeout};
 use crate::payload::ToPayload;
 use crate::position::CubeLocation;
 use serde::ser::Serializer;
 use serde::Serialize;
 
-use super::def::CommandId;
-
 /// Bite-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified>
 
 #[derive(Serialize, Debug, Copy, Clone)]
-struct MotorControlTargetPosition {
+struct MotorControlWithTargetSpecified {
     command: CommandId,
-    id: u8,
-    timeout: u8,
+    id: RequestId,
+    timeout: Timeout,
     movement_type: MovementType,
-    max_speed: u8,
-    speed_change_type: SpeedChangeType,
+    speed: Speed,
     _reserved_1: u8,
     cube_location: CubeLocation,
 }
 
-impl ToPayload<u8> for MotorControlTargetPosition {
+impl ToPayload<u8> for MotorControlWithTargetSpecified {
     fn to_payload(self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()
+    }
+}
+
+impl Default for MotorControlWithTargetSpecified {
+    fn default() -> Self {
+        Self {
+            command: CommandId::TargetPosition,
+            id: RequestId::get(),
+            timeout: Timeout::default(),
+            movement_type: MovementType::default(),
+            speed: Speed::default(),
+            _reserved_1: 0,
+            cube_location: CubeLocation::default(),
+        }
     }
 }
 
 /// Bite-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-multiple-targets-specified>
 
 #[derive(Debug, Clone)]
-pub struct MotorControlMultiTargetPositions {
+pub struct MotorControlWithMultipleTargetsSpecified {
     command: CommandId,
-    id: u8,
-    timeout: u8,
+    id: RequestId,
+    timeout: Timeout,
     movement_type: MovementType,
-    max_speed: u8,
-    speed_change_type: SpeedChangeType,
+    speed: Speed,
     _reserved_1: u8,
     write_mode: WriteMode,
     target_list: Vec<Target>,
 }
 
-#[derive(Serialize, Debug)]
-pub struct MotorControlMultiTargetPositionsHeader {
-    command: CommandId,
-    id: u8,
-    timeout: u8,
-    movement_type: MovementType,
-    max_speed: u8,
-    speed_change_type: SpeedChangeType,
-    _reserved_1: u8,
-    write_mode: WriteMode,
-}
-
-impl ToPayload<u8> for MotorControlMultiTargetPositionsHeader {
-    fn to_payload(self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
-    }
-}
-
-impl MotorControlMultiTargetPositions {
-    fn header(&self) -> MotorControlMultiTargetPositionsHeader {
-        MotorControlMultiTargetPositionsHeader {
-            command: self.command,
-            id: self.id,
-            timeout: self.timeout,
-            movement_type: self.movement_type,
-            max_speed: self.max_speed,
-            speed_change_type: self.speed_change_type,
-            _reserved_1: self._reserved_1,
-            write_mode: self.write_mode,
-        }
-    }
-}
-
-impl ToPayload<u8> for MotorControlMultiTargetPositions {
+impl ToPayload<u8> for MotorControlWithMultipleTargetsSpecified {
     fn to_payload(self) -> Vec<u8> {
         let mut payload = self.header().to_payload();
         for target in &self.target_list {
             payload.extend(&target.to_payload());
         }
         payload
+    }
+}
+
+impl Default for MotorControlWithMultipleTargetsSpecified {
+    fn default() -> Self {
+        Self {
+            command: CommandId::MultlTargetPositions,
+            id: RequestId::get(),
+            timeout: Timeout::default(),
+            movement_type: MovementType::default(),
+            speed: Speed::default(),
+            _reserved_1: 0,
+            write_mode: WriteMode::default(),
+            target_list: Vec::new(),
+        }
+    }
+}
+
+/// Header part of `MotorControlWithMultipleTargetsSpecified`
+///
+/// This struct is NOT public.
+#[derive(Serialize, Debug)]
+struct MotorControlWithMultipleTargetsSpecifiedHeader {
+    command: CommandId,
+    id: RequestId,
+    timeout: Timeout,
+    movement_type: MovementType,
+    speed: Speed,
+    _reserved_1: u8,
+    write_mode: WriteMode,
+}
+
+impl ToPayload<u8> for MotorControlWithMultipleTargetsSpecifiedHeader {
+    fn to_payload(self) -> Vec<u8> {
+        bincode::serialize(&self).unwrap()
+    }
+}
+
+impl MotorControlWithMultipleTargetsSpecified {
+    fn header(&self) -> MotorControlWithMultipleTargetsSpecifiedHeader {
+        MotorControlWithMultipleTargetsSpecifiedHeader {
+            command: self.command,
+            id: self.id,
+            timeout: self.timeout,
+            movement_type: self.movement_type,
+            speed: self.speed,
+            _reserved_1: self._reserved_1,
+            write_mode: self.write_mode,
+        }
     }
 }
 
@@ -102,6 +129,12 @@ impl From<MovementType> for u8 {
     }
 }
 
+impl Default for MovementType {
+    fn default() -> Self {
+        MovementType::Curve
+    }
+}
+
 impl Serialize for MovementType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -109,6 +142,23 @@ impl Serialize for MovementType {
     {
         let byte_string: u8 = u8::from(*self);
         serializer.serialize_u8(byte_string)
+    }
+}
+
+/// Speed parameter
+
+#[derive(Serialize, Debug, Copy, Clone, PartialEq)]
+pub struct Speed {
+    max_speed: u8,
+    speed_change_type: SpeedChangeType,
+}
+
+impl Default for Speed {
+    fn default() -> Self {
+        Self {
+            max_speed: 0,
+            speed_change_type: SpeedChangeType::default(),
+        }
     }
 }
 
@@ -130,6 +180,12 @@ impl From<SpeedChangeType> for u8 {
             SpeedChangeType::Deceleration => 2u8,
             SpeedChangeType::AccelerationAndDeceleration => 3u8,
         }
+    }
+}
+
+impl Default for SpeedChangeType {
+    fn default() -> Self {
+        SpeedChangeType::Constant
     }
 }
 
@@ -167,6 +223,12 @@ impl From<RotationOption> for u8 {
             RotationOption::WithoutRotation => 5u8,
             RotationOption::SameAsAtWriting => 6u8,
         }
+    }
+}
+
+impl Default for RotationOption {
+    fn default() -> Self {
+        RotationOption::AbsoluteOptimal
     }
 }
 
@@ -223,6 +285,12 @@ impl From<WriteMode> for u8 {
             WriteMode::Overwrite => 0u8,
             WriteMode::Append => 1u8,
         }
+    }
+}
+
+impl Default for WriteMode {
+    fn default() -> Self {
+        WriteMode::Overwrite
     }
 }
 

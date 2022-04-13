@@ -1,9 +1,13 @@
+use once_cell::sync::OnceCell;
 use serde::ser::Serializer;
 use serde::Serialize;
 use std::error::Error;
+use std::sync::Mutex;
 use thiserror::Error;
 
 /// Command
+///
+/// No default.
 
 #[derive(Debug, Copy, Clone)]
 pub enum CommandId {
@@ -37,6 +41,8 @@ impl Serialize for CommandId {
 }
 
 /// Errors
+///
+/// No default.
 
 #[derive(Error, Debug, PartialEq)]
 pub enum MotorError {
@@ -44,6 +50,31 @@ pub enum MotorError {
     InvalidParameter,
     #[error("internal error of motor.rs")]
     FoundBug,
+}
+
+/// Request ID
+///
+/// No default.
+
+#[derive(Debug, Serialize, Copy, Clone, PartialEq)]
+pub struct RequestId {
+    id: u8,
+}
+
+/// Request ID counter (global scope)
+static REQUEST_ID: OnceCell<Mutex<u8>> = OnceCell::new();
+
+impl RequestId {
+    pub fn get() -> Self {
+        let mut request_id = REQUEST_ID.get_or_init(|| Mutex::new(0u8)).lock().unwrap();
+        let id = *request_id;
+        if *request_id == u8::MAX {
+            *request_id = 0;
+        } else {
+            *request_id += 1;
+        }
+        Self { id }
+    }
 }
 
 /// Timeout
@@ -58,6 +89,12 @@ impl From<Timeout> for u8 {
         match timeout {
             Timeout::Second(t) => t,
         }
+    }
+}
+
+impl Default for Timeout {
+    fn default() -> Self {
+        Timeout::Second(0)
     }
 }
 
@@ -101,6 +138,8 @@ impl Period {
 }
 
 /// Motor Id
+///
+/// No default.
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum MotorId {
@@ -128,6 +167,8 @@ impl Serialize for MotorId {
 }
 
 /// Motor direction
+///
+/// No default.
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum MotorDirection {
@@ -224,7 +265,13 @@ mod test {
     }
 
     #[test]
-    fn motor_bytedecode1() {
+    fn motor_def_request_id() {
         _setup();
+
+        for ct in 0usize..=300usize {
+            let req = RequestId::get();
+            println!("request id: {}", req.id);
+            assert_eq!(req.id as usize, ct % (1 + u8::MAX as usize));
+        }
     }
 }
