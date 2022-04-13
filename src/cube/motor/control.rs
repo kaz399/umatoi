@@ -30,8 +30,8 @@ impl ToPayload<u8> for MotorControl {
     }
 }
 impl MotorControl {
-    /// interface to create new struct from primitive type parameters
-    pub fn new(left: i16, right: i16) -> Result<Self, Box<dyn Error + Send + Sync + 'static>> {
+    /// create new struct from primitive type parameters
+    pub fn from_primitive(left: i16, right: i16) -> Result<Self, Box<dyn Error + Send + Sync + 'static>> {
         let left = MotorDriveParameter::new(MotorId::Left, Velocity::new(left)?)?;
         let right = MotorDriveParameter::new(MotorId::Right, Velocity::new(right)?)?;
         Ok(Self {
@@ -72,8 +72,8 @@ impl ToPayload<u8> for MotorControlWithSpecifiledDuration {
 }
 
 impl MotorControlWithSpecifiledDuration {
-    /// interface to create new struct from primitive type parameters
-    pub fn new(
+    /// create new struct from primitive type parameters
+    pub fn from_primitive(
         left: i16,
         right: i16,
         period_ms: u64,
@@ -123,7 +123,7 @@ mod test {
     fn motor_control_test3() {
         _setup();
 
-        let run_default = MotorControl::new(10, -11).unwrap();
+        let run_default = MotorControl::from_primitive(10, -11).unwrap();
         let payload = run_default.to_payload();
         println!("length: {:2} payload: {:?}", payload.len(), payload);
         assert_eq!(payload.len(), 7);
