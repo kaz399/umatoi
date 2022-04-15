@@ -6,7 +6,7 @@ use serde::Serialize;
 
 /// Bite-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified>
 
-#[derive(Serialize, Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 struct MotorControlWithTargetSpecified {
     command: CommandId,
     id: RequestId,
@@ -14,12 +14,14 @@ struct MotorControlWithTargetSpecified {
     movement_type: MovementType,
     speed: Speed,
     _reserved_1: u8,
-    cube_location: CubeLocation,
+    target: Target,
 }
 
 impl ToPayload<u8> for MotorControlWithTargetSpecified {
     fn to_payload(self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
+        let mut payload = self.header().to_payload();
+        payload.extend(&self.target.to_payload());
+        payload
     }
 }
 
@@ -32,7 +34,20 @@ impl Default for MotorControlWithTargetSpecified {
             movement_type: MovementType::default(),
             speed: Speed::default(),
             _reserved_1: 0,
-            cube_location: CubeLocation::default(),
+            target: Target::default(),
+        }
+    }
+}
+
+impl MotorControlWithTargetSpecified {
+    fn header(&self) -> MotorControlWithTargetSpecifiedHeader {
+        MotorControlWithTargetSpecifiedHeader {
+            command: self.command,
+            id: self.id,
+            timeout: self.timeout,
+            movement_type: self.movement_type,
+            speed: self.speed,
+            _reserved_1:  self._reserved_1,
         }
     }
 }
@@ -71,10 +86,44 @@ impl Default for MotorControlWithMultipleTargetsSpecified {
             speed: Speed::default(),
             _reserved_1: 0,
             write_mode: WriteMode::default(),
-            target_list: Vec::new(),
+            target_list: vec!(Target::default()),
         }
     }
 }
+
+impl MotorControlWithMultipleTargetsSpecified {
+    fn header(&self) -> MotorControlWithMultipleTargetsSpecifiedHeader {
+        MotorControlWithMultipleTargetsSpecifiedHeader {
+            command: self.command,
+            id: self.id,
+            timeout: self.timeout,
+            movement_type: self.movement_type,
+            speed: self.speed,
+            _reserved_1: self._reserved_1,
+            write_mode: self.write_mode,
+        }
+    }
+}
+
+/// Header part of `MotorControlWithTargetSpecified`
+///
+/// This struct is NOT public
+#[derive(Serialize, Debug)]
+struct MotorControlWithTargetSpecifiedHeader {
+    command: CommandId,
+    id: RequestId,
+    timeout: Timeout,
+    movement_type: MovementType,
+    speed: Speed,
+    _reserved_1: u8,
+}
+
+impl ToPayload<u8> for MotorControlWithTargetSpecifiedHeader {
+    fn to_payload(self) -> Vec<u8> {
+        bincode::serialize(&self).unwrap()
+    }
+}
+
 
 /// Header part of `MotorControlWithMultipleTargetsSpecified`
 ///
@@ -93,20 +142,6 @@ struct MotorControlWithMultipleTargetsSpecifiedHeader {
 impl ToPayload<u8> for MotorControlWithMultipleTargetsSpecifiedHeader {
     fn to_payload(self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()
-    }
-}
-
-impl MotorControlWithMultipleTargetsSpecified {
-    fn header(&self) -> MotorControlWithMultipleTargetsSpecifiedHeader {
-        MotorControlWithMultipleTargetsSpecifiedHeader {
-            command: self.command,
-            id: self.id,
-            timeout: self.timeout,
-            movement_type: self.movement_type,
-            speed: self.speed,
-            _reserved_1: self._reserved_1,
-            write_mode: self.write_mode,
-        }
     }
 }
 
@@ -147,19 +182,10 @@ impl Serialize for MovementType {
 
 /// Speed parameter
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq)]
+#[derive(Serialize, Default, Debug, Copy, Clone, PartialEq)]
 pub struct Speed {
     max_speed: u8,
     speed_change_type: SpeedChangeType,
-}
-
-impl Default for Speed {
-    fn default() -> Self {
-        Self {
-            max_speed: 0,
-            speed_change_type: SpeedChangeType::default(),
-        }
-    }
 }
 
 /// Speed change type
@@ -313,7 +339,51 @@ mod test {
     }
 
     #[test]
-    fn motor_bytedecode1() {
+    fn motor_target1() {
         _setup();
+
+        let st = MotorControlWithTargetSpecified::default();
+        let payload = st.to_payload();
+        println!("{:?}", payload);
+        println!("len: {:2} payload:{:?}", payload.len(), payload);
+        assert_eq!(payload.len() , 13);
+
+        let st = MotorControlWithTargetSpecified {
+            timeout: Timeout::Second(10),
+            movement_type: MovementType::Liner,
+            speed: Speed {
+                max_speed: 20,
+                speed_change_type: SpeedChangeType::Acceleration,
+            },
+            _reserved_1: 0xff,
+            ..MotorControlWithTargetSpecified::default()
+        };
+        let payload = st.to_payload();
+        println!("{:?}", payload);
+        println!("len: {:2} payload:{:?}", payload.len(), payload);
+        assert_eq!(payload.len() , 13);
+    }
+
+    #[test]
+    fn motor_target2() {
+        _setup();
+
+        let st = MotorControlWithMultipleTargetsSpecified::default();
+        let payload = st.to_payload();
+        println!("{:?}", payload);
+        println!("len: {:2} payload:{:?}", payload.len(), payload);
+        assert_eq!(payload.len() , 14);
+
+        let st = MotorControlWithMultipleTargetsSpecified {
+            timeout: Timeout::default(),
+            movement_type: MovementType::CuverWithoutReverse,
+            speed: Speed { max_speed: 100, speed_change_type: SpeedChangeType::AccelerationAndDeceleration },
+            write_mode: WriteMode::Append,
+            target_list: vec![Target::default(), Target::default(), Target::default()],
+            ..MotorControlWithMultipleTargetsSpecified::default()
+        };
+        let payload = st.to_payload();
+        println!("{:?}", payload);
+        println!("len: {:2} payload:{:?}", payload.len(), payload);
     }
 }
