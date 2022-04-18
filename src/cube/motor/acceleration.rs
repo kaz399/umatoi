@@ -1,15 +1,14 @@
+use super::def::{CommandId, Period};
 use crate::payload::ToPayload;
-use serde::ser::Serializer;
+use serde::Serializer;
 use serde::Serialize;
 
-use super::def::{CommandId, Period};
 
-/// Binary parameter representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-acceleration-specified>
+/// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-acceleration-specified>
 
 #[derive(Serialize, Debug, Copy, Clone)]
 struct MotorControlAccleration {
     command: CommandId,
-    id: u8,
     acceleration: Acceleration,
     angle_velocity: AngleVelocity,
     moving_direction: MovingDirection,
@@ -23,21 +22,25 @@ impl ToPayload<u8> for MotorControlAccleration {
     }
 }
 
+impl Default for MotorControlAccleration {
+    fn default() -> Self {
+        Self {
+            command: CommandId::Acceleration,
+            acceleration: Acceleration::default(),
+            angle_velocity: AngleVelocity::default(),
+            moving_direction: MovingDirection::Forward,
+            priority: Priority::TranslationalSpeed,
+            period: Period::default(),
+        }
+    }
+}
+
 /// Acceleration
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq)]
+#[derive(Serialize, Default, Debug, Copy, Clone, PartialEq)]
 pub struct Acceleration {
     translational_speed: u8,
     acceleration: u8,
-}
-
-impl Default for Acceleration {
-    fn default() -> Self {
-        Self {
-            translational_speed: 0,
-            acceleration: 0,
-        }
-    }
 }
 
 /// Angle velocity
@@ -147,7 +150,24 @@ mod test {
     }
 
     #[test]
-    fn motor_bytedecode1() {
+    fn motor_acceleration1() {
         _setup();
+
+        let st = MotorControlAccleration::default();
+        let payload = st.to_payload();
+        println!("len: {:2} payload:{:?}", payload.len(), payload);
+        assert_eq!(payload.len(), 9);
+
+        let st = MotorControlAccleration {
+            acceleration: Acceleration { translational_speed: 10, acceleration: 20 },
+            angle_velocity: AngleVelocity { rotation_velocity: 30 , rotation_direction: RotationDirection::Negative },
+            moving_direction: MovingDirection::Backward,
+            priority: Priority::RotationVelocity,
+            period: Period::from_millis(40),
+            ..MotorControlAccleration::default()
+        };
+        let payload = st.to_payload();
+        println!("len: {:2} payload:{:?}", payload.len(), payload);
+        assert_eq!(payload.len(), 9);
     }
 }

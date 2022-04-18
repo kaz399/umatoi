@@ -4,7 +4,7 @@ use crate::position::CubeLocation;
 use serde::ser::Serializer;
 use serde::Serialize;
 
-/// Bite-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified>
+/// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified>
 
 #[derive(Debug, Copy, Clone)]
 struct MotorControlWithTargetSpecified {
@@ -52,7 +52,7 @@ impl MotorControlWithTargetSpecified {
     }
 }
 
-/// Bite-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-multiple-targets-specified>
+/// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-multiple-targets-specified>
 
 #[derive(Debug, Clone)]
 pub struct MotorControlWithMultipleTargetsSpecified {
@@ -344,7 +344,6 @@ mod test {
 
         let st = MotorControlWithTargetSpecified::default();
         let payload = st.to_payload();
-        println!("{:?}", payload);
         println!("len: {:2} payload:{:?}", payload.len(), payload);
         assert_eq!(payload.len() , 13);
 
@@ -359,7 +358,6 @@ mod test {
             ..MotorControlWithTargetSpecified::default()
         };
         let payload = st.to_payload();
-        println!("{:?}", payload);
         println!("len: {:2} payload:{:?}", payload.len(), payload);
         assert_eq!(payload.len() , 13);
     }
@@ -370,7 +368,6 @@ mod test {
 
         let st = MotorControlWithMultipleTargetsSpecified::default();
         let payload = st.to_payload();
-        println!("{:?}", payload);
         println!("len: {:2} payload:{:?}", payload.len(), payload);
         assert_eq!(payload.len() , 14);
 
@@ -383,7 +380,6 @@ mod test {
             ..MotorControlWithMultipleTargetsSpecified::default()
         };
         let payload = st.to_payload();
-        println!("{:?}", payload);
         println!("len: {:2} payload:{:?}", payload.len(), payload);
     }
 }
