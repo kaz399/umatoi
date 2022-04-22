@@ -23,7 +23,7 @@ impl Default for MotorControl {
     }
 }
 
-impl ToPayload<u8> for MotorControl {
+impl ToPayload<Vec<u8>> for MotorControl {
     /// convert to BLE payload
     fn to_payload(self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()
@@ -31,7 +31,10 @@ impl ToPayload<u8> for MotorControl {
 }
 impl MotorControl {
     /// create new struct from primitive type parameters
-    pub fn from_primitive(left: i16, right: i16) -> Result<Self, Box<dyn Error + Send + Sync + 'static>> {
+    pub fn from_primitive(
+        left: i16,
+        right: i16,
+    ) -> Result<Self, Box<dyn Error + Send + Sync + 'static>> {
         let left = MotorDriveParameter::new(MotorId::Left, Velocity::new(left)?)?;
         let right = MotorDriveParameter::new(MotorId::Right, Velocity::new(right)?)?;
         Ok(Self {
@@ -64,7 +67,7 @@ impl Default for MotorControlWithSpecifiledDuration {
     }
 }
 
-impl ToPayload<u8> for MotorControlWithSpecifiledDuration {
+impl ToPayload<Vec<u8>> for MotorControlWithSpecifiledDuration {
     /// convert to BLE payload
     fn to_payload(self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()

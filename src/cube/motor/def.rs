@@ -44,7 +44,7 @@ impl Serialize for CommandId {
 ///
 /// No default.
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum MotorError {
     #[error("invalid parameter")]
     InvalidParameter,
@@ -56,7 +56,7 @@ pub enum MotorError {
 ///
 /// No default.
 
-#[derive(Debug, Serialize, Copy, Clone, PartialEq)]
+#[derive(Debug, Serialize, Copy, Clone, PartialEq, Eq)]
 pub struct RequestId {
     id: u8,
 }
@@ -65,7 +65,7 @@ pub struct RequestId {
 static REQUEST_ID: OnceCell<Mutex<u8>> = OnceCell::new();
 
 impl RequestId {
-    pub fn get() -> Self {
+    pub fn new() -> Self {
         let mut request_id = REQUEST_ID.get_or_init(|| Mutex::new(0u8)).lock().unwrap();
         let id = *request_id;
         if *request_id == u8::MAX {
@@ -75,11 +75,15 @@ impl RequestId {
         }
         Self { id }
     }
+
+    pub fn received(id: u8) -> Self {
+        Self { id }
+    }
 }
 
 /// Timeout
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Timeout {
     Second(u8),
 }
@@ -141,7 +145,7 @@ impl Period {
 ///
 /// No default.
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MotorId {
     Left,
     Right,
@@ -170,7 +174,7 @@ impl Serialize for MotorId {
 ///
 /// No default.
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MotorDirection {
     Forward,
     Backward,
@@ -269,7 +273,7 @@ mod test {
         _setup();
 
         for ct in 0usize..=300usize {
-            let req = RequestId::get();
+            let req = RequestId::new();
             println!("request id: {}", req.id);
             assert_eq!(req.id as usize, ct % (1 + u8::MAX as usize));
         }

@@ -75,7 +75,7 @@ pub async fn scan_example(
     Ok(())
 }
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum ScannerError {
     #[error("bluetooth adapter is not found")]
     AdapterNotFound,

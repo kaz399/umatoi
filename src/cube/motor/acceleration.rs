@@ -1,8 +1,7 @@
 use super::def::{CommandId, Period};
 use crate::payload::ToPayload;
-use serde::Serializer;
 use serde::Serialize;
-
+use serde::Serializer;
 
 /// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-acceleration-specified>
 
@@ -16,7 +15,7 @@ struct MotorControlAccleration {
     period: Period,
 }
 
-impl ToPayload<u8> for MotorControlAccleration {
+impl ToPayload<Vec<u8>> for MotorControlAccleration {
     fn to_payload(self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()
     }
@@ -37,7 +36,7 @@ impl Default for MotorControlAccleration {
 
 /// Acceleration
 
-#[derive(Serialize, Default, Debug, Copy, Clone, PartialEq)]
+#[derive(Serialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Acceleration {
     translational_speed: u8,
     acceleration: u8,
@@ -45,7 +44,7 @@ pub struct Acceleration {
 
 /// Angle velocity
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq)]
+#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct AngleVelocity {
     rotation_velocity: u16,
     rotation_direction: RotationDirection,
@@ -62,7 +61,7 @@ impl Default for AngleVelocity {
 
 /// Rotation direction
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RotationDirection {
     Positive,
     Negative,
@@ -89,7 +88,7 @@ impl Serialize for RotationDirection {
 
 /// Moving direction
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MovingDirection {
     Forward,
     Backward,
@@ -116,7 +115,7 @@ impl Serialize for MovingDirection {
 
 /// Priority (MotorCommandId::Acceleration)
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Priority {
     TranslationalSpeed,
     RotationVelocity,
@@ -159,8 +158,14 @@ mod test {
         assert_eq!(payload.len(), 9);
 
         let st = MotorControlAccleration {
-            acceleration: Acceleration { translational_speed: 10, acceleration: 20 },
-            angle_velocity: AngleVelocity { rotation_velocity: 30 , rotation_direction: RotationDirection::Negative },
+            acceleration: Acceleration {
+                translational_speed: 10,
+                acceleration: 20,
+            },
+            angle_velocity: AngleVelocity {
+                rotation_velocity: 30,
+                rotation_direction: RotationDirection::Negative,
+            },
             moving_direction: MovingDirection::Backward,
             priority: Priority::RotationVelocity,
             period: Period::from_millis(40),

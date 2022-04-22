@@ -11,7 +11,7 @@ pub struct NotifyManager<T> {
     pub handlers: HashMap<uuid::Uuid, HandlerFunction<T>>,
 }
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum NotifyManagerError {
     #[error("handler function '{0}' is not found")]
     HandlerNotFound(uuid::Uuid),

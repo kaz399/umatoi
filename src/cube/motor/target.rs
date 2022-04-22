@@ -17,7 +17,7 @@ struct MotorControlWithTargetSpecified {
     target: Target,
 }
 
-impl ToPayload<u8> for MotorControlWithTargetSpecified {
+impl ToPayload<Vec<u8>> for MotorControlWithTargetSpecified {
     fn to_payload(self) -> Vec<u8> {
         let mut payload = self.header().to_payload();
         payload.extend(&self.target.to_payload());
@@ -29,7 +29,7 @@ impl Default for MotorControlWithTargetSpecified {
     fn default() -> Self {
         Self {
             command: CommandId::TargetPosition,
-            id: RequestId::get(),
+            id: RequestId::new(),
             timeout: Timeout::default(),
             movement_type: MovementType::default(),
             speed: Speed::default(),
@@ -47,7 +47,7 @@ impl MotorControlWithTargetSpecified {
             timeout: self.timeout,
             movement_type: self.movement_type,
             speed: self.speed,
-            _reserved_1:  self._reserved_1,
+            _reserved_1: self._reserved_1,
         }
     }
 }
@@ -66,7 +66,7 @@ pub struct MotorControlWithMultipleTargetsSpecified {
     target_list: Vec<Target>,
 }
 
-impl ToPayload<u8> for MotorControlWithMultipleTargetsSpecified {
+impl ToPayload<Vec<u8>> for MotorControlWithMultipleTargetsSpecified {
     fn to_payload(self) -> Vec<u8> {
         let mut payload = self.header().to_payload();
         for target in &self.target_list {
@@ -80,13 +80,13 @@ impl Default for MotorControlWithMultipleTargetsSpecified {
     fn default() -> Self {
         Self {
             command: CommandId::MultlTargetPositions,
-            id: RequestId::get(),
+            id: RequestId::new(),
             timeout: Timeout::default(),
             movement_type: MovementType::default(),
             speed: Speed::default(),
             _reserved_1: 0,
             write_mode: WriteMode::default(),
-            target_list: vec!(Target::default()),
+            target_list: vec![Target::default()],
         }
     }
 }
@@ -118,12 +118,11 @@ struct MotorControlWithTargetSpecifiedHeader {
     _reserved_1: u8,
 }
 
-impl ToPayload<u8> for MotorControlWithTargetSpecifiedHeader {
+impl ToPayload<Vec<u8>> for MotorControlWithTargetSpecifiedHeader {
     fn to_payload(self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()
     }
 }
-
 
 /// Header part of `MotorControlWithMultipleTargetsSpecified`
 ///
@@ -139,7 +138,7 @@ struct MotorControlWithMultipleTargetsSpecifiedHeader {
     write_mode: WriteMode,
 }
 
-impl ToPayload<u8> for MotorControlWithMultipleTargetsSpecifiedHeader {
+impl ToPayload<Vec<u8>> for MotorControlWithMultipleTargetsSpecifiedHeader {
     fn to_payload(self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()
     }
@@ -147,7 +146,7 @@ impl ToPayload<u8> for MotorControlWithMultipleTargetsSpecifiedHeader {
 
 /// Movement type
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MovementType {
     Curve,
     CuverWithoutReverse,
@@ -182,7 +181,7 @@ impl Serialize for MovementType {
 
 /// Speed parameter
 
-#[derive(Serialize, Default, Debug, Copy, Clone, PartialEq)]
+#[derive(Serialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Speed {
     max_speed: u8,
     speed_change_type: SpeedChangeType,
@@ -190,7 +189,7 @@ pub struct Speed {
 
 /// Speed change type
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SpeedChangeType {
     Constant,
     Acceleration,
@@ -227,7 +226,7 @@ impl Serialize for SpeedChangeType {
 
 /// Rotation options on the move
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RotationOption {
     AbsoluteOptimal,
     AbsolutePositive,
@@ -285,7 +284,7 @@ impl Default for Target {
     }
 }
 
-impl ToPayload<u8> for Target {
+impl ToPayload<Vec<u8>> for Target {
     fn to_payload(self) -> Vec<u8> {
         let rotation_option: u16 = (self.rotation_option as u16) << 13;
         let combined_data: [u16; 3] = [
@@ -299,7 +298,7 @@ impl ToPayload<u8> for Target {
 
 /// Write mode (MotorCommandId::MultlTargetPositions)
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum WriteMode {
     Overwrite,
     Append,
@@ -345,7 +344,7 @@ mod test {
         let st = MotorControlWithTargetSpecified::default();
         let payload = st.to_payload();
         println!("len: {:2} payload:{:?}", payload.len(), payload);
-        assert_eq!(payload.len() , 13);
+        assert_eq!(payload.len(), 13);
 
         let st = MotorControlWithTargetSpecified {
             timeout: Timeout::Second(10),
@@ -359,7 +358,7 @@ mod test {
         };
         let payload = st.to_payload();
         println!("len: {:2} payload:{:?}", payload.len(), payload);
-        assert_eq!(payload.len() , 13);
+        assert_eq!(payload.len(), 13);
     }
 
     #[test]
@@ -369,12 +368,15 @@ mod test {
         let st = MotorControlWithMultipleTargetsSpecified::default();
         let payload = st.to_payload();
         println!("len: {:2} payload:{:?}", payload.len(), payload);
-        assert_eq!(payload.len() , 14);
+        assert_eq!(payload.len(), 14);
 
         let st = MotorControlWithMultipleTargetsSpecified {
             timeout: Timeout::default(),
             movement_type: MovementType::CuverWithoutReverse,
-            speed: Speed { max_speed: 100, speed_change_type: SpeedChangeType::AccelerationAndDeceleration },
+            speed: Speed {
+                max_speed: 100,
+                speed_change_type: SpeedChangeType::AccelerationAndDeceleration,
+            },
             write_mode: WriteMode::Append,
             target_list: vec![Target::default(), Target::default(), Target::default()],
             ..MotorControlWithMultipleTargetsSpecified::default()

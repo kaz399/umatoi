@@ -2,7 +2,7 @@
 
 use std::time;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Button {
     Unknown,
     Pressed,

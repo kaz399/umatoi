@@ -2,14 +2,14 @@
 
 use std::time;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MotionDetectResult {
     Unknown,
     NotDetected,
     Detected,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Posture {
     Unknown = 0,
     Top = 1,

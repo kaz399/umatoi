@@ -5,7 +5,7 @@ use std::ops::{Add, Sub};
 
 /// Point
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq)]
+#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Point {
     pub x: u16,
     pub y: u16,
@@ -45,7 +45,7 @@ impl Point {
 
 /// Loation information of a cube
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq)]
+#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct CubeLocation {
     pub point: Point,
     pub angle: u16,
@@ -95,13 +95,13 @@ impl Sub for CubeLocation {
 
 /// Mat size
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MatRect {
     top_left: Point,
     bottom_right: Point,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ToioMat {
     NoMat,
     ToioCollectionMatRing,

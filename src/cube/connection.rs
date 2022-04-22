@@ -24,7 +24,7 @@ pub enum CoreCubeNotifyControl {
     Quit,
 }
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum CoreCubeError {
     #[error("toio core cube is not found")]
     CobeNotFound,

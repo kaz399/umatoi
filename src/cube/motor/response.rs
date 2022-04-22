@@ -1,52 +1,105 @@
+use super::def::RequestId;
+use crate::payload::ToPayload;
 use serde::ser::Serializer;
 use serde::Serialize;
-use std::time;
 
-/// Response type
+/// Response to motor control with target specifiled
+/// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-target-specified>
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum ResponseType {
-    SingleMotorControl,
-    MultipleMotorControl,
-    CubeSpeed,
+#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ResponseMotorControlWithAngleSpecifiled {
+    pub request_id: RequestId,
+    pub response_code: ResponseCode,
+}
+
+/// Responses to motor control with multiple targets specifiled
+/// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-multiple-targets-specified>
+
+#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ResponseMotorControlWithMultipleTargetsSpecified {
+    pub request_id: RequestId,
+    pub response_code: ResponseCode,
+}
+
+/// Motor Speed information
+/// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#obtaining-motor-speed-information>
+
+#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+pub struct MotorSpeeedInformation {
+    pub left: u8,
+    pub right: u8,
+}
+
+/// Motor response
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Response {
+    MotorControlWithAngleSpecifiled(ResponseMotorControlWithAngleSpecifiled),
+    MotorControlWithMultipleTargetsSpecified(ResponseMotorControlWithMultipleTargetsSpecified),
+    MotorSpeeedInformation(MotorSpeeedInformation),
     UnknownResponse(u8),
 }
 
-impl From<ResponseType> for u8 {
-    fn from(response_type: ResponseType) -> u8 {
+impl From<Response> for u8 {
+    fn from(response_type: Response) -> u8 {
         match response_type {
-            ResponseType::SingleMotorControl => 0x83u8,
-            ResponseType::MultipleMotorControl => 0x84u8,
-            ResponseType::CubeSpeed => 0xe0u8,
-            ResponseType::UnknownResponse(x) => x,
+            Response::MotorControlWithAngleSpecifiled(_) => 0x83u8,
+            Response::MotorControlWithMultipleTargetsSpecified(_) => 0x84u8,
+            Response::MotorSpeeedInformation(_) => 0xe0u8,
+            Response::UnknownResponse(x) => x,
         }
     }
 }
 
-impl From<u8> for ResponseType {
-    fn from(num: u8) -> ResponseType {
-        match num {
-            0x83 => ResponseType::SingleMotorControl,
-            0x84 => ResponseType::MultipleMotorControl,
-            0xe0 => ResponseType::CubeSpeed,
-            x => ResponseType::UnknownResponse(x),
+impl Response {
+    pub fn new(byte_code: Vec<u8>) -> Option<Response> {
+        if byte_code.len() < 3 {
+            return None;
+        }
+        match byte_code[0] {
+            0x83u8 => Some(Response::MotorControlWithAngleSpecifiled(
+                ResponseMotorControlWithAngleSpecifiled {
+                    request_id: RequestId::received(byte_code[1]),
+                    response_code: ResponseCode::from(byte_code[2]),
+                },
+            )),
+            0x84u8 => Some(Response::MotorControlWithMultipleTargetsSpecified(
+                ResponseMotorControlWithMultipleTargetsSpecified {
+                    request_id: RequestId::received(byte_code[1]),
+                    response_code: ResponseCode::from(byte_code[2]),
+                },
+            )),
+            0xe0u8 => Some(Response::MotorSpeeedInformation(MotorSpeeedInformation {
+                left: byte_code[1],
+                right: byte_code[2],
+            })),
+            _ => None,
         }
     }
 }
 
-impl Serialize for ResponseType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for Response {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload: Vec<u8> = vec![u8::from(self)];
+        match self {
+            Response::MotorControlWithAngleSpecifiled(st) => {
+                payload.extend(bincode::serialize(&st).unwrap());
+            }
+            Response::MotorControlWithMultipleTargetsSpecified(st) => {
+                payload.extend(bincode::serialize(&st).unwrap());
+            }
+            Response::MotorSpeeedInformation(st) => {
+                payload.extend(bincode::serialize(&st).unwrap());
+            }
+            Response::UnknownResponse(_) => (),
+        }
+        payload
     }
 }
 
 /// Response code from cube
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ResponseCode {
     Success,
     ErrorTimeout,
@@ -101,18 +154,10 @@ impl Serialize for ResponseCode {
     }
 }
 
-/// Response/Notify data from cube
-
-#[derive(Debug)]
-pub struct MotorInfo {
-    pub time: time::Instant,
-    pub response_type: ResponseType,
-    pub id: usize,
-    pub response_code: ResponseCode,
-}
-
 #[cfg(test)]
 mod test {
+    use crate::payload;
+
     use super::*;
 
     fn _setup() {
@@ -120,7 +165,44 @@ mod test {
     }
 
     #[test]
-    fn motor_bytedecode1() {
+    fn motor_response1() {
         _setup();
+
+        let res = Response::MotorSpeeedInformation(MotorSpeeedInformation {
+            left: 10,
+            right: 11,
+        });
+        let payload = res.to_payload();
+        println!("len:{:2} data:{:?}", payload.len(), payload);
+        assert_eq!(payload.len(), 3);
+    }
+
+    #[test]
+    fn motor_response2() {
+        _setup();
+
+        let res =
+            Response::MotorControlWithAngleSpecifiled(ResponseMotorControlWithAngleSpecifiled {
+                request_id: RequestId::new(),
+                response_code: ResponseCode::ErrorTimeout,
+            });
+        let payload = res.to_payload();
+        println!("len:{:2} data:{:?}", payload.len(), payload);
+        assert_eq!(payload.len(), 3);
+    }
+
+    #[test]
+    fn motor_response3() {
+        _setup();
+
+        let res = Response::MotorControlWithMultipleTargetsSpecified(
+            ResponseMotorControlWithMultipleTargetsSpecified {
+                request_id: RequestId::new(),
+                response_code: ResponseCode::ErrorInvalidParameter,
+            },
+        );
+        let payload = res.to_payload();
+        println!("len:{:2} data:{:?}", payload.len(), payload);
+        assert_eq!(payload.len(), 3);
     }
 }
