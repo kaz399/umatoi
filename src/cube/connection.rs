@@ -284,6 +284,8 @@ pub async fn search_cube(
 
 #[cfg(test)]
 mod tests {
+    use crate::cube::id_information::{self, IdInformation};
+
     use super::*;
     use std::time::Duration;
     use tokio::time;
@@ -293,10 +295,22 @@ mod tests {
     }
 
     fn notify_handler(data: ValueNotification) {
-        println!(
-            "notify handler1: uuid: {:?} value: {:?}",
-            data.uuid, data.value
-        );
+        if let Some(id_data) = id_information::IdInformation::new(data.value.clone()) {
+            match id_data {
+                IdInformation::PositionId(pos_id) => {
+                    println!("position id: {:?}", pos_id);
+                },
+                IdInformation::StandardId(std_id) => {
+                    println!("standard id: {:?}", std_id);
+                },
+                _ => (),
+            }
+        } else {
+            println!(
+                "notify handler1: uuid: {:?} value: {:?}",
+                data.uuid, data.value
+            );
+        }
     }
 
     #[tokio::test]
