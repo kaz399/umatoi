@@ -43,7 +43,7 @@ impl Point {
     }
 }
 
-/// Loation information of a cube
+/// Location information of a cube
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct CubeLocation {
@@ -186,7 +186,7 @@ impl Add for RelativeCubeLocation {
             }
         } else {
             Self {
-                cube_location: self.absorite_cube_location() + p.absorite_cube_location(),
+                cube_location: self.absolute_cube_location() + p.absolute_cube_location(),
                 mat: ToioMat::NoMat,
             }
         }
@@ -203,7 +203,7 @@ impl Sub for RelativeCubeLocation {
             }
         } else {
             Self {
-                cube_location: self.absorite_cube_location() - p.absorite_cube_location(),
+                cube_location: self.absolute_cube_location() - p.absolute_cube_location(),
                 mat: ToioMat::NoMat,
             }
         }
@@ -211,11 +211,11 @@ impl Sub for RelativeCubeLocation {
 }
 
 impl RelativeCubeLocation {
-    pub fn absorite_point(&self) -> Point {
+    pub fn absolute_point(&self) -> Point {
         self.cube_location.point + self.mat.rect().top_left
     }
 
-    pub fn absorite_cube_location(&self) -> CubeLocation {
+    pub fn absolute_cube_location(&self) -> CubeLocation {
         CubeLocation {
             point: self.cube_location.point + self.mat.rect().top_left,
             angle: self.cube_location.angle,

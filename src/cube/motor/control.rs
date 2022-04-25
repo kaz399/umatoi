@@ -49,14 +49,14 @@ impl MotorControl {
 /// <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-specified-duration>
 
 #[derive(Serialize, Debug, Copy, Clone)]
-pub struct MotorControlWithSpecifiledDuration {
+pub struct MotorControlWithSpecifiedDuration {
     command: CommandId,
     left: MotorDriveParameter,
     right: MotorDriveParameter,
     period: Period,
 }
 
-impl Default for MotorControlWithSpecifiledDuration {
+impl Default for MotorControlWithSpecifiedDuration {
     fn default() -> Self {
         Self {
             command: CommandId::Period,
@@ -67,14 +67,14 @@ impl Default for MotorControlWithSpecifiledDuration {
     }
 }
 
-impl ToPayload<Vec<u8>> for MotorControlWithSpecifiledDuration {
+impl ToPayload<Vec<u8>> for MotorControlWithSpecifiedDuration {
     /// convert to BLE payload
     fn to_payload(self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()
     }
 }
 
-impl MotorControlWithSpecifiledDuration {
+impl MotorControlWithSpecifiedDuration {
     /// create new struct from primitive type parameters
     pub fn from_primitive(
         left: i16,
@@ -88,7 +88,7 @@ impl MotorControlWithSpecifiledDuration {
             left,
             right,
             period,
-            ..MotorControlWithSpecifiledDuration::default()
+            ..MotorControlWithSpecifiedDuration::default()
         })
     }
 }
@@ -116,7 +116,7 @@ mod test {
     fn motor_control_test2() {
         _setup();
 
-        let run_default = MotorControlWithSpecifiledDuration::default();
+        let run_default = MotorControlWithSpecifiedDuration::default();
         let payload = run_default.to_payload();
         println!("length: {:2} payload: {:?}", payload.len(), payload);
         assert_eq!(payload.len(), 8);

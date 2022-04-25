@@ -6,7 +6,7 @@ use serde::Serializer;
 /// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-acceleration-specified>
 
 #[derive(Serialize, Debug, Copy, Clone)]
-struct MotorControlAccleration {
+struct MotorControlAcceleration {
     command: CommandId,
     acceleration: Acceleration,
     angle_velocity: AngleVelocity,
@@ -15,13 +15,13 @@ struct MotorControlAccleration {
     period: Period,
 }
 
-impl ToPayload<Vec<u8>> for MotorControlAccleration {
+impl ToPayload<Vec<u8>> for MotorControlAcceleration {
     fn to_payload(self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()
     }
 }
 
-impl Default for MotorControlAccleration {
+impl Default for MotorControlAcceleration {
     fn default() -> Self {
         Self {
             command: CommandId::Acceleration,
@@ -152,12 +152,12 @@ mod test {
     fn motor_acceleration1() {
         _setup();
 
-        let st = MotorControlAccleration::default();
+        let st = MotorControlAcceleration::default();
         let payload = st.to_payload();
         println!("len: {:2} payload:{:?}", payload.len(), payload);
         assert_eq!(payload.len(), 9);
 
-        let st = MotorControlAccleration {
+        let st = MotorControlAcceleration {
             acceleration: Acceleration {
                 translational_speed: 10,
                 acceleration: 20,
@@ -169,7 +169,7 @@ mod test {
             moving_direction: MovingDirection::Backward,
             priority: Priority::RotationVelocity,
             period: Period::from_millis(40),
-            ..MotorControlAccleration::default()
+            ..MotorControlAcceleration::default()
         };
         let payload = st.to_payload();
         println!("len: {:2} payload:{:?}", payload.len(), payload);

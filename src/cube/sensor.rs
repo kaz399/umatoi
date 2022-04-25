@@ -23,7 +23,7 @@ pub enum Posture {
 #[derive(Debug, Copy, Clone)]
 pub struct SensorInfo {
     pub time: time::Instant,
-    pub holizontal: MotionDetectResult,
+    pub horizontal: MotionDetectResult,
     pub collision: MotionDetectResult,
     pub double_tap: MotionDetectResult,
     pub posture: Posture,
@@ -34,7 +34,7 @@ impl Default for SensorInfo {
     fn default() -> Self {
         Self {
             time: time::Instant::now(),
-            holizontal: MotionDetectResult::Unknown,
+            horizontal: MotionDetectResult::Unknown,
             collision: MotionDetectResult::Unknown,
             double_tap: MotionDetectResult::Unknown,
             posture: Posture::Unknown,

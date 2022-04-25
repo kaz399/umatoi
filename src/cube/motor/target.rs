@@ -79,7 +79,7 @@ impl ToPayload<Vec<u8>> for MotorControlWithMultipleTargetsSpecified {
 impl Default for MotorControlWithMultipleTargetsSpecified {
     fn default() -> Self {
         Self {
-            command: CommandId::MultlTargetPositions,
+            command: CommandId::MultiTargetPositions,
             id: RequestId::new(),
             timeout: Timeout::default(),
             movement_type: MovementType::default(),
@@ -149,7 +149,7 @@ impl ToPayload<Vec<u8>> for MotorControlWithMultipleTargetsSpecifiedHeader {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MovementType {
     Curve,
-    CuverWithoutReverse,
+    CurveWithoutReverse,
     Liner,
 }
 
@@ -157,7 +157,7 @@ impl From<MovementType> for u8 {
     fn from(movement_type: MovementType) -> u8 {
         match movement_type {
             MovementType::Curve => 0u8,
-            MovementType::CuverWithoutReverse => 1u8,
+            MovementType::CurveWithoutReverse => 1u8,
             MovementType::Liner => 2u8,
         }
     }
@@ -296,7 +296,7 @@ impl ToPayload<Vec<u8>> for Target {
     }
 }
 
-/// Write mode (MotorCommandId::MultlTargetPositions)
+/// Write mode (MotorCommandId::MultiTargetPositions)
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum WriteMode {
@@ -372,7 +372,7 @@ mod test {
 
         let st = MotorControlWithMultipleTargetsSpecified {
             timeout: Timeout::default(),
-            movement_type: MovementType::CuverWithoutReverse,
+            movement_type: MovementType::CurveWithoutReverse,
             speed: Speed {
                 max_speed: 100,
                 speed_change_type: SpeedChangeType::AccelerationAndDeceleration,

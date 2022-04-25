@@ -3,16 +3,16 @@ use crate::payload::ToPayload;
 use serde::ser::Serializer;
 use serde::Serialize;
 
-/// Response to motor control with target specifiled
+/// Response to motor control with target specified
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-target-specified>
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ResponseMotorControlWithAngleSpecifiled {
+pub struct ResponseMotorControlWithAngleSpecified {
     pub request_id: RequestId,
     pub response_code: ResponseCode,
 }
 
-/// Responses to motor control with multiple targets specifiled
+/// Responses to motor control with multiple targets specified
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-multiple-targets-specified>
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
@@ -25,7 +25,7 @@ pub struct ResponseMotorControlWithMultipleTargetsSpecified {
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#obtaining-motor-speed-information>
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
-pub struct MotorSpeeedInformation {
+pub struct MotorSpeedInformation {
     pub left: u8,
     pub right: u8,
 }
@@ -34,18 +34,18 @@ pub struct MotorSpeeedInformation {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Response {
-    MotorControlWithAngleSpecifiled(ResponseMotorControlWithAngleSpecifiled),
+    MotorControlWithAngleSpecified(ResponseMotorControlWithAngleSpecified),
     MotorControlWithMultipleTargetsSpecified(ResponseMotorControlWithMultipleTargetsSpecified),
-    MotorSpeeedInformation(MotorSpeeedInformation),
+    MotorSpeedInformation(MotorSpeedInformation),
     UnknownResponse(u8),
 }
 
 impl From<Response> for u8 {
     fn from(response_type: Response) -> u8 {
         match response_type {
-            Response::MotorControlWithAngleSpecifiled(_) => 0x83u8,
+            Response::MotorControlWithAngleSpecified(_) => 0x83u8,
             Response::MotorControlWithMultipleTargetsSpecified(_) => 0x84u8,
-            Response::MotorSpeeedInformation(_) => 0xe0u8,
+            Response::MotorSpeedInformation(_) => 0xe0u8,
             Response::UnknownResponse(x) => x,
         }
     }
@@ -57,8 +57,8 @@ impl Response {
             return None;
         }
         match byte_code[0] {
-            0x83u8 => Some(Response::MotorControlWithAngleSpecifiled(
-                ResponseMotorControlWithAngleSpecifiled {
+            0x83u8 => Some(Response::MotorControlWithAngleSpecified(
+                ResponseMotorControlWithAngleSpecified {
                     request_id: RequestId::received(byte_code[1]),
                     response_code: ResponseCode::from(byte_code[2]),
                 },
@@ -69,7 +69,7 @@ impl Response {
                     response_code: ResponseCode::from(byte_code[2]),
                 },
             )),
-            0xe0u8 => Some(Response::MotorSpeeedInformation(MotorSpeeedInformation {
+            0xe0u8 => Some(Response::MotorSpeedInformation(MotorSpeedInformation {
                 left: byte_code[1],
                 right: byte_code[2],
             })),
@@ -82,13 +82,13 @@ impl ToPayload<Vec<u8>> for Response {
     fn to_payload(self) -> Vec<u8> {
         let mut payload: Vec<u8> = vec![u8::from(self)];
         match self {
-            Response::MotorControlWithAngleSpecifiled(st) => {
+            Response::MotorControlWithAngleSpecified(st) => {
                 payload.extend(bincode::serialize(&st).unwrap());
             }
             Response::MotorControlWithMultipleTargetsSpecified(st) => {
                 payload.extend(bincode::serialize(&st).unwrap());
             }
-            Response::MotorSpeeedInformation(st) => {
+            Response::MotorSpeedInformation(st) => {
                 payload.extend(bincode::serialize(&st).unwrap());
             }
             Response::UnknownResponse(_) => (),
@@ -168,7 +168,7 @@ mod test {
     fn motor_response1() {
         _setup();
 
-        let res = Response::MotorSpeeedInformation(MotorSpeeedInformation {
+        let res = Response::MotorSpeedInformation(MotorSpeedInformation {
             left: 10,
             right: 11,
         });
@@ -182,7 +182,7 @@ mod test {
         _setup();
 
         let res =
-            Response::MotorControlWithAngleSpecifiled(ResponseMotorControlWithAngleSpecifiled {
+            Response::MotorControlWithAngleSpecified(ResponseMotorControlWithAngleSpecified {
                 request_id: RequestId::new(),
                 response_code: ResponseCode::ErrorTimeout,
             });

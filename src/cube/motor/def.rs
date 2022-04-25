@@ -14,7 +14,7 @@ pub enum CommandId {
     Run,
     Period,
     TargetPosition,
-    MultlTargetPositions,
+    MultiTargetPositions,
     Acceleration,
 }
 
@@ -24,7 +24,7 @@ impl From<CommandId> for u8 {
             CommandId::Run => 1u8,
             CommandId::Period => 2u8,
             CommandId::TargetPosition => 3u8,
-            CommandId::MultlTargetPositions => 4u8,
+            CommandId::MultiTargetPositions => 4u8,
             CommandId::Acceleration => 5u8,
         }
     }

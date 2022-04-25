@@ -16,7 +16,7 @@ pub trait Simple {
         period: Period,
     ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
 
-    /// Motor control with specifiled target
+    /// Motor control with specified target
     fn go_to(speed: Velocity, target: Target)
         -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
 

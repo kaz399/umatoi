@@ -27,7 +27,7 @@ pub enum CoreCubeNotifyControl {
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum CoreCubeError {
     #[error("toio core cube is not found")]
-    CobeNotFound,
+    CubeNotFound,
     #[error("no bluetooth peripherals")]
     NoBlePeripherals,
     #[error("internal error of cube.rs")]
@@ -251,7 +251,7 @@ pub async fn search_cube(
             if let Some(cube_local_name) = &cube.local_name {
                 if device_local_name != *cube_local_name {
                     debug!(
-                        "local name does not match (device:{}, specifiled:{})",
+                        "local name does not match (device:{}, specified:{})",
                         device_local_name, cube_local_name
                     );
                     continue;
@@ -262,7 +262,7 @@ pub async fn search_cube(
             } else if let Some(cube_address) = &cube.address {
                 if device_address != *cube_address {
                     debug!(
-                        "address does not match (device:{}, specifiled:{})",
+                        "address does not match (device:{}, specified:{})",
                         device_address, cube_address
                     );
                     continue;
@@ -279,7 +279,7 @@ pub async fn search_cube(
         }
     }
     error!("toio core cube is not found");
-    Err(Box::new(CoreCubeError::CobeNotFound))
+    Err(Box::new(CoreCubeError::CubeNotFound))
 }
 
 #[cfg(test)]

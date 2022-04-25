@@ -90,7 +90,7 @@ where
 mod tests {
     use super::*;
 
-    const NOTIF_DATA_ARRAY: [u8; 9] = [1, 2, 3, 4, 5, 66, 77, 88, 99];
+    const NOTIFY_DATA_ARRAY: [u8; 9] = [1, 2, 3, 4, 5, 66, 77, 88, 99];
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
@@ -98,17 +98,17 @@ mod tests {
 
     fn func1(data: Vec<u8>) {
         println!("func 1 {:?}", data);
-        assert_eq!(NOTIF_DATA_ARRAY.to_vec(), *data);
+        assert_eq!(NOTIFY_DATA_ARRAY.to_vec(), *data);
     }
 
     fn func2(data: Vec<u8>) {
         println!("func 2 {:?}", data);
-        assert_eq!(NOTIF_DATA_ARRAY.to_vec(), *data);
+        assert_eq!(NOTIFY_DATA_ARRAY.to_vec(), *data);
     }
 
     fn func3(data: Vec<u8>) {
         println!("func 3 {:?}", data);
-        assert_eq!(NOTIF_DATA_ARRAY.to_vec(), *data);
+        assert_eq!(NOTIFY_DATA_ARRAY.to_vec(), *data);
     }
 
     #[test]
