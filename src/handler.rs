@@ -170,7 +170,7 @@ mod tests {
 
         assert_eq!(notify_manager.handlers.len(), 3);
 
-        let data = Vec::from(NOTIF_DATA_ARRAY);
+        let data = Vec::from(NOTIFY_DATA_ARRAY);
         let result = notify_manager.invoke_all_handlers(data);
         assert!(result.is_ok());
 

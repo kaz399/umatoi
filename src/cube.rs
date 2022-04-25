@@ -9,3 +9,5 @@ pub mod sensor;
 pub mod sound;
 pub mod tilt;
 pub mod uuid;
+pub mod id_information;
+

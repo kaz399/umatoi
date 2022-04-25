@@ -37,7 +37,7 @@ pub enum Response {
     MotorControlWithAngleSpecified(ResponseMotorControlWithAngleSpecified),
     MotorControlWithMultipleTargetsSpecified(ResponseMotorControlWithMultipleTargetsSpecified),
     MotorSpeedInformation(MotorSpeedInformation),
-    UnknownResponse(u8),
+    Unknown(u8),
 }
 
 impl From<Response> for u8 {
@@ -46,7 +46,7 @@ impl From<Response> for u8 {
             Response::MotorControlWithAngleSpecified(_) => 0x83u8,
             Response::MotorControlWithMultipleTargetsSpecified(_) => 0x84u8,
             Response::MotorSpeedInformation(_) => 0xe0u8,
-            Response::UnknownResponse(x) => x,
+            Response::Unknown(x) => x,
         }
     }
 }
@@ -91,7 +91,7 @@ impl ToPayload<Vec<u8>> for Response {
             Response::MotorSpeedInformation(st) => {
                 payload.extend(bincode::serialize(&st).unwrap());
             }
-            Response::UnknownResponse(_) => (),
+            Response::Unknown(_) => (),
         }
         payload
     }
