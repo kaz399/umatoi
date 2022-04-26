@@ -1,44 +1,19 @@
-//! Official Specification: <https://toio.github.io/toio-spec/en/docs/ble_sensor>
+pub mod def;
+pub mod magnetic;
+pub mod motion;
+pub mod posture_angle;
+pub mod response;
 
-use std::time;
+#[cfg(test)]
+mod test {
+    use super::*;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum MotionDetectResult {
-    Unknown,
-    NotDetected,
-    Detected,
-}
+    fn _setup() {
+        let _ = env_logger::builder().is_test(true).try_init();
+    }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Posture {
-    Unknown = 0,
-    Top = 1,
-    Bottom = 2,
-    Rear = 3,
-    Front = 4,
-    Right = 5,
-    Left = 6,
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct SensorInfo {
-    pub time: time::Instant,
-    pub horizontal: MotionDetectResult,
-    pub collision: MotionDetectResult,
-    pub double_tap: MotionDetectResult,
-    pub posture: Posture,
-    pub shaking: usize,
-}
-
-impl Default for SensorInfo {
-    fn default() -> Self {
-        Self {
-            time: time::Instant::now(),
-            horizontal: MotionDetectResult::Unknown,
-            collision: MotionDetectResult::Unknown,
-            double_tap: MotionDetectResult::Unknown,
-            posture: Posture::Unknown,
-            shaking: 0,
-        }
+    #[test]
+    fn sensor() {
+        _setup();
     }
 }

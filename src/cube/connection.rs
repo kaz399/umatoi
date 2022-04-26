@@ -299,10 +299,10 @@ mod tests {
             match id_data {
                 IdInformation::PositionId(pos_id) => {
                     println!("position id: {:?}", pos_id);
-                },
+                }
                 IdInformation::StandardId(std_id) => {
                     println!("standard id: {:?}", std_id);
-                },
+                }
                 _ => (),
             }
         } else {

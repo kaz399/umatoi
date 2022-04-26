@@ -52,35 +52,35 @@ impl IdInformation {
             return None;
         }
         match byte_code[0] {
-           0x01u8 => {
-               if byte_code.len() >= 13 {
-                    Some(
-                       IdInformation::PositionId(PositionIdData {
-                           x: u16::from_le_bytes([byte_code[1], byte_code[2]]),
-                           y: u16::from_le_bytes([byte_code[3], byte_code[4]]),
-                           angle: u16::from_le_bytes([byte_code[5], byte_code[6]]),
-                           sensor_x: u16::from_le_bytes([byte_code[7], byte_code[8]]),
-                           sensor_y: u16::from_le_bytes([byte_code[9], byte_code[10]]),
-                           sensor_angle: u16::from_le_bytes([byte_code[11], byte_code[12]]),
-                       })
-                    )
+            0x01u8 => {
+                if byte_code.len() >= 13 {
+                    Some(IdInformation::PositionId(PositionIdData {
+                        x: u16::from_le_bytes([byte_code[1], byte_code[2]]),
+                        y: u16::from_le_bytes([byte_code[3], byte_code[4]]),
+                        angle: u16::from_le_bytes([byte_code[5], byte_code[6]]),
+                        sensor_x: u16::from_le_bytes([byte_code[7], byte_code[8]]),
+                        sensor_y: u16::from_le_bytes([byte_code[9], byte_code[10]]),
+                        sensor_angle: u16::from_le_bytes([byte_code[11], byte_code[12]]),
+                    }))
                 } else {
                     None
                 }
-            },
+            }
             0x02u8 => {
                 if byte_code.len() >= 4 {
-                    Some(
-                        IdInformation::StandardId(
-                        StandardIdData {
-                            value: u32::from_le_bytes([byte_code[1], byte_code[2], byte_code[3], byte_code[4]]),
-                            angle: u16::from_le_bytes([byte_code[5], byte_code[6]]),
-                        })
-                    )
+                    Some(IdInformation::StandardId(StandardIdData {
+                        value: u32::from_le_bytes([
+                            byte_code[1],
+                            byte_code[2],
+                            byte_code[3],
+                            byte_code[4],
+                        ]),
+                        angle: u16::from_le_bytes([byte_code[5], byte_code[6]]),
+                    }))
                 } else {
                     None
                 }
-            },
+            }
             0x03u8 => Some(IdInformation::StandardIdMissed),
             0x04u8 => Some(IdInformation::PositionIdMissed),
             _ => None,
