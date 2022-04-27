@@ -1,8 +1,7 @@
-
 use super::def::ConfigurationType;
 use crate::cube::sensor::posture_angle::PostureDataType;
-use serde::Serializer;
 use serde::Serialize;
+use serde::Serializer;
 
 /// Horizontal detection threshold setting
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#horizontal-detection-threshold-settings>
@@ -77,7 +76,11 @@ pub struct SetMagneticSensor {
 }
 
 impl SetMagneticSensor {
-    pub fn new(function_type: MagnetFunction, interval: u8, condition: MagnetNotificationCondition) -> Self {
+    pub fn new(
+        function_type: MagnetFunction,
+        interval: u8,
+        condition: MagnetNotificationCondition,
+    ) -> Self {
         Self {
             configuration_type: ConfigurationType::MagneticSensor,
             _reserved: 0,
@@ -110,7 +113,7 @@ impl From<MagnetFunction> for u8 {
 impl Serialize for MagnetFunction {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer
+        S: Serializer,
     {
         let byte_string: u8 = u8::from(*self);
         serializer.serialize_u8(byte_string)
@@ -137,7 +140,7 @@ impl From<MagnetNotificationCondition> for u8 {
 impl Serialize for MagnetNotificationCondition {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer
+        S: Serializer,
     {
         let byte_string: u8 = u8::from(*self);
         serializer.serialize_u8(byte_string)
@@ -153,7 +156,7 @@ pub struct ResponseMagneticSensorData {
 }
 
 impl ResponseMagneticSensorData {
-    pub fn new(byte_data: Vec<u8>) -> Option<Self> {
+    pub fn new(byte_data: &Vec<u8>) -> Option<Self> {
         if byte_data.len() < 3 {
             return None;
         }
@@ -180,7 +183,11 @@ pub struct SetPostureAngleDetection {
 }
 
 impl SetPostureAngleDetection {
-    pub fn new(data_type: PostureDataType, interval: u8, condition: PostureAngleNotificationCondition) -> Self {
+    pub fn new(
+        data_type: PostureDataType,
+        interval: u8,
+        condition: PostureAngleNotificationCondition,
+    ) -> Self {
         Self {
             configuration_type: ConfigurationType::PostureAngleDetection,
             _reserved: 0,
@@ -190,7 +197,6 @@ impl SetPostureAngleDetection {
         }
     }
 }
-
 
 /// Posture notify condition
 

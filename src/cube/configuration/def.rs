@@ -1,6 +1,5 @@
-
-use serde::Serializer;
 use serde::Serialize;
+use serde::Serializer;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ConfigurationType {
@@ -46,4 +45,3 @@ impl ConfigurationType {
         u8::from(self) | 0x80u8
     }
 }
-
