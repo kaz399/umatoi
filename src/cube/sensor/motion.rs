@@ -37,9 +37,22 @@ pub struct MotionDetectionData {
     pub shake: u8,
 }
 
-impl ToPayload<Vec<u8>> for MotionDetectionData {
-    fn to_payload(self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
+impl MotionDetectionData {
+    pub fn new(byte_data: &[u8]) -> Option<Self> {
+        if byte_data.len() < 6 {
+            return None;
+        }
+        if byte_data[0] == CommandId::Motion.response() {
+            Some(Self {
+                horizontal: byte_data[1] != 0,
+                collision: byte_data[2] != 0,
+                double_tap: byte_data[3] != 0,
+                posture: Posture::from(byte_data[4]),
+                shake: byte_data[5],
+            })
+        } else {
+            None
+        }
     }
 }
 
@@ -112,7 +125,5 @@ mod test {
 
         let m = MotionDetectionData::default();
         println!("{:?}", m);
-        let payload = m.to_payload();
-        println!("{:?}", payload);
     }
 }

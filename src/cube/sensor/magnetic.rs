@@ -38,11 +38,25 @@ pub struct MagneticSensorData {
     pub z: i8,
 }
 
-impl ToPayload<Vec<u8>> for MagneticSensorData {
-    fn to_payload(self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
+impl MagneticSensorData {
+    pub fn new(byte_data: &[u8]) -> Option<Self> {
+        if byte_data.len() < 6 {
+            return None;
+        }
+        if byte_data[0] == CommandId::MagneticSensor.response() {
+            Some(Self {
+                state: byte_data[1],
+                strength: byte_data[2],
+                x: i8::from_le_bytes([byte_data[3]]),
+                y: i8::from_le_bytes([byte_data[4]]),
+                z: i8::from_le_bytes([byte_data[5]]),
+            })
+        } else {
+            None
+        }
     }
 }
+
 
 #[cfg(test)]
 mod test {
@@ -58,7 +72,5 @@ mod test {
 
         let m = MagneticSensorData::default();
         println!("{:?}", m);
-        let payload = m.to_payload();
-        println!("{:?}", payload);
     }
 }

@@ -1,4 +1,4 @@
-use super::def::{CommandId, RequestId, Timeout};
+use super::def::{CommandId, RequestId, ResponseCode, Timeout};
 use crate::payload::ToPayload;
 use crate::position::CubeLocation;
 use serde::ser::Serializer;
@@ -52,6 +52,31 @@ impl MotorControlWithTargetSpecified {
     }
 }
 
+/// Response to motor control with target specified
+/// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-target-specified>
+
+#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ResponseMotorControlWithTargetSpecified {
+    pub request_id: RequestId,
+    pub response_code: ResponseCode,
+}
+
+impl ResponseMotorControlWithTargetSpecified {
+    pub fn new(byte_data: &[u8]) -> Option<Self> {
+        if byte_data.len() < 3 {
+            return None;
+        }
+        if byte_data[0] == CommandId::TargetPosition.response() {
+            Some(Self {
+                request_id: RequestId::received(byte_data[1]),
+                response_code: ResponseCode::from(byte_data[2]),
+            })
+        } else {
+            None
+        }
+    }
+}
+
 /// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-multiple-targets-specified>
 
 #[derive(Debug, Clone)]
@@ -101,6 +126,31 @@ impl MotorControlWithMultipleTargetsSpecified {
             speed: self.speed,
             _reserved_1: self._reserved_1,
             write_mode: self.write_mode,
+        }
+    }
+}
+
+/// Responses to motor control with multiple targets specified
+/// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-multiple-targets-specified>
+
+#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ResponseMotorControlWithMultipleTargetsSpecified {
+    pub request_id: RequestId,
+    pub response_code: ResponseCode,
+}
+
+impl ResponseMotorControlWithMultipleTargetsSpecified {
+    pub fn new(byte_data: &[u8]) -> Option<Self> {
+        if byte_data.len() < 3 {
+            return None;
+        }
+        if byte_data[0] == CommandId::MultiTargetPositions.response() {
+            Some(Self {
+                request_id: RequestId::received(byte_data[1]),
+                response_code: ResponseCode::from(byte_data[2]),
+            })
+        } else {
+            None
         }
     }
 }

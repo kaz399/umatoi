@@ -5,6 +5,7 @@ pub mod control;
 pub mod def;
 pub mod response;
 pub mod target;
+pub mod speed;
 
 #[cfg(test)]
 mod test {

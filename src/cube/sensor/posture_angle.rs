@@ -43,6 +43,23 @@ impl ToPayload<Vec<u8>> for PostureAngleEulerData {
     }
 }
 
+impl PostureAngleEulerData {
+    pub fn new(byte_data: &[u8]) -> Option<Self> {
+        if byte_data.len() < 8 {
+            return None;
+        }
+        if (byte_data[0] == CommandId::PostureAngle.response()) && (byte_data[1] == u8::from(PostureDataType::Euler)) {
+            Some(PostureAngleEulerData {
+                roll: i16::from_le_bytes([byte_data[2],  byte_data[3]]),
+                pitch: i16::from_le_bytes([byte_data[4],  byte_data[5]]),
+                yaw: i16::from_le_bytes([byte_data[6],  byte_data[7]]),
+            })
+        } else {
+            None
+        }
+    }
+}
+
 /// Posture angle information (quaternions)
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_high_precision_tilt_sensor#obtaining-posture-angle-information-notifications-in-quaternions>
 
@@ -57,6 +74,24 @@ pub struct PostureAngleQuaternionsData {
 impl ToPayload<Vec<u8>> for PostureAngleQuaternionsData {
     fn to_payload(self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()
+    }
+}
+
+impl PostureAngleQuaternionsData {
+    pub fn new(byte_data: &[u8]) -> Option<Self> {
+        if byte_data.len() < 8 {
+            return None;
+        }
+        if (byte_data[0] == CommandId::PostureAngle.response()) && (byte_data[1] == u8::from(PostureDataType::Quaternions)) {
+            Some(PostureAngleQuaternionsData {
+                w: i16::from_le_bytes([byte_data[2],  byte_data[3]]),
+                x: i16::from_le_bytes([byte_data[4],  byte_data[5]]),
+                y: i16::from_le_bytes([byte_data[6],  byte_data[7]]),
+                z: i16::from_le_bytes([byte_data[8],  byte_data[9]]),
+            })
+        } else {
+            None
+        }
     }
 }
 

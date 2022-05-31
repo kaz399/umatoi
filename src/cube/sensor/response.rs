@@ -1,5 +1,6 @@
+use super::def::CommandId;
 use super::magnetic::MagneticSensorData;
-use super::motion::{MotionDetectionData, Posture};
+use super::motion::MotionDetectionData;
 use super::posture_angle::{PostureAngleEulerData, PostureAngleQuaternionsData, PostureDataType};
 use crate::payload::ToPayload;
 
@@ -13,79 +14,34 @@ pub enum Response {
     MagneticSensor(MagneticSensorData),
 }
 
-impl From<Response> for u8 {
-    fn from(response_type: Response) -> u8 {
-        match response_type {
-            Response::MotionDetection(_) => 0x01u8,
-            Response::PostureAngleEuler(_) => 0x03u8,
-            Response::PostureAngleQuaternion(_) => 0x03u8,
-            Response::MagneticSensor(_) => 0x02u8,
+impl Response {
+    pub fn new(byte_data: &[u8]) -> Option<Response> {
+        if byte_data.is_empty() {
+            return None;
         }
+        if let Some(response_data) = MotionDetectionData::new(byte_data) {
+            return Some(Response::MotionDetection(response_data));
+        }
+        if let Some(response_data) = MagneticSensorData::new(byte_data) {
+            return Some(Response::MagneticSensor(response_data));
+        }
+        if let Some(response_data) = PostureAngleEulerData::new(byte_data) {
+            return Some(Response::PostureAngleEuler(response_data));
+        }
+        if let Some(response_data) = PostureAngleQuaternionsData::new(byte_data) {
+            return Some(Response::PostureAngleQuaternion(response_data));
+        }
+        None
     }
 }
 
-impl Response {
-    pub fn new(byte_code: &Vec<u8>) -> Option<Response> {
-        if byte_code.is_empty() {
-            return None;
-        }
-        match byte_code[0] {
-            0x01u8 => {
-                if byte_code.len() < 6 {
-                    return None;
-                }
-                Some(Response::MotionDetection(MotionDetectionData {
-                    horizontal: byte_code[1] != 0,
-                    collision: byte_code[2] != 0,
-                    double_tap: byte_code[3] != 0,
-                    posture: Posture::from(byte_code[4]),
-                    shake: byte_code[5],
-                }))
-            }
-            0x02u8 => {
-                if byte_code.len() < 6 {
-                    return None;
-                }
-                Some(Response::MagneticSensor(MagneticSensorData {
-                    state: byte_code[1],
-                    strength: byte_code[2],
-                    x: i8::from_le_bytes([byte_code[3]]),
-                    y: i8::from_le_bytes([byte_code[4]]),
-                    z: i8::from_le_bytes([byte_code[5]]),
-                }))
-            }
-            0x03u8 => {
-                if byte_code.len() < 2 {
-                    return None;
-                }
-                match byte_code[1] {
-                    0x01u8 => {
-                        if byte_code.len() < 8 {
-                            return None;
-                        }
-                        Some(Response::PostureAngleEuler(PostureAngleEulerData {
-                            roll: i16::from_le_bytes([byte_code[2], byte_code[3]]),
-                            pitch: i16::from_le_bytes([byte_code[4], byte_code[5]]),
-                            yaw: i16::from_le_bytes([byte_code[6], byte_code[7]]),
-                        }))
-                    }
-                    0x02u8 => {
-                        if byte_code.len() < 10 {
-                            return None;
-                        }
-                        Some(Response::PostureAngleQuaternion(
-                            PostureAngleQuaternionsData {
-                                w: i16::from_le_bytes([byte_code[2], byte_code[3]]),
-                                x: i16::from_le_bytes([byte_code[4], byte_code[5]]),
-                                y: i16::from_le_bytes([byte_code[6], byte_code[7]]),
-                                z: i16::from_le_bytes([byte_code[8], byte_code[9]]),
-                            },
-                        ))
-                    }
-                    _ => None,
-                }
-            }
-            _ => None,
+impl From<Response> for u8 {
+    fn from(response_type: Response) -> u8 {
+        match response_type {
+            Response::MotionDetection(_) => CommandId::Motion.response(),
+            Response::PostureAngleEuler(_) => CommandId::PostureAngle.response(),
+            Response::PostureAngleQuaternion(_) => CommandId::PostureAngle.response(),
+            Response::MagneticSensor(_) => CommandId::MagneticSensor.response(),
         }
     }
 }

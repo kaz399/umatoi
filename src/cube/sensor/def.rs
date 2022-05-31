@@ -33,3 +33,9 @@ impl Serialize for CommandId {
         serializer.serialize_u8(byte_string)
     }
 }
+
+impl CommandId {
+    pub fn response(self) -> u8 {
+        u8::from(self) & 0x7f
+    }
+}
