@@ -290,12 +290,18 @@ mod tests {
     use std::time::Duration;
     use tokio::time;
 
+    static TEST_CUBE_NAME: &str = "toio Core Cube-978";
+    static TEST_CUBE_BDADDR: [u8; 6] = [0xfd, 0x66, 0x19, 0xe9, 0xd4, 0x31];
+
+    // static TEST_CUBE_NAME = "toio Core Cube-G9F";
+    // static TEST_CUBE_BDADDR = [0xc1, 0xd5, 0x19, 0x31, 0x5f, 0xce];
+
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
     }
 
     fn notify_handler(data: ValueNotification) {
-        if let Some(id_data) = id_information::IdInformation::new(data.value.clone()) {
+        if let Some(id_data) = id_information::IdInformation::new(&data.value) {
             match id_data {
                 IdInformation::PositionId(pos_id) => {
                     println!("position id: {:?}", pos_id);
@@ -325,7 +331,7 @@ mod tests {
     #[tokio::test]
     async fn cube_scan2() {
         _setup();
-        let mut cube = CoreCube::new_with_name("toio Core Cube-G9F".to_string());
+        let mut cube = CoreCube::new_with_name(TEST_CUBE_NAME.to_string());
         search_cube(&mut cube, Duration::from_secs(3))
             .await
             .unwrap();
@@ -335,7 +341,7 @@ mod tests {
     async fn cube_scan3() {
         _setup();
         let mut cube =
-            CoreCube::new_with_address(BDAddr::from([0xc1, 0xd5, 0x19, 0x31, 0x5f, 0xce]));
+            CoreCube::new_with_address(BDAddr::from(TEST_CUBE_BDADDR));
         search_cube(&mut cube, Duration::from_secs(3))
             .await
             .unwrap();
@@ -345,8 +351,8 @@ mod tests {
     async fn cube_scan4() {
         _setup();
         let mut cube = CoreCube::new_with_name_address(
-            "toio Core Cube-G9F".to_string(),
-            BDAddr::from([0xc1, 0xd5, 0x19, 0x31, 0x5f, 0xce]),
+            TEST_CUBE_NAME.to_string(),
+            BDAddr::from(TEST_CUBE_BDADDR),
         );
         search_cube(&mut cube, Duration::from_secs(3))
             .await
@@ -357,8 +363,8 @@ mod tests {
     async fn cube_scan5() {
         _setup();
         let mut cube = CoreCube::new_with_name_address(
-            "toio Core Cube-G9F".to_string(),
-            BDAddr::from([0xc1, 0xd5, 0x19, 0x31, 0x5f, 0xce]),
+            TEST_CUBE_NAME.to_string(),
+            BDAddr::from(TEST_CUBE_BDADDR),
         );
         search_cube(&mut cube, Duration::from_secs(3))
             .await
@@ -367,8 +373,8 @@ mod tests {
         cube.connect().await.unwrap();
 
         let mut cube2 = CoreCube::new_with_name_address(
-            "toio Core Cube-G9F".to_string(),
-            BDAddr::from([0xc1, 0xd5, 0x19, 0x31, 0x5f, 0xce]),
+            TEST_CUBE_NAME.to_string(),
+            BDAddr::from(TEST_CUBE_BDADDR),
         );
         let result = search_cube(&mut cube2, Duration::from_secs(3)).await;
         if result.is_ok() {

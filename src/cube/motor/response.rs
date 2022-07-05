@@ -61,8 +61,9 @@ impl ToPayload<Vec<u8>> for Response {
 
 #[cfg(test)]
 mod test {
-    use crate::payload;
-
+    use crate::cube::motor::def::RequestId;
+    use crate::cube::motor::def::ResponseCode;
+    use crate::cube::motor::speed::ResponseMotorSpeedInformation;
     use super::*;
 
     fn _setup() {
@@ -73,7 +74,7 @@ mod test {
     fn motor_response1() {
         _setup();
 
-        let res = Response::MotorSpeedInformation(MotorSpeedInformation {
+        let res = Response::MotorSpeedInformation(ResponseMotorSpeedInformation {
             left: 10,
             right: 11,
         });
