@@ -30,7 +30,7 @@ pub struct ResponseEnableMotorSpeedInformationData {
 }
 
 impl ResponseEnableMotorSpeedInformationData {
-    pub fn new(byte_data: &Vec<u8>) -> Option<Self> {
+    pub fn new(byte_data: &[u8]) -> Option<Self> {
         if byte_data.len() < 3 {
             return None;
         }

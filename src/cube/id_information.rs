@@ -47,7 +47,7 @@ impl From<IdInformation> for u8 {
 }
 
 impl IdInformation {
-    pub fn new(byte_code: Vec<u8>) -> Option<IdInformation> {
+    pub fn new(byte_code: &[u8]) -> Option<IdInformation> {
         if byte_code.is_empty() {
             return None;
         }

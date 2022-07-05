@@ -59,7 +59,7 @@ pub struct ResponseIdSensorNotificationData {
 }
 
 impl ResponseIdSensorNotificationData {
-    pub fn new(byte_data: &Vec<u8>) -> Option<Self> {
+    pub fn new(byte_data: &[u8]) -> Option<Self> {
         if byte_data[0] == ConfigurationType::IdSensorNotification.response() {
             Some(Self {
                 result: byte_data[2] == 0x00u8,
@@ -99,7 +99,7 @@ pub struct ResponseIdSensorMissedNotificationData {
 }
 
 impl ResponseIdSensorMissedNotificationData {
-    pub fn new(byte_data: &Vec<u8>) -> Option<Self> {
+    pub fn new(byte_data: &[u8]) -> Option<Self> {
         if byte_data[0] == ConfigurationType::IdSensorMissedNotification.response() {
             Some(Self {
                 result: byte_data[2] == 0x00u8,

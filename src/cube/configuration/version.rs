@@ -26,3 +26,24 @@ impl RequestBleProtocolVersion {
 pub struct ResponseBleProtocolVersionData {
     version: [u8; 5],
 }
+
+impl ResponseBleProtocolVersionData {
+    pub fn new(byte_data: &[u8]) -> Option<Self> {
+        if byte_data.len() != 7 {
+            return None;
+        }
+        if byte_data[0] == ConfigurationType::BleProtocolVersion.response() {
+            let version: [u8; 5] = [
+                byte_data[2],
+                byte_data[3],
+                byte_data[4],
+                byte_data[5],
+                byte_data[6],
+            ];
+            Some(Self { version })
+        } else {
+            None
+        }
+    }
+}
+
