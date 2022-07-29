@@ -290,8 +290,8 @@ mod tests {
     use std::time::Duration;
     use tokio::time;
 
-    static TEST_CUBE_NAME: &str = "toio Core Cube-978";
-    static TEST_CUBE_BDADDR: [u8; 6] = [0xfd, 0x66, 0x19, 0xe9, 0xd4, 0x31];
+    static TEST_CUBE_NAME: &str = "toio Core Cube-h7p";
+    static TEST_CUBE_BDADDR: [u8; 6] = [0xd8, 0xe3, 0x49, 0xa0, 0xef, 0x19];
 
     // static TEST_CUBE_NAME = "toio Core Cube-G9F";
     // static TEST_CUBE_BDADDR = [0xc1, 0xd5, 0x19, 0x31, 0x5f, 0xce];
