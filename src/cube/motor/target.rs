@@ -338,8 +338,8 @@ impl ToPayload<Vec<u8>> for Target {
     fn to_payload(self) -> Vec<u8> {
         let rotation_option: u16 = (self.rotation_option as u16) << 13;
         let combined_data: [u16; 3] = [
-            self.cube_location.point.x,
-            self.cube_location.point.y,
+            self.cube_location.point.x.try_into().unwrap(),
+            self.cube_location.point.y.try_into().unwrap(),
             (self.cube_location.angle & 0b0001_1111_1111_1111) | rotation_option,
         ];
         bincode::serialize(&combined_data).unwrap()

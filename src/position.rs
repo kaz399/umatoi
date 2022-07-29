@@ -7,8 +7,8 @@ use std::ops::{Add, Sub};
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Point {
-    pub x: u16,
-    pub y: u16,
+    pub x: isize,
+    pub y: isize,
 }
 
 impl Add for Point {
@@ -36,10 +36,10 @@ impl Point {
         Self { x: 0, y: 0 }
     }
 
-    pub fn distance(&self, p: &Self) -> u16 {
-        let pd = *self - *p;
+    pub fn distance(self, p: Self) -> isize {
+        let pd = self - p;
         let square_f64 = ((pd.x * pd.x) + (pd.y * pd.y)) as f64;
-        square_f64.sqrt().round() as u16
+        square_f64.sqrt().round() as isize
     }
 }
 
@@ -120,8 +120,8 @@ impl ToioMat {
             ToioMat::NoMat => MatRect {
                 top_left: Point { x: 0, y: 0 },
                 bottom_right: Point {
-                    x: u16::MAX,
-                    y: u16::MAX,
+                    x: isize::MAX,
+                    y: isize::MAX,
                 },
             },
             ToioMat::ToioCollectionMatRing => MatRect {
@@ -238,7 +238,7 @@ mod test {
     fn position_point2() {
         let p1: Point = Point { x: 10, y: 10 };
         let p2: Point = Point { x: 20, y: 20 };
-        let distance = p1.distance(&p2);
+        let distance = p1.distance(p2);
         println!("{}", distance);
         assert_eq!(p2 - p1, p1);
     }
