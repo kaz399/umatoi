@@ -18,6 +18,8 @@ use std::time::Duration;
 use thiserror::Error;
 use uuid::Uuid;
 
+pub type NotificationData = ValueNotification;
+
 pub enum CoreCubeNotifyControl {
     Run,
     Pause,
@@ -41,7 +43,7 @@ pub struct CoreCube {
     ble_peripheral: Option<Peripheral>,
     ble_characteristics: HashMap<Uuid, Characteristic>,
     notify_enabled: Vec<Uuid>,
-    root_notify_manager: NotifyManager<ValueNotification>,
+    pub root_notify_manager: NotifyManager<NotificationData>,
 }
 
 impl Default for CoreCube {
@@ -137,7 +139,7 @@ impl<'a> CoreCube {
 
 #[async_trait]
 impl BleInterface for CoreCube {
-    type NotifyHandler = HandlerFunction<ValueNotification>;
+    type NotifyHandler = HandlerFunction<NotificationData>;
 
     async fn connect(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         if let Some(ble) = &self.ble_peripheral {
@@ -300,7 +302,7 @@ mod tests {
         let _ = env_logger::builder().is_test(true).try_init();
     }
 
-    fn notify_handler(data: ValueNotification) {
+    fn notify_handler(data: NotificationData) {
         if let Some(id_data) = id_information::IdInformation::new(&data.value) {
             match id_data {
                 IdInformation::PositionId(pos_id) => {
@@ -340,8 +342,7 @@ mod tests {
     #[tokio::test]
     async fn cube_scan3() {
         _setup();
-        let mut cube =
-            CoreCube::new_with_address(BDAddr::from(TEST_CUBE_BDADDR));
+        let mut cube = CoreCube::new_with_address(BDAddr::from(TEST_CUBE_BDADDR));
         search_cube(&mut cube, Duration::from_secs(3))
             .await
             .unwrap();
@@ -407,7 +408,7 @@ mod tests {
             .unwrap();
         info!("handler uuid {:?}", handler_uuid);
 
-        let data: ValueNotification = ValueNotification {
+        let data: NotificationData = NotificationData {
             uuid: Uuid::new_v4(),
             value: [1, 2, 3].to_vec(),
         };

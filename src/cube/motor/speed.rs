@@ -16,7 +16,7 @@ impl ResponseMotorSpeedInformation {
             return None;
         }
         if byte_data[0] == CommandId::ObtainSpeed.response() {
-            Some( Self {
+            Some(Self {
                 left: byte_data[1],
                 right: byte_data[2],
             })

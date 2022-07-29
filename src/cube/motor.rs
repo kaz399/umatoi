@@ -4,8 +4,8 @@ pub mod acceleration;
 pub mod control;
 pub mod def;
 pub mod response;
-pub mod target;
 pub mod speed;
+pub mod target;
 
 #[cfg(test)]
 mod test {

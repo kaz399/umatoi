@@ -1,8 +1,8 @@
 use super::def::CommandId;
-use crate::payload::ToPayload;
-use super::target::ResponseMotorControlWithTargetSpecified;
-use super::target::ResponseMotorControlWithMultipleTargetsSpecified;
 use super::speed::ResponseMotorSpeedInformation;
+use super::target::ResponseMotorControlWithMultipleTargetsSpecified;
+use super::target::ResponseMotorControlWithTargetSpecified;
+use crate::payload::ToPayload;
 
 /// Motor response
 
@@ -21,8 +21,12 @@ impl Response {
         if let Some(response_data) = ResponseMotorControlWithTargetSpecified::new(byte_data) {
             return Some(Response::MotorControlWithTargetSpecified(response_data));
         }
-        if let Some(response_data) = ResponseMotorControlWithMultipleTargetsSpecified::new(byte_data) {
-            return Some(Response::MotorControlWithMultipleTargetsSpecified(response_data));
+        if let Some(response_data) =
+            ResponseMotorControlWithMultipleTargetsSpecified::new(byte_data)
+        {
+            return Some(Response::MotorControlWithMultipleTargetsSpecified(
+                response_data,
+            ));
         }
         if let Some(response_data) = ResponseMotorSpeedInformation::new(byte_data) {
             return Some(Response::MotorSpeedInformation(response_data));
@@ -35,7 +39,9 @@ impl From<Response> for u8 {
     fn from(response_type: Response) -> u8 {
         match response_type {
             Response::MotorControlWithTargetSpecified(_) => CommandId::TargetPosition.response(),
-            Response::MotorControlWithMultipleTargetsSpecified(_) => CommandId::MultiTargetPositions.response(),
+            Response::MotorControlWithMultipleTargetsSpecified(_) => {
+                CommandId::MultiTargetPositions.response()
+            }
             Response::MotorSpeedInformation(_) => 0xe0u8,
         }
     }
@@ -61,10 +67,10 @@ impl ToPayload<Vec<u8>> for Response {
 
 #[cfg(test)]
 mod test {
+    use super::*;
     use crate::cube::motor::def::RequestId;
     use crate::cube::motor::def::ResponseCode;
     use crate::cube::motor::speed::ResponseMotorSpeedInformation;
-    use super::*;
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
