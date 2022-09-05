@@ -17,6 +17,12 @@ fn notify_handler(data: NotificationData) {
             IdInformation::StandardId(std_id) => {
                 println!("standard id: {:?}", std_id);
             }
+            IdInformation::PositionIdMissed => {
+                println!("position id missed");
+            }
+            IdInformation::StandardIdMissed => {
+                println!("standard id missed");
+            }
             _ => (),
         }
     } else {
