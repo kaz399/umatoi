@@ -2,6 +2,7 @@ pub mod battery;
 pub mod button;
 pub mod configuration;
 pub mod connection;
+pub mod core_cube;
 pub mod id_information;
 pub mod indicator;
 pub mod motor;

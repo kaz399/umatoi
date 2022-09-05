@@ -4,8 +4,11 @@ use time::Duration;
 use tokio::signal;
 use tokio::time;
 use umatoi::ble::BleInterface;
-use umatoi::cube::connection::{search_cube, CoreCube, CoreCubeNotifyControl, NotificationData};
+use umatoi::cube::core_cube::{CoreCube, CoreCubeNotifyControl, NotificationData};
+use umatoi::cube::connection::search_cube;
 use umatoi::cube::id_information::IdInformation;
+use umatoi::cube::motor::control::MotorControl;
+use uuid::Uuid;
 use once_cell::sync::OnceCell;
 use std::sync::Mutex;
 
@@ -81,6 +84,8 @@ pub async fn main() {
         println!("received ctrl-c event");
         tx.send(CoreCubeNotifyControl::Quit).unwrap();
     };
+
+    // run
 
 
     // wait until Ctrl-C is pressed
