@@ -81,8 +81,8 @@ impl IdInformation {
                     None
                 }
             }
-            0x03u8 => Some(IdInformation::StandardIdMissed),
-            0x04u8 => Some(IdInformation::PositionIdMissed),
+            0x03u8 => Some(IdInformation::PositionIdMissed),
+            0x04u8 => Some(IdInformation::StandardIdMissed),
             _ => None,
         }
     }
