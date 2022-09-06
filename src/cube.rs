@@ -10,16 +10,10 @@ pub mod sound;
 pub mod tilt;
 
 use crate::device_interface::{CoreCubeNotifyControl, DeviceInterface};
-use crate::handler::HandlerFunction;
-use crate::handler::NotifyManager;
-use async_trait::async_trait;
-use btleplug::api::{BDAddr, Characteristic, Peripheral as _, ValueNotification};
-use btleplug::platform::Peripheral;
+use btleplug::api::ValueNotification;
 use futures;
-use futures::stream::StreamExt;
 use futures::Future;
-use log::{debug, error};
-use std::collections::HashMap;
+use log::error;
 use std::error::Error;
 use std::pin::Pin;
 use std::sync::mpsc;
@@ -100,7 +94,7 @@ where
         &'static self,
         uuid: Uuid,
     ) -> Pin<
-        Box<dyn Future<Output = Result<Vec<u8>, Box<(dyn Error + Sync + Send + 'static)>>> + Send>
+        Box<dyn Future<Output = Result<Vec<u8>, Box<(dyn Error + Sync + Send + 'static)>>> + Send>,
     > {
         self.device.read(uuid)
     }
@@ -118,7 +112,10 @@ where
         &'static mut self,
         func: T::NotifyHandler,
     ) -> Pin<
-        Box<dyn Future<Output = Result<uuid::Uuid, Box<(dyn Error + Sync + Send + 'static)>>> + Send>
+        Box<
+            dyn Future<Output = Result<uuid::Uuid, Box<(dyn Error + Sync + Send + 'static)>>>
+                + Send,
+        >,
     > {
         self.device.register_notify_handler(func)
     }
@@ -126,22 +123,23 @@ where
     pub async fn unregister_notify_handler(
         &'static mut self,
         id_handler: Uuid,
-    ) -> Pin<
-        Box<dyn Future<Output = Result<bool, Box<(dyn Error + Sync + Send + 'static)>>> + Send>
-    > {
+    ) -> Pin<Box<dyn Future<Output = Result<bool, Box<(dyn Error + Sync + Send + 'static)>>> + Send>>
+    {
         self.device.unregister_notify_handler(id_handler)
     }
 
-    pub async fn receive_notify(&'static mut self) -> Pin<Box<dyn Future<Output = Result<(), Box<(dyn Error + Sync + Send + 'static)>>> + Send>> {
+    pub async fn receive_notify(
+        &'static mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<(), Box<(dyn Error + Sync + Send + 'static)>>> + Send>>
+    {
         self.device.receive_notify()
     }
 
     pub async fn run_notify_receiver(
         &'static self,
-        rx: mpsc::Receiver<CoreCubeNotifyControl>
-    ) -> Pin<
-        Box<dyn Future<Output = Result<(), Box<(dyn Error + Sync + Send + 'static)>>> + Send>
-    > {
+        rx: mpsc::Receiver<CoreCubeNotifyControl>,
+    ) -> Pin<Box<dyn Future<Output = Result<(), Box<(dyn Error + Sync + Send + 'static)>>> + Send>>
+    {
         self.device.run_notify_receiver(rx)
     }
 }

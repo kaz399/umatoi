@@ -108,8 +108,6 @@ impl ToPayload<Vec<u8>> for IdInformation {
 
 #[cfg(test)]
 mod test {
-    use crate::payload;
-
     use super::*;
 
     fn _setup() {

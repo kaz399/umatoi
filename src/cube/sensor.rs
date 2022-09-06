@@ -6,8 +6,6 @@ pub mod response;
 
 #[cfg(test)]
 mod test {
-    use super::*;
-
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
     }

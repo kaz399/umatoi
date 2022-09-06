@@ -1,5 +1,5 @@
 use crate::cube::characteristic_uuid::CoreCubeUuid;
-use crate::cube::{CoreCube, CoreCubeError, NotificationData};
+use crate::cube::{CoreCubeError, NotificationData};
 use crate::device_interface::{CoreCubeNotifyControl, DeviceInterface};
 use crate::handler::HandlerFunction;
 use crate::handler::NotifyManager;
@@ -40,8 +40,36 @@ impl Default for BleInterface {
 }
 
 impl BleInterface {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn set_ble_address(&mut self, addr: BDAddr) -> bool {
+        match self.ble_peripheral {
+            Some(_) => false,
+            None => {
+                self.ble_address = Some(addr);
+                true
+            }
+        }
+    }
+
+    pub fn get_ble_address(&self) -> Option<BDAddr> {
+        self.ble_address
+    }
+
+    pub fn set_ble_name(&mut self, name: String) -> bool {
+        match self.ble_peripheral {
+            Some(_) => false,
+            None => {
+                self.ble_name = Some(name);
+                true
+            }
+        }
+    }
+
+    pub fn get_ble_name(self) -> Option<String> {
+        self.ble_name
     }
 }
 
@@ -235,9 +263,9 @@ impl BleInterface {
 
 #[cfg(test)]
 mod tests {
-    use crate::cube::id_information::{self, IdInformation};
-
     use super::*;
+    use crate::cube::id_information::{self, IdInformation};
+    use crate::cube::CoreCube;
     use std::time::Duration;
     use tokio::time;
 
@@ -273,8 +301,9 @@ mod tests {
     #[tokio::test]
     async fn cube_scan1() {
         _setup();
-        let mut cube = CoreCube::new();
-        search_cube(&mut cube, Duration::from_secs(3))
+        let mut cube = CoreCube::<BleInterface>::new();
+        cube.device
+            .search_cube(Duration::from_secs(3))
             .await
             .unwrap();
     }
@@ -282,8 +311,10 @@ mod tests {
     #[tokio::test]
     async fn cube_scan2() {
         _setup();
-        let mut cube = CoreCube::new_with_name(TEST_CUBE_NAME.to_string());
-        search_cube(&mut cube, Duration::from_secs(3))
+        let mut cube = CoreCube::<BleInterface>::new();
+        cube.device.set_ble_name(TEST_CUBE_NAME.to_string());
+        cube.device
+            .search_cube(Duration::from_secs(3))
             .await
             .unwrap();
     }
@@ -291,8 +322,10 @@ mod tests {
     #[tokio::test]
     async fn cube_scan3() {
         _setup();
-        let mut cube = CoreCube::new_with_address(BDAddr::from(TEST_CUBE_BDADDR));
-        search_cube(&mut cube, Duration::from_secs(3))
+        let mut cube = CoreCube::<BleInterface>::new();
+        cube.device.set_ble_address(BDAddr::from(TEST_CUBE_BDADDR));
+        cube.device
+            .search_cube(Duration::from_secs(3))
             .await
             .unwrap();
     }
