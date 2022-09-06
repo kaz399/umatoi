@@ -1,10 +1,21 @@
+pub mod ble;
+
 use async_trait::async_trait;
 use std::error::Error;
+use std::sync::mpsc;
 use uuid::Uuid;
 
+pub enum CoreCubeNotifyControl {
+    Run,
+    Pause,
+    Quit,
+}
+
 #[async_trait]
-pub trait BleInterface {
+pub trait DeviceInterface {
     type NotifyHandler;
+
+    fn new() -> Self;
 
     async fn connect(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
 
@@ -31,4 +42,12 @@ pub trait BleInterface {
         &mut self,
         id_handler: Uuid,
     ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>>;
+
+    async fn receive_notify(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
+
+    // run notify receiver
+    async fn run_notify_receiver(
+        &self,
+        rx: mpsc::Receiver<CoreCubeNotifyControl>,
+    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
 }

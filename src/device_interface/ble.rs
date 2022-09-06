@@ -1,21 +1,57 @@
-use crate::cube::core_cube::{CoreCube, CoreCubeError, NotificationData};
-use crate::ble::BleInterface;
-use crate::cube::uuid::CoreCubeUuid;
+use crate::cube::characteristic_uuid::CoreCubeUuid;
+use crate::cube::{CoreCube, CoreCubeError, NotificationData};
+use crate::device_interface::{CoreCubeNotifyControl, DeviceInterface};
 use crate::handler::HandlerFunction;
+use crate::handler::NotifyManager;
 use crate::scanner;
 use async_trait::async_trait;
 use btleplug::api::{
-    CharPropFlags, Peripheral as _, ScanFilter,
-    WriteType,
+    BDAddr, CharPropFlags, Characteristic, Peripheral as _, ScanFilter, WriteType,
 };
+use btleplug::platform::Peripheral;
+use futures::stream::StreamExt;
 use log::{debug, error, info, warn};
+use std::collections::HashMap;
 use std::error::Error;
+use std::sync::mpsc;
 use std::time::Duration;
 use uuid::Uuid;
 
+pub struct BleInterface {
+    pub(crate) ble_address: Option<BDAddr>,
+    pub(crate) ble_name: Option<String>,
+    pub(crate) ble_peripheral: Option<Peripheral>,
+    pub(crate) ble_characteristics: HashMap<Uuid, Characteristic>,
+    pub(crate) notify_enabled: Vec<Uuid>,
+    pub(crate) root_notify_manager: NotifyManager<NotificationData>,
+}
+
+impl Default for BleInterface {
+    fn default() -> Self {
+        Self {
+            ble_address: None,
+            ble_name: None,
+            ble_peripheral: None,
+            ble_characteristics: HashMap::new(),
+            notify_enabled: Vec::new(),
+            root_notify_manager: NotifyManager::new(),
+        }
+    }
+}
+
+impl BleInterface {
+    fn new() -> Self {
+        Self::default()
+    }
+}
+
 #[async_trait]
-impl BleInterface for CoreCube {
+impl DeviceInterface for BleInterface {
     type NotifyHandler = HandlerFunction<NotificationData>;
+
+    fn new() -> Self {
+        BleInterface::new()
+    }
 
     async fn connect(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         if let Some(ble) = &self.ble_peripheral {
@@ -100,64 +136,101 @@ impl BleInterface for CoreCube {
         self.root_notify_manager.unregister(id_handler)?;
         Ok(true)
     }
-}
 
-pub async fn search_cube(
-    cube: &mut CoreCube,
-    wait: Duration,
-) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
-    let peripheral_list = scanner::scan(ScanFilter::default(), wait).await?;
-    for peripheral in peripheral_list.into_iter() {
-        if peripheral.is_connected().await? {
-            debug!("skip connected device");
-            continue;
-        }
-        let mut found = false;
-        let properties = peripheral.properties().await?.unwrap();
-        for service_uuid in properties.services.iter() {
-            info!("service uuid: {}", service_uuid);
-            if *service_uuid == CoreCubeUuid::Service.uuid() {
-                debug!("found toio core cube: service uuid: {}", service_uuid);
-                found = true;
-                break;
+    async fn receive_notify(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+        if let Some(ble) = &self.ble_peripheral {
+            let mut notification_stream = ble.notifications().await?.take(1);
+            if let Some(data) = notification_stream.next().await {
+                self.root_notify_manager.invoke_all_handlers(data)?;
             }
-        }
-        if found {
-            let device_local_name = properties.local_name.unwrap();
-            let device_address = peripheral.address();
-
-            if let Some(cube_local_name) = &cube.local_name {
-                if device_local_name != *cube_local_name {
-                    debug!(
-                        "local name does not match (device:{}, specified:{})",
-                        device_local_name, cube_local_name
-                    );
-                    continue;
-                }
-            }
-            if cfg!(target_os = "macos") {
-                warn!("scanning cube with BDAddress is not supported on MacOS");
-            } else if let Some(cube_address) = &cube.address {
-                if device_address != *cube_address {
-                    debug!(
-                        "address does not match (device:{}, specified:{})",
-                        device_address, cube_address
-                    );
-                    continue;
-                }
-            }
-            cube.local_name = Some(device_local_name.clone());
-            cube.address = Some(device_address);
-            cube.ble_peripheral = Some(peripheral);
-            info!(
-                "found toio core cube: local_name: {}, addr: {}",
-                device_local_name, device_address
-            );
-            return Ok(true);
+            Ok(())
+        } else {
+            Err(Box::new(CoreCubeError::NoBlePeripherals))
         }
     }
-    error!("toio core cube is not found");
-    Err(Box::new(CoreCubeError::CubeNotFound))
+
+    async fn run_notify_receiver(
+        &self,
+        rx: mpsc::Receiver<CoreCubeNotifyControl>,
+    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+        if let Some(ble) = &self.ble_peripheral {
+            let mut notification_stream = ble.notifications().await?;
+            while let Some(data) = notification_stream.next().await {
+                if let Ok(ctrl) = rx.try_recv() {
+                    match ctrl {
+                        CoreCubeNotifyControl::Quit => break,
+                        CoreCubeNotifyControl::Pause => continue,
+                        _ => (),
+                    }
+                }
+                self.root_notify_manager.invoke_all_handlers(data)?;
+            }
+            debug!("stop notify receiver");
+            Ok(())
+        } else {
+            Err(Box::new(CoreCubeError::NoBlePeripherals))
+        }
+    }
+}
+
+impl BleInterface {
+    pub async fn search_cube(
+        &mut self,
+        wait: Duration,
+    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
+        let peripheral_list = scanner::scan(ScanFilter::default(), wait).await?;
+        for peripheral in peripheral_list.into_iter() {
+            if peripheral.is_connected().await? {
+                debug!("skip connected device");
+                continue;
+            }
+            let mut found = false;
+            let properties = peripheral.properties().await?.unwrap();
+            for service_uuid in properties.services.iter() {
+                info!("service uuid: {}", service_uuid);
+                if *service_uuid == CoreCubeUuid::Service.uuid() {
+                    debug!("found toio core cube: service uuid: {}", service_uuid);
+                    found = true;
+                    break;
+                }
+            }
+            if found {
+                let device_local_name = properties.local_name.unwrap();
+                let device_address = peripheral.address();
+
+                if let Some(cube_local_name) = &self.ble_name {
+                    if device_local_name != *cube_local_name {
+                        debug!(
+                            "local name does not match (device:{}, specified:{})",
+                            device_local_name, cube_local_name
+                        );
+                        continue;
+                    }
+                }
+                if cfg!(target_os = "macos") {
+                    warn!("scanning cube with BDAddress is not supported on MacOS");
+                } else if let Some(cube_address) = &self.ble_address {
+                    if device_address != *cube_address {
+                        debug!(
+                            "address does not match (device:{}, specified:{})",
+                            device_address, cube_address
+                        );
+                        continue;
+                    }
+                }
+                self.ble_name = Some(device_local_name.clone());
+                self.ble_address = Some(device_address);
+                self.ble_peripheral = Some(peripheral);
+                info!(
+                    "found toio core cube: local_name: {}, addr: {}",
+                    device_local_name, device_address
+                );
+                return Ok(true);
+            }
+        }
+        error!("toio core cube is not found");
+        Err(Box::new(CoreCubeError::CubeNotFound))
+    }
 }
 
 #[cfg(test)]
