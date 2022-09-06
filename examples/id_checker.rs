@@ -1,16 +1,15 @@
 use log::info;
+use once_cell::sync::OnceCell;
 use std::sync::mpsc;
+use std::sync::Mutex;
 use time::Duration;
 use tokio::signal;
 use tokio::time;
 use umatoi::ble::BleInterface;
-use umatoi::cube::core_cube::{CoreCube, CoreCubeNotifyControl, NotificationData};
 use umatoi::cube::connection::search_cube;
+use umatoi::cube::core_cube::{CoreCube, CoreCubeNotifyControl, NotificationData};
 use umatoi::cube::id_information::IdInformation;
 use umatoi::cube::motor::control::MotorControl;
-use uuid::Uuid;
-use once_cell::sync::OnceCell;
-use std::sync::Mutex;
 
 static POSITION_ID_READ: OnceCell<Mutex<usize>> = OnceCell::new();
 static POSITION_ID_MISSED: OnceCell<Mutex<usize>> = OnceCell::new();
@@ -21,22 +20,34 @@ fn notify_handler(data: NotificationData) {
     if let Some(id_data) = IdInformation::new(&data.value) {
         match id_data {
             IdInformation::PositionId(pos_id) => {
-                let mut update = POSITION_ID_READ.get_or_init(|| Mutex::new(0)).lock().unwrap();
+                let mut update = POSITION_ID_READ
+                    .get_or_init(|| Mutex::new(0))
+                    .lock()
+                    .unwrap();
                 *update += 1;
                 println!("position id: {:?}", pos_id);
             }
             IdInformation::StandardId(std_id) => {
-                let mut update = STANDARD_ID_READ.get_or_init(|| Mutex::new(0)).lock().unwrap();
+                let mut update = STANDARD_ID_READ
+                    .get_or_init(|| Mutex::new(0))
+                    .lock()
+                    .unwrap();
                 *update += 1;
                 println!("standard id: {:?}", std_id);
             }
             IdInformation::PositionIdMissed => {
-                let mut update = POSITION_ID_MISSED.get_or_init(|| Mutex::new(0)).lock().unwrap();
+                let mut update = POSITION_ID_MISSED
+                    .get_or_init(|| Mutex::new(0))
+                    .lock()
+                    .unwrap();
                 *update += 1;
                 println!("position id missed");
             }
             IdInformation::StandardIdMissed => {
-                let mut update = STANDARD_ID_MISSED.get_or_init(|| Mutex::new(0)).lock().unwrap();
+                let mut update = STANDARD_ID_MISSED
+                    .get_or_init(|| Mutex::new(0))
+                    .lock()
+                    .unwrap();
                 *update += 1;
                 println!("standard id missed");
             }
@@ -55,7 +66,6 @@ pub async fn main() {
     let (tx, rx) = mpsc::channel::<CoreCubeNotifyControl>();
     let mut cube = CoreCube::new();
 
-
     // search and connect
 
     search_cube(&mut cube, Duration::from_secs(3))
@@ -65,7 +75,6 @@ pub async fn main() {
     cube.connect().await.unwrap();
     println!("** connection established");
 
-
     // register notify hander
 
     let handler_uuid = cube
@@ -73,7 +82,6 @@ pub async fn main() {
         .await
         .unwrap();
     info!("notify handler uuid {:?}", handler_uuid);
-
 
     // start to receive notifications from cube
 
@@ -86,7 +94,6 @@ pub async fn main() {
     };
 
     // run
-
 
     // wait until Ctrl-C is pressed
 
@@ -102,16 +109,27 @@ pub async fn main() {
     drop(cube);
 
     {
-        let pos_read = POSITION_ID_READ.get_or_init(|| Mutex::new(0)).lock().unwrap();
-        let pos_missed = POSITION_ID_MISSED.get_or_init(|| Mutex::new(0)).lock().unwrap();
+        let pos_read = POSITION_ID_READ
+            .get_or_init(|| Mutex::new(0))
+            .lock()
+            .unwrap();
+        let pos_missed = POSITION_ID_MISSED
+            .get_or_init(|| Mutex::new(0))
+            .lock()
+            .unwrap();
 
-        let std_read = STANDARD_ID_READ.get_or_init(|| Mutex::new(0)).lock().unwrap();
-        let std_missed = STANDARD_ID_MISSED.get_or_init(|| Mutex::new(0)).lock().unwrap();
+        let std_read = STANDARD_ID_READ
+            .get_or_init(|| Mutex::new(0))
+            .lock()
+            .unwrap();
+        let std_missed = STANDARD_ID_MISSED
+            .get_or_init(|| Mutex::new(0))
+            .lock()
+            .unwrap();
 
         println!("position id (read/missed) = {}/{}", *pos_read, *pos_missed);
         println!("standard id (read/missed) = {}/{}", *std_read, *std_missed);
     }
-
 
     // wait to complete the disconnection process of the cube
 
