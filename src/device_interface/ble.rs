@@ -265,7 +265,7 @@ impl DeviceInterface for BleInterface {
 mod tests {
     use super::*;
     use crate::cube::id_information::{self, IdInformation};
-    use crate::cube::CoreCube;
+    use crate::cube::{CoreCube, CoreCubeBasicFunction};
     use std::time::Duration;
     use tokio::time;
 

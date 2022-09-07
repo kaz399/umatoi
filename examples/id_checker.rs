@@ -6,7 +6,7 @@ use time::Duration;
 use tokio::signal;
 use tokio::time;
 use umatoi::cube::id_information::IdInformation;
-use umatoi::cube::{CoreCube, NotificationData};
+use umatoi::cube::{CoreCube, CoreCubeBasicFunction, NotificationData};
 use umatoi::device_interface::ble::BleInterface;
 use umatoi::device_interface::CoreCubeNotifyControl;
 //use umatoi::cube::motor::control::MotorControl;

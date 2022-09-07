@@ -15,7 +15,7 @@ pub enum CoreCubeNotifyControl {
 
 #[async_trait]
 pub trait DeviceInterface {
-    type NotifyHandler;
+    type NotifyHandler: Send + Sync + 'static;
 
     fn new() -> Self;
 

@@ -10,6 +10,7 @@ pub mod sound;
 pub mod tilt;
 
 use crate::device_interface::{CoreCubeNotifyControl, DeviceInterface};
+use async_trait::async_trait;
 use btleplug::api::{BDAddr, ValueNotification};
 use log::error;
 use std::error::Error;
@@ -32,9 +33,47 @@ pub enum CoreCubeError {
     FoundBug,
 }
 
+#[async_trait]
+pub trait CoreCubeBasicFunction<T>
+where
+    T: DeviceInterface + Default + Sync + Send + 'static,
+{
+    fn new() -> Self;
+    fn get_id(&self) -> Uuid;
+    fn set_nickname(&mut self, nickname: String);
+    fn get_nickname(self) -> Option<String>;
+    async fn connect(&mut self) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>>;
+    async fn disconnect(&mut self) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>>;
+    async fn read(&self, uuid: Uuid) -> Result<Vec<u8>, Box<(dyn Error + Sync + Send + 'static)>>;
+    async fn write(
+        &self,
+        uuid: Uuid,
+        bytes: &'static [u8],
+    ) -> Result<bool, Box<(dyn Error + Sync + Send + 'static)>>;
+    async fn register_notify_handler(
+        &mut self,
+        func: T::NotifyHandler,
+    ) -> Result<uuid::Uuid, Box<(dyn Error + Sync + Send + 'static)>>;
+    async fn unregister_notify_handler(
+        &mut self,
+        id_handler: Uuid,
+    ) -> Result<bool, Box<(dyn Error + Sync + Send + 'static)>>;
+    async fn receive_notify(&mut self) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>>;
+    async fn run_notify_receiver(
+        &self,
+        rx: mpsc::Receiver<CoreCubeNotifyControl>,
+    ) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>>;
+    async fn scan(
+        &mut self,
+        address: Option<BDAddr>,
+        device_name: Option<String>,
+        timeout: Duration,
+    ) -> Result<&mut Self, Box<(dyn Error + Sync + Send + 'static)>>;
+}
+
 pub struct CoreCube<T>
 where
-    T: DeviceInterface,
+    T: DeviceInterface + Default + Sync + Send + 'static,
 {
     id: Uuid,
     nickname: Option<String>,
@@ -43,56 +82,58 @@ where
 
 impl<T> Default for CoreCube<T>
 where
-    T: DeviceInterface,
+    T: DeviceInterface + Default + Sync + Send + 'static,
 {
     fn default() -> Self {
         Self {
             id: Uuid::new_v4(),
             nickname: None,
-            device: T::new(),
+            device: T::default(),
         }
     }
 }
 
-impl<T> CoreCube<T>
+#[async_trait]
+impl<T> CoreCubeBasicFunction<T> for CoreCube<T>
 where
-    T: DeviceInterface,
+    T: DeviceInterface + Default + Sync + Send + 'static,
 {
-    pub fn new() -> Self {
-        Self::default()
+    fn new() -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            nickname: None,
+            device: T::default(),
+        }
     }
 
-    pub fn get_id(&self) -> Uuid {
+    fn get_id(&self) -> Uuid {
         self.id
     }
 
-    pub fn set_nickname(&mut self, nickname: String) {
+    fn set_nickname(&mut self, nickname: String) {
         self.nickname = Some(nickname);
     }
 
-    pub fn get_nickname(self) -> Option<String> {
+    fn get_nickname(self) -> Option<String> {
         self.nickname
     }
 
-    pub async fn connect(&mut self) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>> {
+    async fn connect(&mut self) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>> {
         self.device.connect().await?;
         Ok(())
     }
 
-    pub async fn disconnect(&mut self) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>> {
+    async fn disconnect(&mut self) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>> {
         self.device.disconnect().await?;
         Ok(())
     }
 
-    pub async fn read(
-        &self,
-        uuid: Uuid,
-    ) -> Result<Vec<u8>, Box<(dyn Error + Sync + Send + 'static)>> {
+    async fn read(&self, uuid: Uuid) -> Result<Vec<u8>, Box<(dyn Error + Sync + Send + 'static)>> {
         let data = self.device.read(uuid).await?;
         Ok(data)
     }
 
-    pub async fn write(
+    async fn write(
         &self,
         uuid: Uuid,
         bytes: &'static [u8],
@@ -101,7 +142,7 @@ where
         Ok(result)
     }
 
-    pub async fn register_notify_handler(
+    async fn register_notify_handler(
         &mut self,
         func: T::NotifyHandler,
     ) -> Result<uuid::Uuid, Box<(dyn Error + Sync + Send + 'static)>> {
@@ -109,7 +150,7 @@ where
         Ok(uuid)
     }
 
-    pub async fn unregister_notify_handler(
+    async fn unregister_notify_handler(
         &mut self,
         id_handler: Uuid,
     ) -> Result<bool, Box<(dyn Error + Sync + Send + 'static)>> {
@@ -117,12 +158,12 @@ where
         Ok(result)
     }
 
-    pub async fn receive_notify(&mut self) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>> {
+    async fn receive_notify(&mut self) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>> {
         self.device.receive_notify().await?;
         Ok(())
     }
 
-    pub async fn run_notify_receiver(
+    async fn run_notify_receiver(
         &self,
         rx: mpsc::Receiver<CoreCubeNotifyControl>,
     ) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>> {
@@ -130,7 +171,7 @@ where
         Ok(())
     }
 
-    pub async fn scan(
+    async fn scan(
         &mut self,
         address: Option<BDAddr>,
         device_name: Option<String>,
