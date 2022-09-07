@@ -48,7 +48,7 @@ where
     async fn write(
         &self,
         uuid: Uuid,
-        bytes: &'static [u8],
+        bytes: &[u8],
     ) -> Result<bool, Box<(dyn Error + Sync + Send + 'static)>>;
     async fn register_notify_handler(
         &mut self,
@@ -136,7 +136,7 @@ where
     async fn write(
         &self,
         uuid: Uuid,
-        bytes: &'static [u8],
+        bytes: &[u8],
     ) -> Result<bool, Box<(dyn Error + Sync + Send + 'static)>> {
         let result = self.device.write(uuid, bytes).await?;
         Ok(result)

@@ -9,7 +9,7 @@ use umatoi::cube::id_information::IdInformation;
 use umatoi::cube::{CoreCube, CoreCubeBasicFunction, NotificationData};
 use umatoi::device_interface::ble::BleInterface;
 use umatoi::device_interface::CoreCubeNotifyControl;
-//use umatoi::cube::motor::control::MotorControl;
+use umatoi::api::simple::Simple;
 
 static POSITION_ID_READ: OnceCell<Mutex<usize>> = OnceCell::new();
 static POSITION_ID_MISSED: OnceCell<Mutex<usize>> = OnceCell::new();
@@ -95,11 +95,15 @@ pub async fn main() {
     };
 
     // run
+    cube.go(15, 15, 0).await.unwrap();
 
     // wait until Ctrl-C is pressed
 
     let _ = tokio::join!(notify_receiver, timer);
     println!("** disconnecting now");
+
+    // stop
+    cube.stop().await.unwrap();
 
     if cube.unregister_notify_handler(handler_uuid).await.is_err() {
         panic!();
