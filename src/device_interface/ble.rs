@@ -199,13 +199,13 @@ impl DeviceInterface for BleInterface {
             Err(Box::new(CoreCubeError::NoBlePeripherals))
         }
     }
-}
 
-impl BleInterface {
-    pub async fn search_cube(
+    async fn scan(
         &mut self,
+        address: Option<BDAddr>,
+        device_name: Option<String>,
         wait: Duration,
-    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
+    ) -> Result<&mut BleInterface, Box<dyn Error + Send + Sync + 'static>> {
         let peripheral_list = scanner::scan(ScanFilter::default(), wait).await?;
         for peripheral in peripheral_list.into_iter() {
             if peripheral.is_connected().await? {
@@ -226,7 +226,7 @@ impl BleInterface {
                 let device_local_name = properties.local_name.unwrap();
                 let device_address = peripheral.address();
 
-                if let Some(cube_local_name) = &self.ble_name {
+                if let Some(cube_local_name) = &device_name {
                     if device_local_name != *cube_local_name {
                         debug!(
                             "local name does not match (device:{}, specified:{})",
@@ -237,7 +237,7 @@ impl BleInterface {
                 }
                 if cfg!(target_os = "macos") {
                     warn!("scanning cube with BDAddress is not supported on MacOS");
-                } else if let Some(cube_address) = &self.ble_address {
+                } else if let Some(cube_address) = &address {
                     if device_address != *cube_address {
                         debug!(
                             "address does not match (device:{}, specified:{})",
@@ -253,7 +253,7 @@ impl BleInterface {
                     "found toio core cube: local_name: {}, addr: {}",
                     device_local_name, device_address
                 );
-                return Ok(true);
+                return Ok(self);
             }
         }
         error!("toio core cube is not found");
@@ -302,64 +302,71 @@ mod tests {
     async fn cube_scan1() {
         _setup();
         let mut cube = CoreCube::<BleInterface>::new();
-        cube.device
-            .search_cube(Duration::from_secs(3))
-            .await
-            .unwrap();
+        cube.scan(None, None, Duration::from_secs(3)).await.unwrap();
     }
 
     #[tokio::test]
     async fn cube_scan2() {
         _setup();
         let mut cube = CoreCube::<BleInterface>::new();
-        cube.device.set_ble_name(TEST_CUBE_NAME.to_string());
-        cube.device
-            .search_cube(Duration::from_secs(3))
-            .await
-            .unwrap();
+        cube.scan(
+            Some(BDAddr::from(TEST_CUBE_BDADDR)),
+            None,
+            Duration::from_secs(3),
+        )
+        .await
+        .unwrap();
     }
 
     #[tokio::test]
     async fn cube_scan3() {
         _setup();
         let mut cube = CoreCube::<BleInterface>::new();
-        cube.device.set_ble_address(BDAddr::from(TEST_CUBE_BDADDR));
-        cube.device
-            .search_cube(Duration::from_secs(3))
-            .await
-            .unwrap();
+        cube.scan(
+            None,
+            Some(TEST_CUBE_NAME.to_string()),
+            Duration::from_secs(3),
+        )
+        .await
+        .unwrap();
     }
 
     #[tokio::test]
     async fn cube_scan4() {
         _setup();
-        let mut cube = CoreCube::new_with_name_address(
-            TEST_CUBE_NAME.to_string(),
-            BDAddr::from(TEST_CUBE_BDADDR),
-        );
-        search_cube(&mut cube, Duration::from_secs(3))
-            .await
-            .unwrap();
+        let mut cube = CoreCube::<BleInterface>::new();
+        cube.scan(
+            Some(BDAddr::from(TEST_CUBE_BDADDR)),
+            Some(TEST_CUBE_NAME.to_string()),
+            Duration::from_secs(3),
+        )
+        .await
+        .unwrap();
     }
 
     #[tokio::test]
     async fn cube_scan5() {
         _setup();
-        let mut cube = CoreCube::new_with_name_address(
-            TEST_CUBE_NAME.to_string(),
-            BDAddr::from(TEST_CUBE_BDADDR),
-        );
-        search_cube(&mut cube, Duration::from_secs(3))
-            .await
-            .unwrap();
+        let mut cube = CoreCube::<BleInterface>::new();
+        cube.scan(
+            Some(BDAddr::from(TEST_CUBE_BDADDR)),
+            Some(TEST_CUBE_NAME.to_string()),
+            Duration::from_secs(3),
+        )
+        .await
+        .unwrap()
+        .connect()
+        .await
+        .unwrap();
 
-        cube.connect().await.unwrap();
-
-        let mut cube2 = CoreCube::new_with_name_address(
-            TEST_CUBE_NAME.to_string(),
-            BDAddr::from(TEST_CUBE_BDADDR),
-        );
-        let result = search_cube(&mut cube2, Duration::from_secs(3)).await;
+        let mut cube2 = CoreCube::<BleInterface>::new();
+        let result = cube2
+            .scan(
+                Some(BDAddr::from(TEST_CUBE_BDADDR)),
+                Some(TEST_CUBE_NAME.to_string()),
+                Duration::from_secs(3),
+            )
+            .await;
         if result.is_ok() {
             panic!();
         }
@@ -377,13 +384,15 @@ mod tests {
     async fn cube_notify1() {
         _setup();
         let (tx, rx) = mpsc::channel::<CoreCubeNotifyControl>();
-        let mut cube = CoreCube::new();
+        let mut cube = CoreCube::<BleInterface>::new();
 
-        search_cube(&mut cube, Duration::from_secs(3))
+        cube.scan(None, None, Duration::from_secs(3))
+            .await
+            .unwrap()
+            .connect()
             .await
             .unwrap();
 
-        cube.connect().await.unwrap();
         let handler_uuid = cube
             .register_notify_handler(Box::new(&notify_handler))
             .await
@@ -394,7 +403,10 @@ mod tests {
             uuid: Uuid::new_v4(),
             value: [1, 2, 3].to_vec(),
         };
-        cube.root_notify_manager.invoke_all_handlers(data).unwrap();
+        cube.device
+            .root_notify_manager
+            .invoke_all_handlers(data)
+            .unwrap();
 
         //cube.receive_notify().await.unwrap();
 

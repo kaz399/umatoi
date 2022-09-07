@@ -10,12 +10,18 @@ pub struct RequestBleProtocolVersion {
     _reserved: u8,
 }
 
-impl RequestBleProtocolVersion {
-    pub fn new() -> Self {
+impl Default for RequestBleProtocolVersion {
+    fn default() -> Self {
         Self {
             configuration_type: ConfigurationType::BleProtocolVersion,
             _reserved: 0,
         }
+    }
+}
+
+impl RequestBleProtocolVersion {
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 

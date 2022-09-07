@@ -1,8 +1,10 @@
 pub mod ble;
 
 use async_trait::async_trait;
+use btleplug::api::BDAddr;
 use std::error::Error;
 use std::sync::mpsc;
+use std::time::Duration;
 use uuid::Uuid;
 
 pub enum CoreCubeNotifyControl {
@@ -50,4 +52,12 @@ pub trait DeviceInterface {
         &self,
         rx: mpsc::Receiver<CoreCubeNotifyControl>,
     ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
+
+    // scan
+    async fn scan(
+        &mut self,
+        address: Option<BDAddr>,
+        device_name: Option<String>,
+        wait: Duration,
+    ) -> Result<&mut Self, Box<dyn Error + Send + Sync + 'static>>;
 }

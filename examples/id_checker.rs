@@ -5,11 +5,11 @@ use std::sync::Mutex;
 use time::Duration;
 use tokio::signal;
 use tokio::time;
-use umatoi::ble::BleInterface;
-use umatoi::cube::connection::search_cube;
-use umatoi::cube::core_cube::{CoreCube, CoreCubeNotifyControl, NotificationData};
 use umatoi::cube::id_information::IdInformation;
-use umatoi::cube::motor::control::MotorControl;
+use umatoi::cube::{CoreCube, NotificationData};
+use umatoi::device_interface::ble::BleInterface;
+use umatoi::device_interface::CoreCubeNotifyControl;
+//use umatoi::cube::motor::control::MotorControl;
 
 static POSITION_ID_READ: OnceCell<Mutex<usize>> = OnceCell::new();
 static POSITION_ID_MISSED: OnceCell<Mutex<usize>> = OnceCell::new();
@@ -64,15 +64,16 @@ fn notify_handler(data: NotificationData) {
 #[tokio::main]
 pub async fn main() {
     let (tx, rx) = mpsc::channel::<CoreCubeNotifyControl>();
-    let mut cube = CoreCube::new();
+    let mut cube = CoreCube::<BleInterface>::new();
 
     // search and connect
 
-    search_cube(&mut cube, Duration::from_secs(3))
+    cube.scan(None, None, Duration::from_secs(3))
+        .await
+        .unwrap()
+        .connect()
         .await
         .unwrap();
-
-    cube.connect().await.unwrap();
     println!("** connection established");
 
     // register notify hander

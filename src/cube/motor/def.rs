@@ -131,8 +131,8 @@ pub struct RequestId {
 /// Request ID counter (global scope)
 static REQUEST_ID: OnceCell<Mutex<u8>> = OnceCell::new();
 
-impl RequestId {
-    pub fn new() -> Self {
+impl Default for RequestId {
+    fn default() -> Self {
         let mut request_id = REQUEST_ID.get_or_init(|| Mutex::new(0u8)).lock().unwrap();
         let id = *request_id;
         if *request_id == u8::MAX {
@@ -141,6 +141,12 @@ impl RequestId {
             *request_id += 1;
         }
         Self { id }
+    }
+}
+
+impl RequestId {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn received(id: u8) -> Self {
