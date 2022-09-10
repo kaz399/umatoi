@@ -1,6 +1,7 @@
 pub mod ble;
 
 use async_trait::async_trait;
+use crate::cube::NotificationData;
 use btleplug::api::BDAddr;
 use std::error::Error;
 use std::sync::mpsc;
@@ -15,7 +16,6 @@ pub enum CoreCubeNotifyControl {
 
 #[async_trait]
 pub trait DeviceInterface {
-    type NotifyHandler: Send + Sync + 'static;
 
     fn new() -> Self;
 
@@ -33,26 +33,6 @@ pub trait DeviceInterface {
         bytes: &[u8],
     ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>>;
 
-    // register handler function to specified notify
-    async fn register_notify_handler(
-        &mut self,
-        func: Self::NotifyHandler,
-    ) -> Result<uuid::Uuid, Box<dyn Error + Send + Sync + 'static>>;
-
-    // register handler function to specified notify
-    async fn unregister_notify_handler(
-        &mut self,
-        id_handler: Uuid,
-    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>>;
-
-    async fn receive_notify(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
-
-    // run notify receiver
-    async fn run_notify_receiver(
-        &self,
-        rx: mpsc::Receiver<CoreCubeNotifyControl>,
-    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
-
     // scan
     async fn scan(
         &mut self,
@@ -60,4 +40,8 @@ pub trait DeviceInterface {
         device_name: Option<String>,
         wait: Duration,
     ) -> Result<&mut Self, Box<dyn Error + Send + Sync + 'static>>;
+
+    async fn get_notification_data(
+        &self,
+    ) -> Result<NotificationData, Box<dyn Error + Send + Sync + 'static>>;
 }

@@ -11,6 +11,7 @@ pub mod tilt;
 
 use crate::device_interface::{CoreCubeNotifyControl, DeviceInterface};
 use async_trait::async_trait;
+use crate::handler::{HandlerFunction, NotifyManager};
 use btleplug::api::{BDAddr, ValueNotification};
 use log::error;
 use std::error::Error;
@@ -38,6 +39,8 @@ pub trait CoreCubeBasicFunction<T>
 where
     T: DeviceInterface + Default + Sync + Send + 'static,
 {
+    type NotificationHandlerFunc: Send + Sync + 'static;
+
     fn new() -> Self;
     fn get_id(&self) -> Uuid;
     fn set_nickname(&mut self, nickname: String);
@@ -50,19 +53,15 @@ where
         uuid: Uuid,
         bytes: &[u8],
     ) -> Result<bool, Box<(dyn Error + Sync + Send + 'static)>>;
-    async fn register_notify_handler(
+    fn register_notification_handler(
         &mut self,
-        func: T::NotifyHandler,
+        func: Self::NotificationHandlerFunc,
     ) -> Result<uuid::Uuid, Box<(dyn Error + Sync + Send + 'static)>>;
-    async fn unregister_notify_handler(
+    fn unregister_notification_handler(
         &mut self,
         id_handler: Uuid,
     ) -> Result<bool, Box<(dyn Error + Sync + Send + 'static)>>;
-    async fn receive_notify(&mut self) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>>;
-    async fn run_notify_receiver(
-        &self,
-        rx: mpsc::Receiver<CoreCubeNotifyControl>,
-    ) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>>;
+    async fn receive_notification(&mut self) -> Result<NotificationData, Box<(dyn Error + Sync + Send + 'static)>>;
     async fn scan(
         &mut self,
         address: Option<BDAddr>,
@@ -77,7 +76,8 @@ where
 {
     id: Uuid,
     nickname: Option<String>,
-    pub(crate) device: T,
+    pub device: T,
+    pub notification_manager: NotifyManager<NotificationData>,
 }
 
 impl<T> Default for CoreCube<T>
@@ -89,6 +89,7 @@ where
             id: Uuid::new_v4(),
             nickname: None,
             device: T::default(),
+            notification_manager: NotifyManager::new(),
         }
     }
 }
@@ -98,12 +99,10 @@ impl<T> CoreCubeBasicFunction<T> for CoreCube<T>
 where
     T: DeviceInterface + Default + Sync + Send + 'static,
 {
+    type NotificationHandlerFunc = HandlerFunction<NotificationData>;
+
     fn new() -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            nickname: None,
-            device: T::default(),
-        }
+        Self::default()
     }
 
     fn get_id(&self) -> Uuid {
@@ -142,33 +141,22 @@ where
         Ok(result)
     }
 
-    async fn register_notify_handler(
+    fn register_notification_handler(
         &mut self,
-        func: T::NotifyHandler,
+        func: Self::NotificationHandlerFunc,
     ) -> Result<uuid::Uuid, Box<(dyn Error + Sync + Send + 'static)>> {
-        let uuid = self.device.register_notify_handler(func).await?;
-        Ok(uuid)
+        self.notification_manager.register(func)
     }
 
-    async fn unregister_notify_handler(
+    fn unregister_notification_handler(
         &mut self,
         id_handler: Uuid,
     ) -> Result<bool, Box<(dyn Error + Sync + Send + 'static)>> {
-        let result = self.device.unregister_notify_handler(id_handler).await?;
-        Ok(result)
+        self.notification_manager.unregister(id_handler)
     }
 
-    async fn receive_notify(&mut self) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>> {
-        self.device.receive_notify().await?;
-        Ok(())
-    }
-
-    async fn run_notify_receiver(
-        &self,
-        rx: mpsc::Receiver<CoreCubeNotifyControl>,
-    ) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>> {
-        self.device.run_notify_receiver(rx).await?;
-        Ok(())
+    async fn receive_notification(&mut self) -> Result<NotificationData, Box<(dyn Error + Sync + Send + 'static)>> {
+        Ok(self.device.get_notification_data().await?)
     }
 
     async fn scan(

@@ -10,6 +10,11 @@ use umatoi::cube::{CoreCube, CoreCubeBasicFunction, NotificationData};
 use umatoi::device_interface::ble::BleInterface;
 use umatoi::device_interface::CoreCubeNotifyControl;
 use umatoi::api::simple::Simple;
+use btleplug::platform::Peripheral;
+use btleplug::api::{
+    BDAddr, CharPropFlags, Characteristic, Peripheral as _, ScanFilter, WriteType,
+};
+use futures::stream::StreamExt;
 
 static POSITION_ID_READ: OnceCell<Mutex<usize>> = OnceCell::new();
 static POSITION_ID_MISSED: OnceCell<Mutex<usize>> = OnceCell::new();
@@ -79,14 +84,24 @@ pub async fn main() {
     // register notify hander
 
     let handler_uuid = cube
-        .register_notify_handler(Box::new(&notify_handler))
-        .await
+        .register_notification_handler(Box::new(&notify_handler))
         .unwrap();
     info!("notify handler uuid {:?}", handler_uuid);
 
     // start to receive notifications from cube
 
-    let notify_receiver = cube.run_notify_receiver(rx);
+
+    let mut task = None;
+    if let Some(peri) = cube.device.ble_peripheral.clone() {
+        let mut notification_stream  = peri.notifications().await.unwrap();
+        let notify_receiver = async move {
+            while let Some(data) = notification_stream.next().await {
+                cube.notification_manager.invoke_all_handlers(data);
+            }
+        };
+        task = Some(tokio::spawn(notify_receiver));
+    }
+
     let timer = async {
         tx.send(CoreCubeNotifyControl::Run).unwrap();
         signal::ctrl_c().await.expect("failed to listen for event");
@@ -95,23 +110,26 @@ pub async fn main() {
     };
 
     // run
+
     cube.go(15, 15, 0).await.unwrap();
 
     // wait until Ctrl-C is pressed
 
-    let _ = tokio::join!(notify_receiver, timer);
+    // let _ = tokio::join!(notify_receiver, timer);
+    timer.await;
+    task.unwrap().abort();
     println!("** disconnecting now");
 
     // stop
     cube.stop().await.unwrap();
 
-    if cube.unregister_notify_handler(handler_uuid).await.is_err() {
-        panic!();
-    }
-    if cube.disconnect().await.is_err() {
-        panic!()
-    }
-    drop(cube);
+    //if cube.unregister_notify_handler(handler_uuid).is_err() {
+    //    panic!();
+    //}
+    //if cube.disconnect().await.is_err() {
+    //    panic!()
+    //}
+    //drop(cube);
 
     {
         let pos_read = POSITION_ID_READ

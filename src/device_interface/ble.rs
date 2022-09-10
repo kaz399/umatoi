@@ -18,12 +18,11 @@ use std::time::Duration;
 use uuid::Uuid;
 
 pub struct BleInterface {
-    pub(crate) ble_address: Option<BDAddr>,
-    pub(crate) ble_name: Option<String>,
-    pub(crate) ble_peripheral: Option<Peripheral>,
-    pub(crate) ble_characteristics: HashMap<Uuid, Characteristic>,
-    pub(crate) notify_enabled: Vec<Uuid>,
-    pub(crate) root_notify_manager: NotifyManager<NotificationData>,
+    pub ble_address: Option<BDAddr>,
+    pub ble_name: Option<String>,
+    pub ble_peripheral: Option<Peripheral>,
+    pub ble_characteristics: HashMap<Uuid, Characteristic>,
+    pub notify_enabled: Vec<Uuid>,
 }
 
 impl Default for BleInterface {
@@ -34,7 +33,6 @@ impl Default for BleInterface {
             ble_peripheral: None,
             ble_characteristics: HashMap::new(),
             notify_enabled: Vec::new(),
-            root_notify_manager: NotifyManager::new(),
         }
     }
 }
@@ -75,7 +73,6 @@ impl BleInterface {
 
 #[async_trait]
 impl DeviceInterface for BleInterface {
-    type NotifyHandler = HandlerFunction<NotificationData>;
 
     fn new() -> Self {
         BleInterface::new()
@@ -149,57 +146,6 @@ impl DeviceInterface for BleInterface {
         }
     }
 
-    async fn register_notify_handler(
-        &mut self,
-        func: Self::NotifyHandler,
-    ) -> Result<Uuid, Box<dyn Error + Send + Sync + 'static>> {
-        let id_handler = self.root_notify_manager.register(func)?;
-        Ok(id_handler)
-    }
-
-    async fn unregister_notify_handler(
-        &mut self,
-        id_handler: Uuid,
-    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
-        self.root_notify_manager.unregister(id_handler)?;
-        Ok(true)
-    }
-
-    async fn receive_notify(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-        if let Some(ble) = &self.ble_peripheral {
-            let mut notification_stream = ble.notifications().await?.take(1);
-            if let Some(data) = notification_stream.next().await {
-                self.root_notify_manager.invoke_all_handlers(data)?;
-            }
-            Ok(())
-        } else {
-            Err(Box::new(CoreCubeError::NoBlePeripherals))
-        }
-    }
-
-    async fn run_notify_receiver(
-        &self,
-        rx: mpsc::Receiver<CoreCubeNotifyControl>,
-    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-        if let Some(ble) = &self.ble_peripheral {
-            let mut notification_stream = ble.notifications().await?;
-            while let Some(data) = notification_stream.next().await {
-                if let Ok(ctrl) = rx.try_recv() {
-                    match ctrl {
-                        CoreCubeNotifyControl::Quit => break,
-                        CoreCubeNotifyControl::Pause => continue,
-                        _ => (),
-                    }
-                }
-                self.root_notify_manager.invoke_all_handlers(data)?;
-            }
-            debug!("stop notify receiver");
-            Ok(())
-        } else {
-            Err(Box::new(CoreCubeError::NoBlePeripherals))
-        }
-    }
-
     async fn scan(
         &mut self,
         address: Option<BDAddr>,
@@ -258,6 +204,20 @@ impl DeviceInterface for BleInterface {
         }
         error!("toio core cube is not found");
         Err(Box::new(CoreCubeError::CubeNotFound))
+    }
+
+    async fn get_notification_data(
+        &self,
+    ) -> Result<NotificationData, Box<dyn Error + Send + Sync + 'static>> {
+        if let Some(peri) = self.ble_peripheral.clone() {
+            let mut notification_stream  = peri.notifications().await?.take(1);
+            match notification_stream.next().await {
+                Some(data) => Ok(data),
+                None => Err(Box::new(CoreCubeError::NoBlePeripherals)),
+            }
+        } else {
+            Err(Box::new(CoreCubeError::NoBlePeripherals))
+        }
     }
 }
 
