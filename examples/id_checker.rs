@@ -1,7 +1,6 @@
 use log::info;
 use once_cell::sync::OnceCell;
 use std::sync::mpsc;
-use std::sync::Mutex;
 use time::Duration;
 use tokio::signal;
 use tokio::time;
@@ -11,9 +10,8 @@ use umatoi::device_interface::ble::BleInterface;
 use umatoi::device_interface::CoreCubeNotifyControl;
 use umatoi::api::simple::Simple;
 use btleplug::platform::Peripheral;
-use btleplug::api::{
-    BDAddr, CharPropFlags, Characteristic, Peripheral as _, ScanFilter, WriteType,
-};
+use btleplug::api::{Peripheral as _};
+use std::sync::{Arc, Mutex};
 use futures::stream::StreamExt;
 
 static POSITION_ID_READ: OnceCell<Mutex<usize>> = OnceCell::new();
@@ -68,68 +66,77 @@ fn notify_handler(data: NotificationData) {
 
 #[tokio::main]
 pub async fn main() {
-    let (tx, rx) = mpsc::channel::<CoreCubeNotifyControl>();
-    let mut cube = CoreCube::<BleInterface>::new();
+    let cube_arc = Arc::new(Mutex::new(CoreCube::<BleInterface>::new()));
+    let cube = cube_arc.clone();
+    let notification = cube_arc.clone();
+
 
     // search and connect
 
-    cube.scan(None, None, Duration::from_secs(3))
-        .await
-        .unwrap()
-        .connect()
-        .await
-        .unwrap();
-    println!("** connection established");
+    let handler_uuid;
+    let peri: Peripheral;
+    {
+        let mut locked_cube = cube.lock().unwrap();
+        locked_cube.scan(None, None, Duration::from_secs(3))
+            .await
+            .unwrap()
+            .connect()
+            .await
+            .unwrap();
+        println!("** connection established");
 
-    // register notify hander
+        peri = locked_cube.device.ble_peripheral.clone().unwrap();
 
-    let handler_uuid = cube
-        .register_notification_handler(Box::new(&notify_handler))
-        .unwrap();
-    info!("notify handler uuid {:?}", handler_uuid);
+        // register notify hander
+
+        handler_uuid = locked_cube
+            .register_notification_handler(Box::new(&notify_handler))
+            .unwrap();
+        info!("notify handler uuid {:?}", handler_uuid);
+    }
 
     // start to receive notifications from cube
 
 
-    let mut task = None;
-    if let Some(peri) = cube.device.ble_peripheral.clone() {
+    let task;
+    {
         let mut notification_stream  = peri.notifications().await.unwrap();
         let notify_receiver = async move {
             while let Some(data) = notification_stream.next().await {
-                cube.notification_manager.invoke_all_handlers(data);
+                let nm = notification.lock().unwrap();
+                nm.notification_manager.invoke_all_handlers(data).unwrap();
             }
         };
         task = Some(tokio::spawn(notify_receiver));
     }
 
     let timer = async {
-        tx.send(CoreCubeNotifyControl::Run).unwrap();
         signal::ctrl_c().await.expect("failed to listen for event");
         println!("received ctrl-c event");
-        tx.send(CoreCubeNotifyControl::Quit).unwrap();
     };
 
-    // run
+    {
+        let mut locked_cube = cube.lock().unwrap();
+        // run
+        locked_cube.go(15, 15, 0).await.unwrap();
 
-    cube.go(15, 15, 0).await.unwrap();
+        // wait until Ctrl-C is pressed
 
-    // wait until Ctrl-C is pressed
+        // let _ = tokio::join!(notify_receiver, timer);
+        timer.await;
+        task.unwrap().abort();
+        println!("** disconnecting now");
 
-    // let _ = tokio::join!(notify_receiver, timer);
-    timer.await;
-    task.unwrap().abort();
-    println!("** disconnecting now");
+        // stop
+        locked_cube.stop().await.unwrap();
 
-    // stop
-    cube.stop().await.unwrap();
-
-    //if cube.unregister_notify_handler(handler_uuid).is_err() {
-    //    panic!();
-    //}
-    //if cube.disconnect().await.is_err() {
-    //    panic!()
-    //}
-    //drop(cube);
+        if locked_cube.unregister_notification_handler(handler_uuid).is_err() {
+            panic!();
+        }
+        if locked_cube.disconnect().await.is_err() {
+            panic!()
+        }
+    }
 
     {
         let pos_read = POSITION_ID_READ
