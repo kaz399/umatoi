@@ -1,10 +1,8 @@
 pub mod ble;
 
 use async_trait::async_trait;
-use crate::cube::NotificationData;
 use btleplug::api::BDAddr;
 use std::error::Error;
-use std::sync::mpsc;
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -14,8 +12,10 @@ pub enum CoreCubeNotifyControl {
     Quit,
 }
 
+
 #[async_trait]
 pub trait DeviceInterface {
+    type DevicePeripheral;
 
     fn new() -> Self;
 
@@ -30,7 +30,7 @@ pub trait DeviceInterface {
     async fn write(
         &self,
         uuid: Uuid,
-        bytes: &[u8],
+        bytes: Vec<u8>,
     ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>>;
 
     // scan
@@ -41,7 +41,5 @@ pub trait DeviceInterface {
         wait: Duration,
     ) -> Result<&mut Self, Box<dyn Error + Send + Sync + 'static>>;
 
-    async fn get_notification_data(
-        &self,
-    ) -> Result<NotificationData, Box<dyn Error + Send + Sync + 'static>>;
+    fn get_peripheral(&self) -> Option<Self::DevicePeripheral>;
 }

@@ -6,22 +6,27 @@ use uuid::Uuid;
 
 pub type HandlerFunction<T> = Box<dyn Fn(T) + Send + Sync + 'static>;
 
-pub struct NotifyManager<T> {
+
+pub struct NotificationManager<T> {
     order: Vec<uuid::Uuid>,
     pub handlers: HashMap<uuid::Uuid, HandlerFunction<T>>,
 }
 
 #[derive(Error, Debug, PartialEq, Eq)]
-pub enum NotifyManagerError {
+pub enum NotificationManagerError {
     #[error("handler function '{0}' is not found")]
     HandlerNotFound(uuid::Uuid),
+    #[error("stream error")]
+    StreamError,
+    #[error("stream is not defined")]
+    UndefinedStream,
     #[error("handler name '{0}' is already used (same handler?)")]
     HandlerNameIsUsed(uuid::Uuid),
     #[error("internal error of handler.rs")]
     FoundBug,
 }
 
-impl<T> Default for NotifyManager<T> {
+impl<T> Default for NotificationManager<T> {
     fn default() -> Self {
         Self {
             order: Vec::new(),
@@ -30,12 +35,12 @@ impl<T> Default for NotifyManager<T> {
     }
 }
 
-impl<T> NotifyManager<T>
+impl<T> NotificationManager<T>
 where
     T: Clone + Send + Sync,
 {
     pub fn new() -> Self {
-        NotifyManager::default()
+        Self::default()
     }
 
     /// register notify handler
@@ -50,7 +55,7 @@ where
             self.handlers.insert(id, func);
             Ok(id)
         } else {
-            Err(NotifyManagerError::HandlerNameIsUsed(id).into())
+            Err(NotificationManagerError::HandlerNameIsUsed(id).into())
         }
     }
 
@@ -66,7 +71,7 @@ where
                 return Ok(true);
             }
         }
-        Err(Box::new(NotifyManagerError::HandlerNotFound(id)))
+        Err(Box::new(NotificationManagerError::HandlerNotFound(id)))
     }
 
     /// invoke all handlers
@@ -79,7 +84,7 @@ where
             if let Some(handler) = self.handlers.get(id) {
                 handler(data.clone());
             } else {
-                return Err(NotifyManagerError::FoundBug.into());
+                return Err(NotificationManagerError::FoundBug.into());
             }
         }
         Ok(true)
@@ -114,7 +119,7 @@ mod tests {
     #[test]
     fn notify_manager_register() {
         _setup();
-        let mut notify_manager: NotifyManager<Vec<u8>> = NotifyManager::new();
+        let mut notify_manager: NotificationManager<Vec<u8>> = NotificationManager::new();
 
         let _handler1 = notify_manager.register(Box::new(&func1)).unwrap();
         let _handler2 = notify_manager.register(Box::new(&func2)).unwrap();
@@ -126,7 +131,7 @@ mod tests {
     #[test]
     fn notify_manager_unregister1() {
         _setup();
-        let mut notify_manager: NotifyManager<Vec<u8>> = NotifyManager::new();
+        let mut notify_manager: NotificationManager<Vec<u8>> = NotificationManager::new();
 
         let handler1 = notify_manager.register(Box::new(&func1)).unwrap();
         let handler2 = notify_manager.register(Box::new(&func2)).unwrap();
@@ -144,7 +149,7 @@ mod tests {
     #[test]
     fn notify_manager_unregister2() {
         _setup();
-        let mut notify_manager: NotifyManager<Vec<u8>> = NotifyManager::new();
+        let mut notify_manager: NotificationManager<Vec<u8>> = NotificationManager::new();
 
         let handler1 = notify_manager.register(Box::new(&func1)).unwrap();
         let handler2 = notify_manager.register(Box::new(&func2)).unwrap();
@@ -162,7 +167,7 @@ mod tests {
     #[test]
     fn notify_manager_invoke() {
         _setup();
-        let mut notify_manager: NotifyManager<Vec<u8>> = NotifyManager::new();
+        let mut notify_manager: NotificationManager<Vec<u8>> = NotificationManager::new();
 
         let handler1 = notify_manager.register(Box::new(&func1)).unwrap();
         let handler2 = notify_manager.register(Box::new(&func2)).unwrap();

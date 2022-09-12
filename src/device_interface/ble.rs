@@ -1,19 +1,15 @@
 use crate::cube::characteristic_uuid::CoreCubeUuid;
-use crate::cube::{CoreCubeError, NotificationData};
-use crate::device_interface::{CoreCubeNotifyControl, DeviceInterface};
-use crate::handler::HandlerFunction;
-use crate::handler::NotifyManager;
+use crate::cube::CoreCubeError;
+use crate::device_interface::DeviceInterface;
 use crate::scanner;
 use async_trait::async_trait;
 use btleplug::api::{
     BDAddr, CharPropFlags, Characteristic, Peripheral as _, ScanFilter, WriteType,
 };
 use btleplug::platform::Peripheral;
-use futures::stream::StreamExt;
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::error::Error;
-use std::sync::mpsc;
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -73,6 +69,7 @@ impl BleInterface {
 
 #[async_trait]
 impl DeviceInterface for BleInterface {
+    type DevicePeripheral = btleplug::platform::Peripheral;
 
     fn new() -> Self {
         BleInterface::new()
@@ -134,11 +131,11 @@ impl DeviceInterface for BleInterface {
     async fn write(
         &self,
         uuid: Uuid,
-        bytes: &[u8],
+        bytes: Vec<u8>,
     ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
         if let Some(ble) = &self.ble_peripheral {
             let characteristic = self.ble_characteristics.get(&uuid).unwrap();
-            ble.write(characteristic, bytes, WriteType::WithoutResponse)
+            ble.write(characteristic, &bytes.clone(), WriteType::WithoutResponse)
                 .await?;
             Ok(true)
         } else {
@@ -206,18 +203,8 @@ impl DeviceInterface for BleInterface {
         Err(Box::new(CoreCubeError::CubeNotFound))
     }
 
-    async fn get_notification_data(
-        &self,
-    ) -> Result<NotificationData, Box<dyn Error + Send + Sync + 'static>> {
-        if let Some(peri) = self.ble_peripheral.clone() {
-            let mut notification_stream  = peri.notifications().await?.take(1);
-            match notification_stream.next().await {
-                Some(data) => Ok(data),
-                None => Err(Box::new(CoreCubeError::NoBlePeripherals)),
-            }
-        } else {
-            Err(Box::new(CoreCubeError::NoBlePeripherals))
-        }
+    fn get_peripheral(&self) -> Option<Self::DevicePeripheral> {
+        self.ble_peripheral.clone()
     }
 }
 
@@ -372,9 +359,7 @@ mod tests {
 
         let notify_receiver = cube.run_notify_receiver(rx);
         let timer = async {
-            tx.send(CoreCubeNotifyControl::Run).unwrap();
             time::sleep(Duration::from_secs(8)).await;
-            tx.send(CoreCubeNotifyControl::Quit).unwrap();
         };
 
         let _ = tokio::join!(notify_receiver, timer);

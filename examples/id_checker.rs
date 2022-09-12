@@ -1,15 +1,14 @@
 use log::info;
 use once_cell::sync::OnceCell;
-use std::sync::mpsc;
 use time::Duration;
 use tokio::signal;
 use tokio::time;
 use umatoi::cube::id_information::IdInformation;
 use umatoi::cube::{CoreCube, CoreCubeBasicFunction, NotificationData};
 use umatoi::device_interface::ble::BleInterface;
-use umatoi::device_interface::CoreCubeNotifyControl;
 use umatoi::api::simple::Simple;
-use btleplug::platform::Peripheral;
+use umatoi::notification_manager::NotificationManager;
+use umatoi::device_interface::DeviceInterface;
 use btleplug::api::{Peripheral as _};
 use std::sync::{Arc, Mutex};
 use futures::stream::StreamExt;
@@ -67,47 +66,48 @@ fn notify_handler(data: NotificationData) {
 #[tokio::main]
 pub async fn main() {
     let cube_arc = Arc::new(Mutex::new(CoreCube::<BleInterface>::new()));
-    let cube = cube_arc.clone();
-    let notification = cube_arc.clone();
+    let mut notification_manager = NotificationManager::<NotificationData>::new();
 
+
+    let cube_for_main = cube_arc.clone();
+    let cube_for_task = cube_arc.clone();
 
     // search and connect
 
-    let handler_uuid;
-    let peri: Peripheral;
     {
-        let mut locked_cube = cube.lock().unwrap();
-        locked_cube.scan(None, None, Duration::from_secs(3))
+        let mut cube = cube_for_main.lock().unwrap();
+        cube.device.scan(None, None, Duration::from_secs(3))
             .await
-            .unwrap()
-            .connect()
+            .unwrap();
+        cube.device.connect()
             .await
             .unwrap();
         println!("** connection established");
-
-        peri = locked_cube.device.ble_peripheral.clone().unwrap();
-
-        // register notify hander
-
-        handler_uuid = locked_cube
-            .register_notification_handler(Box::new(&notify_handler))
-            .unwrap();
-        info!("notify handler uuid {:?}", handler_uuid);
     }
+
+
+    // register notify handler
+
+    let handler_uuid = notification_manager
+        .register(Box::new(&notify_handler))
+        .unwrap();
+    info!("notify handler uuid {:?}", handler_uuid);
 
     // start to receive notifications from cube
 
 
-    let task;
+    let mut task: Option<tokio::task::JoinHandle<NotificationManager<NotificationData>>> = None;
     {
-        let mut notification_stream  = peri.notifications().await.unwrap();
-        let notify_receiver = async move {
-            while let Some(data) = notification_stream.next().await {
-                let nm = notification.lock().unwrap();
-                nm.notification_manager.invoke_all_handlers(data).unwrap();
-            }
-        };
-        task = Some(tokio::spawn(notify_receiver));
+        if let Some(peri) = &cube_for_task.lock().unwrap().device.ble_peripheral {
+            let mut stream = peri.notifications().await.unwrap();
+            let notify_receiver = async move {
+                while let Some(data) = stream.next().await {
+                    notification_manager.invoke_all_handlers(data).unwrap();
+                }
+                notification_manager
+            };
+            task = Some(tokio::spawn(notify_receiver));
+        }
     }
 
     let timer = async {
@@ -116,24 +116,29 @@ pub async fn main() {
     };
 
     {
-        let mut locked_cube = cube.lock().unwrap();
+        let mut cube = cube_for_main.lock().unwrap();
         // run
-        locked_cube.go(15, 15, 0).await.unwrap();
+        cube.go(15, 15, 0).await.unwrap();
 
         // wait until Ctrl-C is pressed
 
-        // let _ = tokio::join!(notify_receiver, timer);
         timer.await;
-        task.unwrap().abort();
+        if let Some(t) = task {
+            t.abort();
+            // let mut nm = t.await.unwrap();
+            // if nm.unregister(handler_uuid).is_err() {
+            //     panic!();
+            // }
+        }
         println!("** disconnecting now");
 
         // stop
-        locked_cube.stop().await.unwrap();
+        cube.stop().await.unwrap();
 
-        if locked_cube.unregister_notification_handler(handler_uuid).is_err() {
-            panic!();
-        }
-        if locked_cube.disconnect().await.is_err() {
+        // if notification_manager.unregister(handler_uuid).is_err() {
+            //  panic!();
+        // }
+        if cube.device.disconnect().await.is_err() {
             panic!()
         }
     }
@@ -163,6 +168,6 @@ pub async fn main() {
 
     // wait to complete the disconnection process of the cube
 
-    time::sleep(Duration::from_secs(3)).await;
+    // time::sleep(Duration::from_secs(3)).await;
     println!("Bye!");
 }

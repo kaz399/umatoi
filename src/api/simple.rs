@@ -61,7 +61,7 @@ pub trait Simple {
 #[async_trait]
 impl<T> Simple for CoreCube<T>
 where
-    T: DeviceInterface + Default + Sync + Send + 'static,
+    T: DeviceInterface + Default + Sync + Send,
 {
     async fn go(
         &self,
@@ -69,18 +69,15 @@ where
         right: i16,
         period_ms: u64,
     ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-        match period_ms {
-            0 => {
-                let motor: MotorControl = MotorControl::from_primitive(left, right)?;
-                self.write(CoreCubeUuid::MotorCtrl.uuid(), &motor.to_payload())
-                    .await?;
-            }
-            _ => {
-                let motor: MotorControlWithSpecifiedDuration =
-                    MotorControlWithSpecifiedDuration::from_primitive(left, right, period_ms)?;
-                self.write(CoreCubeUuid::MotorCtrl.uuid(), &motor.to_payload())
-                    .await?;
-            }
+        let locked_device = self.get_device_clone();
+        if period_ms == 0 {
+            locked_device.write(
+                CoreCubeUuid::MotorCtrl.uuid(),
+                MotorControl::from_primitive(left, right)?.to_payload()).await?;
+        } else {
+            locked_device.write(
+                CoreCubeUuid::MotorCtrl.uuid(),
+                MotorControlWithSpecifiedDuration::from_primitive(left, right, period_ms)?.to_payload()).await?;
         };
         Ok(())
     }
