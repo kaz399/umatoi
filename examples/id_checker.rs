@@ -1,7 +1,7 @@
 use log::info;
 use once_cell::sync::OnceCell;
 use std::sync::mpsc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use time::Duration;
 use tokio::signal;
 use tokio::time;
@@ -10,6 +10,7 @@ use umatoi::cube::{CoreCube, CoreCubeBasicFunction, NotificationData};
 use umatoi::device_interface::ble::BleInterface;
 use umatoi::device_interface::CoreCubeNotifyControl;
 use umatoi::api::simple::Simple;
+use uuid::Uuid;
 
 static POSITION_ID_READ: OnceCell<Mutex<usize>> = OnceCell::new();
 static POSITION_ID_MISSED: OnceCell<Mutex<usize>> = OnceCell::new();
@@ -64,10 +65,16 @@ fn notify_handler(data: NotificationData) {
 #[tokio::main]
 pub async fn main() {
     let (tx, rx) = mpsc::channel::<CoreCubeNotifyControl>();
-    let mut cube = CoreCube::<BleInterface>::new();
+    let cube_arc = Arc::new(Mutex::new(CoreCube::<BleInterface>::new()));
+
+    let cube_for_main = cube_arc.clone();
+    let cube_for_notification = cube_arc.clone();
 
     // search and connect
 
+    let handler_uuid: Uuid;
+    {
+    let mut cube = cube_for_main.lock().unwrap();
     cube.scan(None, None, Duration::from_secs(3))
         .await
         .unwrap()
@@ -78,15 +85,19 @@ pub async fn main() {
 
     // register notify hander
 
-    let handler_uuid = cube
+    handler_uuid = cube
         .register_notify_handler(Box::new(&notify_handler))
         .await
         .unwrap();
     info!("notify handler uuid {:?}", handler_uuid);
+    }
 
     // start to receive notifications from cube
 
-    let notify_receiver = cube.run_notify_receiver(rx);
+    let task;
+    let mut cube_notification = cube_for_notification.lock().unwrap();
+    let notification_receiver = cube_notification.run_notify_receiver(rx);
+    task = tokio::spawn(notification_receiver);
     let timer = async {
         tx.send(CoreCubeNotifyControl::Run).unwrap();
         signal::ctrl_c().await.expect("failed to listen for event");
@@ -94,12 +105,17 @@ pub async fn main() {
         tx.send(CoreCubeNotifyControl::Quit).unwrap();
     };
 
+    {
+    let mut cube = cube_for_main.lock().unwrap();
     // run
     cube.go(15, 15, 0).await.unwrap();
 
     // wait until Ctrl-C is pressed
 
-    let _ = tokio::join!(notify_receiver, timer);
+    // let _ = tokio::join!(notify_receiver, timer);
+
+    timer.await;
+    task.abort();
     println!("** disconnecting now");
 
     // stop
@@ -111,7 +127,7 @@ pub async fn main() {
     if cube.disconnect().await.is_err() {
         panic!()
     }
-    drop(cube);
+    }
 
     {
         let pos_read = POSITION_ID_READ

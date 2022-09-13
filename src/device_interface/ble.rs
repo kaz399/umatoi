@@ -9,6 +9,7 @@ use btleplug::api::{
     BDAddr, CharPropFlags, Characteristic, Peripheral as _, ScanFilter, WriteType,
 };
 use btleplug::platform::Peripheral;
+use futures::stream::Stream;
 use futures::stream::StreamExt;
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
@@ -71,6 +72,27 @@ impl BleInterface {
     pub fn get_ble_name(self) -> Option<String> {
         self.ble_name
     }
+
+    async fn _run_notify_receiver(
+        &self,
+        rx: mpsc::Receiver<CoreCubeNotifyControl>,
+    ) {
+        if let Some(ble) = &self.ble_peripheral.clone() {
+            let mut notification_stream = ble.notifications().await.unwrap();
+            while let Some(data) = notification_stream.next().await {
+                if let Ok(ctrl) = rx.try_recv() {
+                    match ctrl {
+                        CoreCubeNotifyControl::Quit => break,
+                        CoreCubeNotifyControl::Pause => continue,
+                        _ => (),
+                    }
+                }
+                self.root_notify_manager.invoke_all_handlers(data);
+            }
+            debug!("stop notify receiver");
+        }
+    }
+
 }
 
 #[async_trait]
@@ -180,24 +202,8 @@ impl DeviceInterface for BleInterface {
     async fn run_notify_receiver(
         &self,
         rx: mpsc::Receiver<CoreCubeNotifyControl>,
-    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-        if let Some(ble) = &self.ble_peripheral {
-            let mut notification_stream = ble.notifications().await?;
-            while let Some(data) = notification_stream.next().await {
-                if let Ok(ctrl) = rx.try_recv() {
-                    match ctrl {
-                        CoreCubeNotifyControl::Quit => break,
-                        CoreCubeNotifyControl::Pause => continue,
-                        _ => (),
-                    }
-                }
-                self.root_notify_manager.invoke_all_handlers(data)?;
-            }
-            debug!("stop notify receiver");
-            Ok(())
-        } else {
-            Err(Box::new(CoreCubeError::NoBlePeripherals))
-        }
+    ) -> Result<tokio::task::JoinHandle<()>, Box<dyn Error + Send + Sync + 'static>> {
+        Ok(tokio::spawn(self._run_notify_receiver(rx)))
     }
 
     async fn scan(

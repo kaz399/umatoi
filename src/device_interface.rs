@@ -51,7 +51,7 @@ pub trait DeviceInterface {
     async fn run_notify_receiver(
         &self,
         rx: mpsc::Receiver<CoreCubeNotifyControl>,
-    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
+    ) -> Result<tokio::task::JoinHandle<()>, Box<dyn Error + Send + Sync + 'static>>;
 
     // scan
     async fn scan(
