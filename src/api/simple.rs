@@ -59,9 +59,9 @@ pub trait Simple {
 }
 
 #[async_trait]
-impl<T> Simple for CoreCube<T>
+impl<'device_life, T> Simple for CoreCube<'device_life, T>
 where
-    T: DeviceInterface + Default + Sync + Send + 'static,
+    T: DeviceInterface<'device_life> + Default + Sync + Send + 'static,
 {
     async fn go(
         &self,

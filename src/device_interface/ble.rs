@@ -9,7 +9,6 @@ use btleplug::api::{
     BDAddr, CharPropFlags, Characteristic, Peripheral as _, ScanFilter, WriteType,
 };
 use btleplug::platform::Peripheral;
-use futures::stream::Stream;
 use futures::stream::StreamExt;
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
@@ -17,6 +16,8 @@ use std::error::Error;
 use std::sync::mpsc;
 use std::time::Duration;
 use uuid::Uuid;
+use std::future::Future;
+use std::pin::Pin;
 
 pub struct BleInterface {
     pub(crate) ble_address: Option<BDAddr>,
@@ -87,7 +88,7 @@ impl BleInterface {
                         _ => (),
                     }
                 }
-                self.root_notify_manager.invoke_all_handlers(data);
+                let _ = self.root_notify_manager.invoke_all_handlers(data);
             }
             debug!("stop notify receiver");
         }
@@ -96,7 +97,7 @@ impl BleInterface {
 }
 
 #[async_trait]
-impl DeviceInterface for BleInterface {
+impl<'device_life> DeviceInterface<'device_life> for BleInterface {
     type NotifyHandler = HandlerFunction<NotificationData>;
 
     fn new() -> Self {
@@ -199,11 +200,21 @@ impl DeviceInterface for BleInterface {
         }
     }
 
-    async fn run_notify_receiver(
-        &self,
-        rx: mpsc::Receiver<CoreCubeNotifyControl>,
-    ) -> Result<tokio::task::JoinHandle<()>, Box<dyn Error + Send + Sync + 'static>> {
-        Ok(tokio::spawn(self._run_notify_receiver(rx)))
+    fn create_notification_receiver(
+        &'device_life self,
+    ) -> Result<Pin<Box<dyn Future<Output = ()> + Send + 'device_life>>, Box<dyn Error + Send + Sync + 'device_life>> {
+        if let Some(ble) = &self.ble_peripheral {
+            let notification_receiver = async move {
+                let mut notification_stream = ble.notifications().await.unwrap();
+                while let Some(data) = notification_stream.next().await {
+                    let _ = self.root_notify_manager.invoke_all_handlers(data);
+                }
+                debug!("stop notify receiver");
+            };
+            Ok(Box::pin(notification_receiver))
+        } else {
+            Err(Box::new(CoreCubeError::NoBlePeripherals))
+        }
     }
 
     async fn scan(
@@ -416,7 +427,7 @@ mod tests {
 
         //cube.receive_notify().await.unwrap();
 
-        let notify_receiver = cube.run_notify_receiver(rx);
+        let notify_receiver = cube.create_notification_receiver(rx);
         let timer = async {
             tx.send(CoreCubeNotifyControl::Run).unwrap();
             time::sleep(Duration::from_secs(8)).await;

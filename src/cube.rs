@@ -9,15 +9,17 @@ pub mod sensor;
 pub mod sound;
 pub mod tilt;
 
-use crate::device_interface::{CoreCubeNotifyControl, DeviceInterface};
+use crate::device_interface::DeviceInterface;
 use async_trait::async_trait;
 use btleplug::api::{BDAddr, ValueNotification};
 use log::error;
 use std::error::Error;
-use std::sync::mpsc;
+use std::marker::PhantomData;
 use std::time::Duration;
 use thiserror::Error;
 use uuid::Uuid;
+use futures::future::Future;
+use std::pin::Pin;
 
 pub type NotificationData = ValueNotification;
 
@@ -34,9 +36,9 @@ pub enum CoreCubeError {
 }
 
 #[async_trait]
-pub trait CoreCubeBasicFunction<T>
+pub trait CoreCubeBasicFunction<'device_life, T>
 where
-    T: DeviceInterface + Default + Sync + Send + 'static,
+    T: DeviceInterface<'device_life> + Default + Sync + Send + 'static,
 {
     fn new() -> Self;
     fn get_id(&self) -> Uuid;
@@ -59,10 +61,9 @@ where
         id_handler: Uuid,
     ) -> Result<bool, Box<(dyn Error + Sync + Send + 'static)>>;
     async fn receive_notify(&mut self) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>>;
-    async fn run_notify_receiver(
-        &self,
-        rx: mpsc::Receiver<CoreCubeNotifyControl>,
-    ) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>>;
+    fn create_notification_receiver(
+        &'device_life self,
+    ) -> Result<Pin<Box<dyn Future<Output = ()> + Send + 'device_life>>, Box<(dyn Error + Sync + Send + 'device_life)>>;
     async fn scan(
         &mut self,
         address: Option<BDAddr>,
@@ -71,39 +72,37 @@ where
     ) -> Result<&mut Self, Box<(dyn Error + Sync + Send + 'static)>>;
 }
 
-pub struct CoreCube<T>
+pub struct CoreCube<'device_life, T>
 where
-    T: DeviceInterface + Default + Sync + Send + 'static,
+    T: DeviceInterface<'device_life> + Default + Sync + Send + 'static,
 {
     id: Uuid,
     nickname: Option<String>,
     pub(crate) device: T,
+    _phantom: PhantomData<&'device_life T>,
 }
 
-impl<T> Default for CoreCube<T>
+impl<'device_life, T> Default for CoreCube<'device_life, T>
 where
-    T: DeviceInterface + Default + Sync + Send + 'static,
+    T: DeviceInterface<'device_life> + Default + Sync + Send + 'static,
 {
     fn default() -> Self {
         Self {
             id: Uuid::new_v4(),
             nickname: None,
             device: T::default(),
+            _phantom: PhantomData,
         }
     }
 }
 
 #[async_trait]
-impl<T> CoreCubeBasicFunction<T> for CoreCube<T>
+impl<'device_life, T> CoreCubeBasicFunction<'device_life, T> for CoreCube<'device_life, T>
 where
-    T: DeviceInterface + Default + Sync + Send + 'static,
+    T: DeviceInterface<'device_life> + Default + Sync + Send + 'static,
 {
     fn new() -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            nickname: None,
-            device: T::default(),
-        }
+        Self::default()
     }
 
     fn get_id(&self) -> Uuid {
@@ -163,12 +162,10 @@ where
         Ok(())
     }
 
-    async fn run_notify_receiver(
-        &self,
-        rx: mpsc::Receiver<CoreCubeNotifyControl>,
-    ) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>> {
-        self.device.run_notify_receiver(rx).await?;
-        Ok(())
+    fn create_notification_receiver(
+        &'device_life self,
+    ) -> Result<Pin<Box<dyn Future<Output = ()> + Send + 'device_life>>, Box<(dyn Error + Sync + Send + 'device_life)>> {
+        Ok(self.device.create_notification_receiver()?)
     }
 
     async fn scan(

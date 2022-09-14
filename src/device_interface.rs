@@ -3,9 +3,10 @@ pub mod ble;
 use async_trait::async_trait;
 use btleplug::api::BDAddr;
 use std::error::Error;
-use std::sync::mpsc;
 use std::time::Duration;
 use uuid::Uuid;
+use std::future::Future;
+use std::pin::Pin;
 
 pub enum CoreCubeNotifyControl {
     Run,
@@ -14,7 +15,7 @@ pub enum CoreCubeNotifyControl {
 }
 
 #[async_trait]
-pub trait DeviceInterface {
+pub trait DeviceInterface<'device_life> {
     type NotifyHandler: Send + Sync + 'static;
 
     fn new() -> Self;
@@ -48,10 +49,9 @@ pub trait DeviceInterface {
     async fn receive_notify(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
 
     // run notify receiver
-    async fn run_notify_receiver(
-        &self,
-        rx: mpsc::Receiver<CoreCubeNotifyControl>,
-    ) -> Result<tokio::task::JoinHandle<()>, Box<dyn Error + Send + Sync + 'static>>;
+    fn create_notification_receiver(
+        &'device_life self,
+    ) -> Result<Pin<Box<dyn Future<Output = ()> + Send + 'device_life>>, Box<dyn Error + Send + Sync + 'device_life>>;
 
     // scan
     async fn scan(
