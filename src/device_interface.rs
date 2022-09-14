@@ -8,7 +8,7 @@ use std::pin::Pin;
 use std::time::Duration;
 use uuid::Uuid;
 
-pub enum CoreCubeNotifyControl {
+pub enum CoreCubeNotificationControl {
     Run,
     Pause,
     Quit,
@@ -16,7 +16,7 @@ pub enum CoreCubeNotifyControl {
 
 #[async_trait]
 pub trait DeviceInterface<'device_life> {
-    type NotifyHandler: Send + Sync + 'static;
+    type NotificationHandler: Send + Sync + 'static;
 
     fn new() -> Self;
 
@@ -37,7 +37,7 @@ pub trait DeviceInterface<'device_life> {
     // register handler function to specified notify
     async fn register_notify_handler(
         &mut self,
-        func: Self::NotifyHandler,
+        func: Self::NotificationHandler,
     ) -> Result<uuid::Uuid, Box<dyn Error + Send + Sync + 'static>>;
 
     // register handler function to specified notify

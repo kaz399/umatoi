@@ -54,7 +54,7 @@ where
     ) -> Result<bool, Box<(dyn Error + Sync + Send + 'static)>>;
     async fn register_notify_handler(
         &mut self,
-        func: T::NotifyHandler,
+        func: T::NotificationHandler,
     ) -> Result<uuid::Uuid, Box<(dyn Error + Sync + Send + 'static)>>;
     async fn unregister_notify_handler(
         &mut self,
@@ -146,7 +146,7 @@ where
 
     async fn register_notify_handler(
         &mut self,
-        func: T::NotifyHandler,
+        func: T::NotificationHandler,
     ) -> Result<uuid::Uuid, Box<(dyn Error + Sync + Send + 'static)>> {
         let uuid = self.device.register_notify_handler(func).await?;
         Ok(uuid)

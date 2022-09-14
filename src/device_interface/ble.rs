@@ -1,8 +1,7 @@
 use crate::cube::characteristic_uuid::CoreCubeUuid;
 use crate::cube::{CoreCubeError, NotificationData};
-use crate::device_interface::{CoreCubeNotifyControl, DeviceInterface};
-use crate::handler::HandlerFunction;
-use crate::handler::NotifyManager;
+use crate::device_interface::{CoreCubeNotificationControl, DeviceInterface};
+use crate::notification_manager::{HandlerFunction, NotificationManager};
 use crate::scanner;
 use async_trait::async_trait;
 use btleplug::api::{
@@ -25,7 +24,7 @@ pub struct BleInterface {
     pub(crate) ble_peripheral: Option<Peripheral>,
     pub(crate) ble_characteristics: HashMap<Uuid, Characteristic>,
     pub(crate) notify_enabled: Vec<Uuid>,
-    pub(crate) root_notify_manager: NotifyManager<NotificationData>,
+    pub(crate) root_notify_manager: NotificationManager<NotificationData>,
 }
 
 impl Default for BleInterface {
@@ -36,7 +35,7 @@ impl Default for BleInterface {
             ble_peripheral: None,
             ble_characteristics: HashMap::new(),
             notify_enabled: Vec::new(),
-            root_notify_manager: NotifyManager::new(),
+            root_notify_manager: NotificationManager::new(),
         }
     }
 }
@@ -74,14 +73,14 @@ impl BleInterface {
         self.ble_name
     }
 
-    async fn _run_notify_receiver(&self, rx: mpsc::Receiver<CoreCubeNotifyControl>) {
+    async fn _run_notify_receiver(&self, rx: mpsc::Receiver<CoreCubeNotificationControl>) {
         if let Some(ble) = &self.ble_peripheral.clone() {
             let mut notification_stream = ble.notifications().await.unwrap();
             while let Some(data) = notification_stream.next().await {
                 if let Ok(ctrl) = rx.try_recv() {
                     match ctrl {
-                        CoreCubeNotifyControl::Quit => break,
-                        CoreCubeNotifyControl::Pause => continue,
+                        CoreCubeNotificationControl::Quit => break,
+                        CoreCubeNotificationControl::Pause => continue,
                         _ => (),
                     }
                 }
@@ -94,7 +93,7 @@ impl BleInterface {
 
 #[async_trait]
 impl<'device_life> DeviceInterface<'device_life> for BleInterface {
-    type NotifyHandler = HandlerFunction<NotificationData>;
+    type NotificationHandler = HandlerFunction<NotificationData>;
 
     fn new() -> Self {
         BleInterface::new()
@@ -170,7 +169,7 @@ impl<'device_life> DeviceInterface<'device_life> for BleInterface {
 
     async fn register_notify_handler(
         &mut self,
-        func: Self::NotifyHandler,
+        func: Self::NotificationHandler,
     ) -> Result<Uuid, Box<dyn Error + Send + Sync + 'static>> {
         let id_handler = self.root_notify_manager.register(func)?;
         Ok(id_handler)
