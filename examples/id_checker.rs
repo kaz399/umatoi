@@ -8,7 +8,6 @@ use umatoi::api::simple::Simple;
 use umatoi::cube::id_information::IdInformation;
 use umatoi::cube::{CoreCube, CoreCubeBasicFunction, NotificationData};
 use umatoi::device_interface::ble::BleInterface;
-use uuid::Uuid;
 
 static POSITION_ID_READ: OnceCell<Mutex<usize>> = OnceCell::new();
 static POSITION_ID_MISSED: OnceCell<Mutex<usize>> = OnceCell::new();
@@ -68,7 +67,6 @@ pub async fn main() {
 
     // search and connect
 
-    let handler_uuid: Uuid;
     cube.write()
         .await
         .scan(None, None, Duration::from_secs(3))
@@ -81,7 +79,7 @@ pub async fn main() {
 
     // register notify handler
 
-    handler_uuid = cube
+    let handler_uuid = cube
         .write()
         .await
         .register_notify_handler(Box::new(&notify_handler))
