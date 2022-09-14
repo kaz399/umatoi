@@ -87,14 +87,13 @@ pub async fn main() {
 
     // start to receive notifications from cube
 
-
     let notification_receiver = async move {notification_cube.read().await.create_notification_receiver().unwrap().await;};
     let notification_task = tokio::spawn(notification_receiver);
-    // notification_receiver.await;
 
     // run
     cube.read().await.go(15, 15, 0).await.unwrap();
 
+    // wait until Ctrl-C is pressed
     let timer = async {
         signal::ctrl_c().await.expect("failed to listen for event");
         println!("received ctrl-c event");
@@ -102,21 +101,17 @@ pub async fn main() {
     timer.await;
     notification_task.abort();
 
-    // wait until Ctrl-C is pressed
-
-    // let _ = tokio::join!(notify_receiver, timer);
-
     println!("** disconnecting now");
 
     // stop
     cube.read().await.stop().await.unwrap();
 
-    // if cube.unregister_notify_handler(handler_uuid).await.is_err() {
-    //     panic!();
-    // }
-    // if cube.disconnect().await.is_err() {
-    //     panic!()
-    // }
+    if cube.write().await.unregister_notify_handler(handler_uuid).await.is_err() {
+        panic!();
+    }
+    if cube.write().await.disconnect().await.is_err() {
+        panic!()
+    }
 
     {
         let pos_read = POSITION_ID_READ

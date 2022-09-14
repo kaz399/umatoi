@@ -285,6 +285,7 @@ mod tests {
     use crate::cube::{CoreCube, CoreCubeBasicFunction};
     use std::time::Duration;
     use tokio::time;
+    use std::sync::Arc;
 
     static TEST_CUBE_NAME: &str = "toio Core Cube-h7p";
     static TEST_CUBE_BDADDR: [u8; 6] = [0xd8, 0xe3, 0x49, 0xa0, 0xef, 0x19];
@@ -320,6 +321,7 @@ mod tests {
         _setup();
         let mut cube = CoreCube::<BleInterface>::new();
         cube.scan(None, None, Duration::from_secs(3)).await.unwrap();
+        drop(cube);
     }
 
     #[tokio::test]
@@ -333,6 +335,7 @@ mod tests {
         )
         .await
         .unwrap();
+        drop(cube);
     }
 
     #[tokio::test]
@@ -346,6 +349,7 @@ mod tests {
         )
         .await
         .unwrap();
+        drop(cube);
     }
 
     #[tokio::test]
@@ -359,6 +363,7 @@ mod tests {
         )
         .await
         .unwrap();
+        drop(cube);
     }
 
     #[tokio::test]
@@ -400,51 +405,53 @@ mod tests {
     #[tokio::test]
     async fn cube_notify1() {
         _setup();
-        let (tx, rx) = mpsc::channel::<CoreCubeNotifyControl>();
-        let mut cube = CoreCube::<BleInterface>::new();
+        let cube_arc = Arc::new(tokio::sync::RwLock::new(CoreCube::<BleInterface>::new()));
+        let notification_cube = cube_arc.clone();
+        let cube = cube_arc.clone();
 
-        cube.scan(None, None, Duration::from_secs(3))
+        // search and connect
+
+        let handler_uuid: Uuid;
+        cube.write().await.scan(None, None, Duration::from_secs(3))
             .await
             .unwrap()
             .connect()
             .await
             .unwrap();
+        println!("** connection established");
 
-        let handler_uuid = cube
+        // register notify handler
+
+        handler_uuid = cube.write().await
             .register_notify_handler(Box::new(&notify_handler))
             .await
             .unwrap();
-        info!("handler uuid {:?}", handler_uuid);
+        info!("notify handler uuid {:?}", handler_uuid);
 
-        let data: NotificationData = NotificationData {
-            uuid: Uuid::new_v4(),
-            value: [1, 2, 3].to_vec(),
-        };
-        cube.device
-            .root_notify_manager
-            .invoke_all_handlers(data)
-            .unwrap();
+        // start to receive notifications from cube
 
-        //cube.receive_notify().await.unwrap();
+        let notification_receiver = async move {notification_cube.read().await.create_notification_receiver().unwrap().await;};
+        let notification_task = tokio::spawn(notification_receiver);
 
-        let notify_receiver = cube.create_notification_receiver(rx);
+        // wait until Ctrl-C is pressed
         let timer = async {
-            tx.send(CoreCubeNotifyControl::Run).unwrap();
             time::sleep(Duration::from_secs(8)).await;
-            tx.send(CoreCubeNotifyControl::Quit).unwrap();
         };
+        timer.await;
+        notification_task.abort();
 
-        let _ = tokio::join!(notify_receiver, timer);
+        println!("** disconnecting now");
 
-        if cube.unregister_notify_handler(handler_uuid).await.is_err() {
+        if cube.write().await.unregister_notify_handler(handler_uuid).await.is_err() {
             panic!();
         }
-        if cube.disconnect().await.is_err() {
+        if cube.write().await.disconnect().await.is_err() {
             panic!()
         }
         drop(cube);
 
         // wait to complete the disconnection process of the cube
-        time::sleep(Duration::from_secs(5)).await;
+
+        time::sleep(Duration::from_secs(8)).await;
     }
 }
