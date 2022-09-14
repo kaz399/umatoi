@@ -4,10 +4,10 @@ use std::sync::{Arc, Mutex};
 use time::Duration;
 use tokio::signal;
 use tokio::time;
+use umatoi::api::simple::Simple;
 use umatoi::cube::id_information::IdInformation;
 use umatoi::cube::{CoreCube, CoreCubeBasicFunction, NotificationData};
 use umatoi::device_interface::ble::BleInterface;
-use umatoi::api::simple::Simple;
 use uuid::Uuid;
 
 static POSITION_ID_READ: OnceCell<Mutex<usize>> = OnceCell::new();
@@ -69,7 +69,9 @@ pub async fn main() {
     // search and connect
 
     let handler_uuid: Uuid;
-    cube.write().await.scan(None, None, Duration::from_secs(3))
+    cube.write()
+        .await
+        .scan(None, None, Duration::from_secs(3))
         .await
         .unwrap()
         .connect()
@@ -79,7 +81,9 @@ pub async fn main() {
 
     // register notify handler
 
-    handler_uuid = cube.write().await
+    handler_uuid = cube
+        .write()
+        .await
         .register_notify_handler(Box::new(&notify_handler))
         .await
         .unwrap();
@@ -87,7 +91,14 @@ pub async fn main() {
 
     // start to receive notifications from cube
 
-    let notification_receiver = async move {notification_cube.read().await.create_notification_receiver().unwrap().await;};
+    let notification_receiver = async move {
+        notification_cube
+            .read()
+            .await
+            .create_notification_receiver()
+            .unwrap()
+            .await;
+    };
     let notification_task = tokio::spawn(notification_receiver);
 
     // run
@@ -106,7 +117,13 @@ pub async fn main() {
     // stop
     cube.read().await.stop().await.unwrap();
 
-    if cube.write().await.unregister_notify_handler(handler_uuid).await.is_err() {
+    if cube
+        .write()
+        .await
+        .unregister_notify_handler(handler_uuid)
+        .await
+        .is_err()
+    {
         panic!();
     }
     if cube.write().await.disconnect().await.is_err() {

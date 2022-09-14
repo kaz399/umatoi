@@ -13,11 +13,11 @@ use futures::stream::StreamExt;
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::error::Error;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::mpsc;
 use std::time::Duration;
 use uuid::Uuid;
-use std::future::Future;
-use std::pin::Pin;
 
 pub struct BleInterface {
     pub(crate) ble_address: Option<BDAddr>,
@@ -74,10 +74,7 @@ impl BleInterface {
         self.ble_name
     }
 
-    async fn _run_notify_receiver(
-        &self,
-        rx: mpsc::Receiver<CoreCubeNotifyControl>,
-    ) {
+    async fn _run_notify_receiver(&self, rx: mpsc::Receiver<CoreCubeNotifyControl>) {
         if let Some(ble) = &self.ble_peripheral.clone() {
             let mut notification_stream = ble.notifications().await.unwrap();
             while let Some(data) = notification_stream.next().await {
@@ -93,7 +90,6 @@ impl BleInterface {
             debug!("stop notify receiver");
         }
     }
-
 }
 
 #[async_trait]
@@ -202,7 +198,10 @@ impl<'device_life> DeviceInterface<'device_life> for BleInterface {
 
     fn create_notification_receiver(
         &'device_life self,
-    ) -> Result<Pin<Box<dyn Future<Output = ()> + Send + 'device_life>>, Box<dyn Error + Send + Sync + 'device_life>> {
+    ) -> Result<
+        Pin<Box<dyn Future<Output = ()> + Send + 'device_life>>,
+        Box<dyn Error + Send + Sync + 'device_life>,
+    > {
         if let Some(ble) = &self.ble_peripheral {
             let notification_receiver = async move {
                 let mut notification_stream = ble.notifications().await.unwrap();
@@ -283,9 +282,9 @@ mod tests {
     use super::*;
     use crate::cube::id_information::{self, IdInformation};
     use crate::cube::{CoreCube, CoreCubeBasicFunction};
+    use std::sync::Arc;
     use std::time::Duration;
     use tokio::time;
-    use std::sync::Arc;
 
     static TEST_CUBE_NAME: &str = "toio Core Cube-h7p";
     static TEST_CUBE_BDADDR: [u8; 6] = [0xd8, 0xe3, 0x49, 0xa0, 0xef, 0x19];
@@ -412,7 +411,9 @@ mod tests {
         // search and connect
 
         let handler_uuid: Uuid;
-        cube.write().await.scan(None, None, Duration::from_secs(3))
+        cube.write()
+            .await
+            .scan(None, None, Duration::from_secs(3))
             .await
             .unwrap()
             .connect()
@@ -422,7 +423,9 @@ mod tests {
 
         // register notify handler
 
-        handler_uuid = cube.write().await
+        handler_uuid = cube
+            .write()
+            .await
             .register_notify_handler(Box::new(&notify_handler))
             .await
             .unwrap();
@@ -430,7 +433,14 @@ mod tests {
 
         // start to receive notifications from cube
 
-        let notification_receiver = async move {notification_cube.read().await.create_notification_receiver().unwrap().await;};
+        let notification_receiver = async move {
+            notification_cube
+                .read()
+                .await
+                .create_notification_receiver()
+                .unwrap()
+                .await;
+        };
         let notification_task = tokio::spawn(notification_receiver);
 
         // wait until Ctrl-C is pressed
@@ -442,7 +452,13 @@ mod tests {
 
         println!("** disconnecting now");
 
-        if cube.write().await.unregister_notify_handler(handler_uuid).await.is_err() {
+        if cube
+            .write()
+            .await
+            .unregister_notify_handler(handler_uuid)
+            .await
+            .is_err()
+        {
             panic!();
         }
         if cube.write().await.disconnect().await.is_err() {

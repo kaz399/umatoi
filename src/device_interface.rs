@@ -3,10 +3,10 @@ pub mod ble;
 use async_trait::async_trait;
 use btleplug::api::BDAddr;
 use std::error::Error;
-use std::time::Duration;
-use uuid::Uuid;
 use std::future::Future;
 use std::pin::Pin;
+use std::time::Duration;
+use uuid::Uuid;
 
 pub enum CoreCubeNotifyControl {
     Run,
@@ -51,7 +51,10 @@ pub trait DeviceInterface<'device_life> {
     // run notify receiver
     fn create_notification_receiver(
         &'device_life self,
-    ) -> Result<Pin<Box<dyn Future<Output = ()> + Send + 'device_life>>, Box<dyn Error + Send + Sync + 'device_life>>;
+    ) -> Result<
+        Pin<Box<dyn Future<Output = ()> + Send + 'device_life>>,
+        Box<dyn Error + Send + Sync + 'device_life>,
+    >;
 
     // scan
     async fn scan(

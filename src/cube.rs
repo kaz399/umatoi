@@ -12,14 +12,14 @@ pub mod tilt;
 use crate::device_interface::DeviceInterface;
 use async_trait::async_trait;
 use btleplug::api::{BDAddr, ValueNotification};
+use futures::future::Future;
 use log::error;
 use std::error::Error;
 use std::marker::PhantomData;
+use std::pin::Pin;
 use std::time::Duration;
 use thiserror::Error;
 use uuid::Uuid;
-use futures::future::Future;
-use std::pin::Pin;
 
 pub type NotificationData = ValueNotification;
 
@@ -63,7 +63,10 @@ where
     async fn receive_notify(&mut self) -> Result<(), Box<(dyn Error + Sync + Send + 'static)>>;
     fn create_notification_receiver(
         &'device_life self,
-    ) -> Result<Pin<Box<dyn Future<Output = ()> + Send + 'device_life>>, Box<(dyn Error + Sync + Send + 'device_life)>>;
+    ) -> Result<
+        Pin<Box<dyn Future<Output = ()> + Send + 'device_life>>,
+        Box<(dyn Error + Sync + Send + 'device_life)>,
+    >;
     async fn scan(
         &mut self,
         address: Option<BDAddr>,
@@ -164,7 +167,10 @@ where
 
     fn create_notification_receiver(
         &'device_life self,
-    ) -> Result<Pin<Box<dyn Future<Output = ()> + Send + 'device_life>>, Box<(dyn Error + Sync + Send + 'device_life)>> {
+    ) -> Result<
+        Pin<Box<dyn Future<Output = ()> + Send + 'device_life>>,
+        Box<(dyn Error + Sync + Send + 'device_life)>,
+    > {
         Ok(self.device.create_notification_receiver()?)
     }
 

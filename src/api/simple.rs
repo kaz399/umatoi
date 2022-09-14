@@ -48,9 +48,7 @@ pub trait Simple {
     ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
 
     /// Stop
-    async fn stop(
-        &self,
-    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
+    async fn stop(&self) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
 
     // --------------------------------------------------------------------------------
     // Position ID
@@ -111,9 +109,7 @@ where
         Ok(())
     }
 
-    async fn stop(
-        &self,
-    ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+    async fn stop(&self) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         self.go(0, 0, 0).await?;
         Ok(())
     }
