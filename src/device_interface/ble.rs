@@ -295,6 +295,10 @@ mod tests {
         let _ = env_logger::builder().is_test(true).try_init();
     }
 
+    fn _teardown() {
+        std::thread::sleep(Duration::from_millis(500));
+    }
+
     fn notify_handler(data: NotificationData) {
         if let Some(id_data) = id_information::IdInformation::new(&data.value) {
             match id_data {
@@ -318,8 +322,9 @@ mod tests {
     async fn cube_scan1() {
         _setup();
         let mut cube = CoreCube::<BleInterface>::new();
-        cube.scan(None, None, Duration::from_secs(3)).await.unwrap();
+        cube.scan(None, None, Duration::from_secs(5)).await.unwrap();
         drop(cube);
+        _teardown();
     }
 
     #[tokio::test]
@@ -334,6 +339,7 @@ mod tests {
         .await
         .unwrap();
         drop(cube);
+        _teardown();
     }
 
     #[tokio::test]
@@ -348,6 +354,7 @@ mod tests {
         .await
         .unwrap();
         drop(cube);
+        _teardown();
     }
 
     #[tokio::test]
@@ -362,6 +369,7 @@ mod tests {
         .await
         .unwrap();
         drop(cube);
+        _teardown();
     }
 
     #[tokio::test]
@@ -398,6 +406,7 @@ mod tests {
             panic!()
         }
         drop(cube);
+        _teardown();
     }
 
     #[tokio::test]
@@ -468,5 +477,6 @@ mod tests {
         // wait to complete the disconnection process of the cube
 
         time::sleep(Duration::from_secs(8)).await;
+        _teardown();
     }
 }

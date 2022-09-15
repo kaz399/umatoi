@@ -347,7 +347,6 @@ mod test {
 
         for ct in 0usize..=300usize {
             let req = RequestId::new();
-            println!("request id: {}", req.id);
             assert_eq!(req.id as usize, ct % (1 + u8::MAX as usize));
         }
     }
