@@ -8,6 +8,19 @@ use umatoi::api::simple::Simple;
 use umatoi::cube::id_information::IdInformation;
 use umatoi::cube::{CoreCube, CoreCubeBasicFunction, NotificationData};
 use umatoi::device_interface::ble::BleInterface;
+use clap::Parser;
+
+#[derive(Parser)]
+#[clap(
+    name = "id_checker",
+    author = "YABE.Kazuhiro",
+    version = "v0.0.1",
+    about = "toio ID checker",
+)]
+struct AppArg {
+    #[clap(short ,long)]
+    run: bool,
+}
 
 static POSITION_ID_READ: OnceCell<Mutex<usize>> = OnceCell::new();
 static POSITION_ID_MISSED: OnceCell<Mutex<usize>> = OnceCell::new();
@@ -61,6 +74,8 @@ fn notify_handler(data: NotificationData) {
 
 #[tokio::main]
 pub async fn main() {
+    let arg: AppArg = AppArg::parse();
+
     let cube_arc = Arc::new(tokio::sync::RwLock::new(CoreCube::<BleInterface>::new()));
     let notification_cube = cube_arc.clone();
     let cube = cube_arc.clone();
@@ -100,7 +115,10 @@ pub async fn main() {
     let notification_task = tokio::spawn(notification_receiver);
 
     // run
-    cube.read().await.go(15, 15, 0).await.unwrap();
+    if arg.run {
+            cube.read().await.go(15, 15, 0).await.unwrap();
+    }
+
 
     // wait until Ctrl-C is pressed
     let timer = async {
@@ -113,7 +131,9 @@ pub async fn main() {
     println!("** disconnecting now");
 
     // stop
-    cube.read().await.stop().await.unwrap();
+    if arg.run {
+            cube.read().await.stop().await.unwrap();
+    }
 
     if cube
         .write()
