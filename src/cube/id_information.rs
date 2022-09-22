@@ -6,12 +6,12 @@ use serde::Serialize;
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PositionIdData {
-    x: u16,
-    y: u16,
-    angle: u16,
-    sensor_x: u16,
-    sensor_y: u16,
-    sensor_angle: u16,
+    pub x: u16,
+    pub y: u16,
+    pub angle: u16,
+    pub sensor_x: u16,
+    pub sensor_y: u16,
+    pub sensor_angle: u16,
 }
 
 /// Standard ID
@@ -19,8 +19,8 @@ pub struct PositionIdData {
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct StandardIdData {
-    value: u32,
-    angle: u16,
+    pub value: u32,
+    pub angle: u16,
 }
 
 /// Id information
