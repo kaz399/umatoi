@@ -1,3 +1,4 @@
+use clap::Parser;
 use log::info;
 use once_cell::sync::OnceCell;
 use std::sync::{Arc, Mutex};
@@ -8,17 +9,16 @@ use umatoi::api::simple::Simple;
 use umatoi::cube::id_information::IdInformation;
 use umatoi::cube::{CoreCube, CoreCubeBasicFunction, NotificationData};
 use umatoi::device_interface::ble::BleInterface;
-use clap::Parser;
 
 #[derive(Parser)]
 #[clap(
     name = "id_checker",
     author = "YABE.Kazuhiro",
     version = "v0.0.1",
-    about = "toio ID checker",
+    about = "toio ID checker"
 )]
 struct AppArg {
-    #[clap(short ,long)]
+    #[clap(short, long)]
     run: bool,
 }
 
@@ -116,9 +116,8 @@ pub async fn main() {
 
     // run
     if arg.run {
-            cube.read().await.go(15, 15, 0).await.unwrap();
+        cube.read().await.go(15, 15, 0).await.unwrap();
     }
-
 
     // wait until Ctrl-C is pressed
     let timer = async {
@@ -132,7 +131,7 @@ pub async fn main() {
 
     // stop
     if arg.run {
-            cube.read().await.stop().await.unwrap();
+        cube.read().await.stop().await.unwrap();
     }
 
     if cube
