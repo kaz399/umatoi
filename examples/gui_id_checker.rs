@@ -194,27 +194,6 @@ pub async fn main() -> Result<(), Error> {
     let notification_cube = cube_arc.clone();
     let cube = cube_arc.clone();
 
-    // init graphics
-
-    let mut input = WinitInputHelper::new();
-    let mut event_loop = EventLoop::new();
-    let window = {
-        let size = LogicalSize::new(MAP_SIZE_X as f64, MAP_SIZE_Y as f64);
-        let shown_size = LogicalSize::new(MAP_SIZE_X as f64 * 2.0, MAP_SIZE_Y as f64 * 2.0);
-        WindowBuilder::new()
-            .with_title("toio ID visualizer")
-            .with_inner_size(shown_size)
-            .with_min_inner_size(size)
-            .build(&event_loop)
-            .unwrap()
-    };
-
-    let mut pixels = {
-        let window_size = window.inner_size();
-        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(MAP_SIZE_X as u32, MAP_SIZE_Y as u32, surface_texture)?
-    };
-
     // search and connect
 
     cube.write()
@@ -248,6 +227,27 @@ pub async fn main() -> Result<(), Error> {
             .await;
     };
     let notification_task = tokio::spawn(notification_receiver);
+
+    // init graphics
+
+    let mut input = WinitInputHelper::new();
+    let mut event_loop = EventLoop::new();
+    let window = {
+        let size = LogicalSize::new(MAP_SIZE_X as f64, MAP_SIZE_Y as f64);
+        let shown_size = LogicalSize::new(MAP_SIZE_X as f64 * 2.0, MAP_SIZE_Y as f64 * 2.0);
+        WindowBuilder::new()
+            .with_title("toio ID visualizer")
+            .with_inner_size(shown_size)
+            .with_min_inner_size(size)
+            .build(&event_loop)
+            .unwrap()
+    };
+
+    let mut pixels = {
+        let window_size = window.inner_size();
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        Pixels::new(MAP_SIZE_X as u32, MAP_SIZE_Y as u32, surface_texture)?
+    };
 
     // run
     if arg.run {
