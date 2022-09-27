@@ -98,6 +98,54 @@ fn notify_handler(data: NotificationData) {
     }
 }
 
+fn report_id_counter() {
+    let pos_read = POSITION_ID_READ
+        .get_or_init(|| Mutex::new(0))
+        .lock()
+        .unwrap();
+    let pos_missed = POSITION_ID_MISSED
+        .get_or_init(|| Mutex::new(0))
+        .lock()
+        .unwrap();
+
+    let std_read = STANDARD_ID_READ
+        .get_or_init(|| Mutex::new(0))
+        .lock()
+        .unwrap();
+    let std_missed = STANDARD_ID_MISSED
+        .get_or_init(|| Mutex::new(0))
+        .lock()
+        .unwrap();
+
+    println!("position id (read/missed) = {}/{}", *pos_read, *pos_missed);
+    println!("standard id (read/missed) = {}/{}", *std_read, *std_missed);
+}
+
+fn clear_id_counter() {
+    let mut pos_read = POSITION_ID_READ
+        .get_or_init(|| Mutex::new(0))
+        .lock()
+        .unwrap();
+    let mut pos_missed = POSITION_ID_MISSED
+        .get_or_init(|| Mutex::new(0))
+        .lock()
+        .unwrap();
+
+    let mut std_read = STANDARD_ID_READ
+        .get_or_init(|| Mutex::new(0))
+        .lock()
+        .unwrap();
+    let mut std_missed = STANDARD_ID_MISSED
+        .get_or_init(|| Mutex::new(0))
+        .lock()
+        .unwrap();
+
+    *pos_read = 0;
+    *pos_missed = 0;
+    *std_read = 0;
+    *std_missed = 0;
+}
+
 struct MapVisualizer {
 }
 
@@ -123,6 +171,8 @@ impl MapVisualizer {
     }
 
     fn clear(&mut self) {
+        report_id_counter();
+        clear_id_counter();
         let mut position_map = POSITION_ID_MAP
             .get_or_init(|| Mutex::new(Box::new([0; (MAP_SIZE_X * MAP_SIZE_Y) as usize])))
             .lock()
@@ -267,28 +317,7 @@ pub async fn main() -> Result<(), Error> {
         panic!()
     }
 
-    {
-        let pos_read = POSITION_ID_READ
-            .get_or_init(|| Mutex::new(0))
-            .lock()
-            .unwrap();
-        let pos_missed = POSITION_ID_MISSED
-            .get_or_init(|| Mutex::new(0))
-            .lock()
-            .unwrap();
-
-        let std_read = STANDARD_ID_READ
-            .get_or_init(|| Mutex::new(0))
-            .lock()
-            .unwrap();
-        let std_missed = STANDARD_ID_MISSED
-            .get_or_init(|| Mutex::new(0))
-            .lock()
-            .unwrap();
-
-        println!("position id (read/missed) = {}/{}", *pos_read, *pos_missed);
-        println!("standard id (read/missed) = {}/{}", *std_read, *std_missed);
-    }
+    report_id_counter();
 
     // wait to complete the disconnection process of the cube
 
