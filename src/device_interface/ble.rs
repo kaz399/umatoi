@@ -167,6 +167,21 @@ impl<'device_life> DeviceInterface<'device_life> for BleInterface {
         }
     }
 
+    async fn write_with_response(
+        &self,
+        uuid: Uuid,
+        bytes: &[u8],
+    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
+        if let Some(ble) = &self.ble_peripheral {
+            let characteristic = self.ble_characteristics.get(&uuid).unwrap();
+            ble.write(characteristic, bytes, WriteType::WithResponse)
+                .await?;
+            Ok(true)
+        } else {
+            Err(Box::new(CoreCubeError::NoBlePeripherals))
+        }
+    }
+
     async fn register_notify_handler(
         &mut self,
         func: Self::NotificationHandler,

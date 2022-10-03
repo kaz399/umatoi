@@ -52,6 +52,11 @@ where
         uuid: Uuid,
         bytes: &[u8],
     ) -> Result<bool, Box<(dyn Error + Sync + Send + 'static)>>;
+    async fn write_with_response(
+        &self,
+        uuid: Uuid,
+        bytes: &[u8],
+    ) -> Result<bool, Box<(dyn Error + Sync + Send + 'static)>>;
     async fn register_notify_handler(
         &mut self,
         func: T::NotificationHandler,
@@ -141,6 +146,15 @@ where
         bytes: &[u8],
     ) -> Result<bool, Box<(dyn Error + Sync + Send + 'static)>> {
         let result = self.device.write(uuid, bytes).await?;
+        Ok(result)
+    }
+
+    async fn write_with_response(
+        &self,
+        uuid: Uuid,
+        bytes: &[u8],
+    ) -> Result<bool, Box<(dyn Error + Sync + Send + 'static)>> {
+        let result = self.device.write_with_response(uuid, bytes).await?;
         Ok(result)
     }
 

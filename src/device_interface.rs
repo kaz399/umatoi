@@ -27,8 +27,15 @@ pub trait DeviceInterface<'device_life> {
     // read data from specified characteristic
     async fn read(&self, uuid: Uuid) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>>;
 
-    // write data to specified characteristic
+    // write data to specified characteristic (without response)
     async fn write(
+        &self,
+        uuid: Uuid,
+        bytes: &[u8],
+    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>>;
+
+    // write data to specified characteristic (with response)
+    async fn write_with_response(
         &self,
         uuid: Uuid,
         bytes: &[u8],
