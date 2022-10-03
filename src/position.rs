@@ -2,17 +2,46 @@
 
 use serde::Serialize;
 use std::ops::{Add, Sub};
+use std::convert::{From, TryFrom};
 
 /// Point
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Point {
     pub x: isize,
     pub y: isize,
 }
 
+impl From<&[isize]> for Point {
+    fn from(data: &[isize]) -> Self {
+        Self {
+            x: data[0],
+            y: data[1],
+        }
+    }
+}
+
+impl TryFrom<&[usize]> for Point {
+    type Error = ();
+
+    fn try_from(data: &[usize]) -> Result<Self, Self::Error> {
+        if (data[0] <= isize::MAX as usize) && (data[1] <= isize::MAX as usize) {
+            Ok(
+                Self {
+                    x: data[0] as isize,
+                    y: data[1] as isize,
+                }
+            )
+        } else {
+            Err(())
+        }
+    }
+}
+
+
 impl Add for Point {
     type Output = Self;
+
     fn add(self, p: Self) -> Self {
         Self {
             x: self.x + p.x,
@@ -23,6 +52,7 @@ impl Add for Point {
 
 impl Sub for Point {
     type Output = Self;
+
     fn sub(self, p: Self) -> Self {
         Self {
             x: self.x - p.x,
@@ -40,6 +70,10 @@ impl Point {
         let pd = self - p;
         let square_f64 = ((pd.x * pd.x) + (pd.y * pd.y)) as f64;
         square_f64.sqrt().round() as isize
+    }
+
+    pub fn inside(self, rect: MatRect) -> bool {
+        rect.top_left <= self && self <= rect.bottom_right
     }
 }
 
@@ -62,6 +96,7 @@ impl Default for CubeLocation {
 
 impl Add for CubeLocation {
     type Output = Self;
+
     fn add(self, p: Self) -> Self {
         Self {
             point: self.point + p.point,
@@ -79,6 +114,7 @@ impl Add for CubeLocation {
 
 impl Sub for CubeLocation {
     type Output = Self;
+
     fn sub(self, p: Self) -> Self {
         Self {
             point: self.point - p.point,
@@ -93,13 +129,21 @@ impl Sub for CubeLocation {
     }
 }
 
-/// Mat size
+/// Mat rectangle
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MatRect {
     top_left: Point,
     bottom_right: Point,
 }
+
+impl MatRect {
+    pub fn includes(self, point: Point) -> bool {
+        point.inside(self)
+    }
+}
+
+/// Toio mat
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ToioMat {
@@ -112,6 +156,7 @@ pub enum ToioMat {
     PicotonsAutoplayMat,
     SimpleMat,
     GesundroidMat,
+    UserDefinedMat { rect: MatRect} ,
 }
 
 impl ToioMat {
@@ -156,8 +201,10 @@ impl ToioMat {
                 top_left: Point { x: 1050, y: 45 },
                 bottom_right: Point { x: 1460, y: 455 },
             },
+            ToioMat::UserDefinedMat { rect } =>  *rect,
         }
     }
+
 }
 
 /// Cube location on a toio mat
@@ -178,6 +225,7 @@ impl Default for RelativeCubeLocation {
 
 impl Add for RelativeCubeLocation {
     type Output = Self;
+
     fn add(self, p: Self) -> Self {
         if self.mat == p.mat {
             Self {
@@ -195,6 +243,7 @@ impl Add for RelativeCubeLocation {
 
 impl Sub for RelativeCubeLocation {
     type Output = Self;
+
     fn sub(self, p: Self) -> Self {
         if self.mat == p.mat {
             Self {
@@ -221,6 +270,14 @@ impl RelativeCubeLocation {
             angle: self.cube_location.angle,
         }
     }
+
+    pub fn from_absolute_location(&mut self, abs_location: CubeLocation) -> CubeLocation {
+        self.cube_location = CubeLocation {
+            point: abs_location.point - self.mat.rect().top_left,
+            angle: abs_location.angle,
+        };
+        self.cube_location
+    }
 }
 
 #[cfg(test)]
@@ -242,4 +299,92 @@ mod test {
         println!("{}", distance);
         assert_eq!(p2 - p1, p1);
     }
+
+    #[test]
+    fn position_inside1() {
+        let p1: Point = Point { x: 10, y: 10 };
+        let mat: MatRect = MatRect {
+            top_left: Point { x: 0, y: 0 },
+            bottom_right: Point { x: 15, y: 15 },
+        };
+        assert!(p1.inside(mat));
+    }
+
+    #[test]
+    fn position_inside2() {
+        let p1: Point = Point { x: 10, y: 10 };
+        let mat: MatRect = MatRect {
+            top_left: Point { x: 10, y: 10 },
+            bottom_right: Point { x: 15, y: 15 },
+        };
+        assert!(p1.inside(mat));
+    }
+
+    #[test]
+    fn position_inside3() {
+        let p1: Point = Point { x: 10, y: 10 };
+        let mat: MatRect = MatRect {
+            top_left: Point { x: 11, y: 10 },
+            bottom_right: Point { x: 15, y: 15 },
+        };
+        assert!(!p1.inside(mat));
+    }
+
+    #[test]
+    fn position_inside4() {
+        let p1: Point = Point { x: 15, y: 15 };
+        let mat: MatRect = MatRect {
+            top_left: Point { x: 10, y: 10 },
+            bottom_right: Point { x: 15, y: 15 },
+        };
+        assert!(p1.inside(mat));
+    }
+
+    #[test]
+    fn position_inside5() {
+        let p1: Point = Point { x: 16, y: 15 };
+        let mat: MatRect = MatRect {
+            top_left: Point { x: 10, y: 10 },
+            bottom_right: Point { x: 15, y: 15 },
+        };
+        assert!(!p1.inside(mat));
+    }
+
+    #[test]
+    fn position_mat1() {
+        let toio_mat = ToioMat::UserDefinedMat {
+            rect: MatRect {
+                top_left: Point { x: 10, y: 10 },
+                bottom_right: Point { x: 30, y: 30 },
+            }
+        };
+        let rect1 = toio_mat.rect();
+        let rect2: MatRect  = MatRect {
+            top_left: Point { x: 10, y: 10 },
+            bottom_right: Point { x: 30, y: 30 },
+        };
+        assert_eq!(rect1, rect2);
+        assert_ne!(rect1, ToioMat::GesundroidMat.rect());
+    }
+
+    #[test]
+    fn position_mat2() {
+        let p1: Point = Point { x: 1050, y: 45 };
+        assert!(ToioMat::GesundroidMat.rect().includes(p1));
+        let p1: Point = Point { x: 1460, y: 455 };
+        assert!(ToioMat::GesundroidMat.rect().includes(p1));
+    }
+
+    #[test]
+    fn position_mat3() {
+        let relative_location: RelativeCubeLocation = RelativeCubeLocation {
+            cube_location: CubeLocation {
+                point: Point { x: 0, y:0 },
+                angle: 0 },
+                mat: ToioMat::GesundroidMat,
+        };
+        let absolute_point = ToioMat::GesundroidMat.rect().top_left;
+        assert_eq!(absolute_point, relative_location.absolute_point());
+    }
+
 }
