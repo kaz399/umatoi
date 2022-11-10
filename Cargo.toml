@@ -17,7 +17,7 @@ env_logger = "0.9.0"
 log = "0.4.17"
 uuid = { version = "1.2.1", features = ["v4"] }
 tokio = { version = "1.21.2", features = ["rt", "rt-multi-thread", "sync", "macros", "signal"] }
-btleplug = "0.10.2"
+btleplug = "0.10.3"
 serde = { version = "1.0.145", features = ["derive"] }
 bincode = "1.3.3"
 once_cell = "1.15.0"
