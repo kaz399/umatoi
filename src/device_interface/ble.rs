@@ -131,7 +131,8 @@ impl<'device_life> DeviceInterface<'device_life> for BleInterface {
             }
             ble.disconnect().await?;
             // windows: is_connected is not turned off when device disconnect.
-            if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
+            // macos: is_connected is not turned off when device disconnect.
+            if cfg!(target_os = "linux") {
                 let is_connected = ble.is_connected().await?;
                 assert!(!is_connected);
             }
