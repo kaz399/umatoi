@@ -4,7 +4,7 @@ use crate::cube::characteristic_uuid::CoreCubeUuid;
 use crate::cube::motor::acceleration::{Acceleration, AngleVelocity, Priority};
 use crate::cube::motor::control::{MotorControl, MotorControlWithSpecifiedDuration};
 use crate::cube::motor::def::Period;
-use crate::cube::motor::target::Target;
+use crate::cube::motor::target::TargetPosition;
 use crate::cube::{CoreCube, CoreCubeBasicFunction};
 use crate::device_interface::DeviceInterface;
 use crate::payload::ToPayload;
@@ -28,14 +28,14 @@ pub trait Simple {
     async fn go_to(
         &self,
         speed: i16,
-        target: Target,
+        target: TargetPosition,
     ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
 
     /// Motor control with multiple targets
     async fn go_along(
         &self,
         speed: i16,
-        target_list: Vec<Target>,
+        target_list: Vec<TargetPosition>,
     ) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
 
     /// Motor control with specified acceleration
@@ -86,7 +86,7 @@ where
     async fn go_to(
         &self,
         _speed: i16,
-        _target: Target,
+        _target: TargetPosition,
     ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         Ok(())
     }
@@ -94,7 +94,7 @@ where
     async fn go_along(
         &self,
         _speed: i16,
-        _target_list: Vec<Target>,
+        _target_list: Vec<TargetPosition>,
     ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         Ok(())
     }

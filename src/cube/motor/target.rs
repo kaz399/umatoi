@@ -14,7 +14,7 @@ struct MotorControlTarget {
     movement_type: MovementType,
     speed: Speed,
     _reserved_1: u8,
-    target: Target,
+    target: TargetPosition,
 }
 
 impl ToPayload<Vec<u8>> for MotorControlTarget {
@@ -34,7 +34,7 @@ impl Default for MotorControlTarget {
             movement_type: MovementType::default(),
             speed: Speed::default(),
             _reserved_1: 0,
-            target: Target::default(),
+            target: TargetPosition::default(),
         }
     }
 }
@@ -88,7 +88,7 @@ pub struct MotorControlMultipleTargets {
     speed: Speed,
     _reserved_1: u8,
     write_mode: WriteMode,
-    target_list: Vec<Target>,
+    target_list: Vec<TargetPosition>,
 }
 
 impl ToPayload<Vec<u8>> for MotorControlMultipleTargets {
@@ -111,7 +111,7 @@ impl Default for MotorControlMultipleTargets {
             speed: Speed::default(),
             _reserved_1: 0,
             write_mode: WriteMode::default(),
-            target_list: vec![Target::default()],
+            target_list: vec![TargetPosition::default()],
         }
     }
 }
@@ -200,7 +200,7 @@ impl ToPayload<Vec<u8>> for MotorControlMultipleTargetsHeader {
 pub enum MovementType {
     Curve,
     CurveWithoutReverse,
-    Liner,
+    Linear,
 }
 
 impl From<MovementType> for u8 {
@@ -208,7 +208,7 @@ impl From<MovementType> for u8 {
         match movement_type {
             MovementType::Curve => 0u8,
             MovementType::CurveWithoutReverse => 1u8,
-            MovementType::Liner => 2u8,
+            MovementType::Linear => 2u8,
         }
     }
 }
@@ -233,7 +233,7 @@ impl Serialize for MovementType {
 
 #[derive(Serialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Speed {
-    max_speed: u8,
+    max: u8,
     speed_change_type: SpeedChangeType,
 }
 
@@ -320,12 +320,12 @@ impl Serialize for RotationOption {
 /// Target to go
 
 #[derive(Debug, Copy, Clone)]
-pub struct Target {
+pub struct TargetPosition {
     cube_location: CubeLocation,
     rotation_option: RotationOption,
 }
 
-impl Default for Target {
+impl Default for TargetPosition {
     fn default() -> Self {
         Self {
             cube_location: CubeLocation::default(),
@@ -334,7 +334,7 @@ impl Default for Target {
     }
 }
 
-impl ToPayload<Vec<u8>> for Target {
+impl ToPayload<Vec<u8>> for TargetPosition {
     fn to_payload(self) -> Vec<u8> {
         let rotation_option: u16 = (self.rotation_option as u16) << 13;
         let combined_data: [u16; 3] = [
@@ -398,9 +398,9 @@ mod test {
 
         let st = MotorControlTarget {
             timeout: Timeout::Second(10),
-            movement_type: MovementType::Liner,
+            movement_type: MovementType::Linear,
             speed: Speed {
-                max_speed: 20,
+                max: 20,
                 speed_change_type: SpeedChangeType::Acceleration,
             },
             _reserved_1: 0xff,
@@ -424,11 +424,11 @@ mod test {
             timeout: Timeout::default(),
             movement_type: MovementType::CurveWithoutReverse,
             speed: Speed {
-                max_speed: 100,
+                max: 100,
                 speed_change_type: SpeedChangeType::AccelerationAndDeceleration,
             },
             write_mode: WriteMode::Append,
-            target_list: vec![Target::default(), Target::default(), Target::default()],
+            target_list: vec![TargetPosition::default(), TargetPosition::default(), TargetPosition::default()],
             ..MotorControlMultipleTargets::default()
         };
         let payload = st.to_payload();
