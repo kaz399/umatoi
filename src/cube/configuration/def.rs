@@ -10,7 +10,7 @@ pub enum ConfigurationType {
     IdSensorNotification,
     IdSensorMissedNotification,
     MagneticSensor,
-    MotorSpeedInformation,
+    MotorSpeed,
     PostureAngleDetection,
 }
 
@@ -24,7 +24,7 @@ impl From<ConfigurationType> for u8 {
             ConfigurationType::IdSensorNotification => 0x18u8,
             ConfigurationType::IdSensorMissedNotification => 0x19u8,
             ConfigurationType::MagneticSensor => 0x1bu8,
-            ConfigurationType::MotorSpeedInformation => 0x1cu8,
+            ConfigurationType::MotorSpeed => 0x1cu8,
             ConfigurationType::PostureAngleDetection => 0x1du8,
         }
     }

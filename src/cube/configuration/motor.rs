@@ -5,16 +5,16 @@ use serde::Serialize;
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#motor-speed-information-acquisition-settings>
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
-pub struct EnableMotorSpeedInformation {
+pub struct EnableMotorSpeed {
     configuration_type: ConfigurationType,
     _reserved: u8,
     enable: bool,
 }
 
-impl EnableMotorSpeedInformation {
+impl EnableMotorSpeed {
     pub fn new(enable: bool) -> Self {
         Self {
-            configuration_type: ConfigurationType::MotorSpeedInformation,
+            configuration_type: ConfigurationType::MotorSpeed,
             _reserved: 0,
             enable,
         }
@@ -25,11 +25,11 @@ impl EnableMotorSpeedInformation {
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#responses-to-motor-speed-information-acquisition-settings>
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ResponseEnableMotorSpeedInformationData {
+pub struct ResponseEnableMotorSpeedData {
     result: bool,
 }
 
-impl ResponseEnableMotorSpeedInformationData {
+impl ResponseEnableMotorSpeedData {
     pub fn new(byte_data: &[u8]) -> Option<Self> {
         if byte_data.len() < 3 {
             return None;

@@ -5,12 +5,12 @@ use serde::Serialize;
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#obtaining-motor-speed-information>
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ResponseMotorSpeedInformation {
+pub struct ResponseMotorSpeed {
     pub left: u8,
     pub right: u8,
 }
 
-impl ResponseMotorSpeedInformation {
+impl ResponseMotorSpeed {
     pub fn new(byte_data: &[u8]) -> Option<Self> {
         if byte_data.len() < 3 {
             return None;

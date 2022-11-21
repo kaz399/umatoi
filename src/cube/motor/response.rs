@@ -1,5 +1,5 @@
 use super::def::CommandId;
-use super::speed::ResponseMotorSpeedInformation;
+use super::speed::ResponseMotorSpeed;
 use super::target::ResponseMotorControlMultipleTargets;
 use super::target::ResponseMotorControlTarget;
 use crate::payload::ToPayload;
@@ -10,7 +10,7 @@ use crate::payload::ToPayload;
 pub enum Response {
     MotorControlTarget(ResponseMotorControlTarget),
     MotorControlMultipleTargets(ResponseMotorControlMultipleTargets),
-    MotorSpeedInformation(ResponseMotorSpeedInformation),
+    MotorSpeed(ResponseMotorSpeed),
 }
 
 impl Response {
@@ -28,8 +28,8 @@ impl Response {
                 response_data,
             ));
         }
-        if let Some(response_data) = ResponseMotorSpeedInformation::new(byte_data) {
-            return Some(Response::MotorSpeedInformation(response_data));
+        if let Some(response_data) = ResponseMotorSpeed::new(byte_data) {
+            return Some(Response::MotorSpeed(response_data));
         }
         None
     }
@@ -42,7 +42,7 @@ impl From<Response> for u8 {
             Response::MotorControlMultipleTargets(_) => {
                 CommandId::MultiTargetPositions.response()
             }
-            Response::MotorSpeedInformation(_) => 0xe0u8,
+            Response::MotorSpeed(_) => 0xe0u8,
         }
     }
 }
@@ -57,7 +57,7 @@ impl ToPayload<Vec<u8>> for Response {
             Response::MotorControlMultipleTargets(st) => {
                 payload.extend(bincode::serialize(&st).unwrap());
             }
-            Response::MotorSpeedInformation(st) => {
+            Response::MotorSpeed(st) => {
                 payload.extend(bincode::serialize(&st).unwrap());
             }
         }
@@ -70,7 +70,7 @@ mod test {
     use super::*;
     use crate::cube::motor::def::RequestId;
     use crate::cube::motor::def::ResponseCode;
-    use crate::cube::motor::speed::ResponseMotorSpeedInformation;
+    use crate::cube::motor::speed::ResponseMotorSpeed;
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
@@ -80,7 +80,7 @@ mod test {
     fn motor_response1() {
         _setup();
 
-        let res = Response::MotorSpeedInformation(ResponseMotorSpeedInformation {
+        let res = Response::MotorSpeed(ResponseMotorSpeed {
             left: 10,
             right: 11,
         });
