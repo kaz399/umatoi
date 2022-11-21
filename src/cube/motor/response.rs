@@ -1,15 +1,15 @@
 use super::def::CommandId;
 use super::speed::ResponseMotorSpeedInformation;
-use super::target::ResponseMotorControlWithMultipleTargetsSpecified;
-use super::target::ResponseMotorControlWithTargetSpecified;
+use super::target::ResponseMotorControlMultipleTargets;
+use super::target::ResponseMotorControlTarget;
 use crate::payload::ToPayload;
 
 /// Motor response
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Response {
-    MotorControlWithTargetSpecified(ResponseMotorControlWithTargetSpecified),
-    MotorControlWithMultipleTargetsSpecified(ResponseMotorControlWithMultipleTargetsSpecified),
+    MotorControlTarget(ResponseMotorControlTarget),
+    MotorControlMultipleTargets(ResponseMotorControlMultipleTargets),
     MotorSpeedInformation(ResponseMotorSpeedInformation),
 }
 
@@ -18,13 +18,13 @@ impl Response {
         if byte_data.is_empty() {
             return None;
         }
-        if let Some(response_data) = ResponseMotorControlWithTargetSpecified::new(byte_data) {
-            return Some(Response::MotorControlWithTargetSpecified(response_data));
+        if let Some(response_data) = ResponseMotorControlTarget::new(byte_data) {
+            return Some(Response::MotorControlTarget(response_data));
         }
         if let Some(response_data) =
-            ResponseMotorControlWithMultipleTargetsSpecified::new(byte_data)
+            ResponseMotorControlMultipleTargets::new(byte_data)
         {
-            return Some(Response::MotorControlWithMultipleTargetsSpecified(
+            return Some(Response::MotorControlMultipleTargets(
                 response_data,
             ));
         }
@@ -38,8 +38,8 @@ impl Response {
 impl From<Response> for u8 {
     fn from(response_type: Response) -> u8 {
         match response_type {
-            Response::MotorControlWithTargetSpecified(_) => CommandId::TargetPosition.response(),
-            Response::MotorControlWithMultipleTargetsSpecified(_) => {
+            Response::MotorControlTarget(_) => CommandId::TargetPosition.response(),
+            Response::MotorControlMultipleTargets(_) => {
                 CommandId::MultiTargetPositions.response()
             }
             Response::MotorSpeedInformation(_) => 0xe0u8,
@@ -51,10 +51,10 @@ impl ToPayload<Vec<u8>> for Response {
     fn to_payload(self) -> Vec<u8> {
         let mut payload: Vec<u8> = vec![u8::from(self)];
         match self {
-            Response::MotorControlWithTargetSpecified(st) => {
+            Response::MotorControlTarget(st) => {
                 payload.extend(bincode::serialize(&st).unwrap());
             }
-            Response::MotorControlWithMultipleTargetsSpecified(st) => {
+            Response::MotorControlMultipleTargets(st) => {
                 payload.extend(bincode::serialize(&st).unwrap());
             }
             Response::MotorSpeedInformation(st) => {
@@ -94,7 +94,7 @@ mod test {
         _setup();
 
         let res =
-            Response::MotorControlWithTargetSpecified(ResponseMotorControlWithTargetSpecified {
+            Response::MotorControlTarget(ResponseMotorControlTarget {
                 request_id: RequestId::new(),
                 response_code: ResponseCode::ErrorTimeout,
             });
@@ -107,8 +107,8 @@ mod test {
     fn motor_response3() {
         _setup();
 
-        let res = Response::MotorControlWithMultipleTargetsSpecified(
-            ResponseMotorControlWithMultipleTargetsSpecified {
+        let res = Response::MotorControlMultipleTargets(
+            ResponseMotorControlMultipleTargets {
                 request_id: RequestId::new(),
                 response_code: ResponseCode::ErrorInvalidParameter,
             },

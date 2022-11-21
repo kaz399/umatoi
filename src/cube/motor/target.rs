@@ -7,7 +7,7 @@ use serde::Serialize;
 /// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified>
 
 #[derive(Debug, Copy, Clone)]
-struct MotorControlWithTargetSpecified {
+struct MotorControlTarget {
     command: CommandId,
     id: RequestId,
     timeout: Timeout,
@@ -17,7 +17,7 @@ struct MotorControlWithTargetSpecified {
     target: Target,
 }
 
-impl ToPayload<Vec<u8>> for MotorControlWithTargetSpecified {
+impl ToPayload<Vec<u8>> for MotorControlTarget {
     fn to_payload(self) -> Vec<u8> {
         let mut payload = self.header().to_payload();
         payload.extend(&self.target.to_payload());
@@ -25,7 +25,7 @@ impl ToPayload<Vec<u8>> for MotorControlWithTargetSpecified {
     }
 }
 
-impl Default for MotorControlWithTargetSpecified {
+impl Default for MotorControlTarget {
     fn default() -> Self {
         Self {
             command: CommandId::TargetPosition,
@@ -39,9 +39,9 @@ impl Default for MotorControlWithTargetSpecified {
     }
 }
 
-impl MotorControlWithTargetSpecified {
-    fn header(&self) -> MotorControlWithTargetSpecifiedHeader {
-        MotorControlWithTargetSpecifiedHeader {
+impl MotorControlTarget {
+    fn header(&self) -> MotorControlTargetHeader {
+        MotorControlTargetHeader {
             command: self.command,
             id: self.id,
             timeout: self.timeout,
@@ -56,12 +56,12 @@ impl MotorControlWithTargetSpecified {
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-target-specified>
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ResponseMotorControlWithTargetSpecified {
+pub struct ResponseMotorControlTarget {
     pub request_id: RequestId,
     pub response_code: ResponseCode,
 }
 
-impl ResponseMotorControlWithTargetSpecified {
+impl ResponseMotorControlTarget {
     pub fn new(byte_data: &[u8]) -> Option<Self> {
         if byte_data.len() < 3 {
             return None;
@@ -80,7 +80,7 @@ impl ResponseMotorControlWithTargetSpecified {
 /// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-multiple-targets-specified>
 
 #[derive(Debug, Clone)]
-pub struct MotorControlWithMultipleTargetsSpecified {
+pub struct MotorControlMultipleTargets {
     command: CommandId,
     id: RequestId,
     timeout: Timeout,
@@ -91,7 +91,7 @@ pub struct MotorControlWithMultipleTargetsSpecified {
     target_list: Vec<Target>,
 }
 
-impl ToPayload<Vec<u8>> for MotorControlWithMultipleTargetsSpecified {
+impl ToPayload<Vec<u8>> for MotorControlMultipleTargets {
     fn to_payload(self) -> Vec<u8> {
         let mut payload = self.header().to_payload();
         for target in &self.target_list {
@@ -101,7 +101,7 @@ impl ToPayload<Vec<u8>> for MotorControlWithMultipleTargetsSpecified {
     }
 }
 
-impl Default for MotorControlWithMultipleTargetsSpecified {
+impl Default for MotorControlMultipleTargets {
     fn default() -> Self {
         Self {
             command: CommandId::MultiTargetPositions,
@@ -116,9 +116,9 @@ impl Default for MotorControlWithMultipleTargetsSpecified {
     }
 }
 
-impl MotorControlWithMultipleTargetsSpecified {
-    fn header(&self) -> MotorControlWithMultipleTargetsSpecifiedHeader {
-        MotorControlWithMultipleTargetsSpecifiedHeader {
+impl MotorControlMultipleTargets {
+    fn header(&self) -> MotorControlMultipleTargetsHeader {
+        MotorControlMultipleTargetsHeader {
             command: self.command,
             id: self.id,
             timeout: self.timeout,
@@ -134,12 +134,12 @@ impl MotorControlWithMultipleTargetsSpecified {
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-multiple-targets-specified>
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ResponseMotorControlWithMultipleTargetsSpecified {
+pub struct ResponseMotorControlMultipleTargets {
     pub request_id: RequestId,
     pub response_code: ResponseCode,
 }
 
-impl ResponseMotorControlWithMultipleTargetsSpecified {
+impl ResponseMotorControlMultipleTargets {
     pub fn new(byte_data: &[u8]) -> Option<Self> {
         if byte_data.len() < 3 {
             return None;
@@ -155,11 +155,11 @@ impl ResponseMotorControlWithMultipleTargetsSpecified {
     }
 }
 
-/// Header part of `MotorControlWithTargetSpecified`
+/// Header part of `MotorControlTarget`
 ///
 /// This struct is NOT public
 #[derive(Serialize, Debug)]
-struct MotorControlWithTargetSpecifiedHeader {
+struct MotorControlTargetHeader {
     command: CommandId,
     id: RequestId,
     timeout: Timeout,
@@ -168,17 +168,17 @@ struct MotorControlWithTargetSpecifiedHeader {
     _reserved_1: u8,
 }
 
-impl ToPayload<Vec<u8>> for MotorControlWithTargetSpecifiedHeader {
+impl ToPayload<Vec<u8>> for MotorControlTargetHeader {
     fn to_payload(self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()
     }
 }
 
-/// Header part of `MotorControlWithMultipleTargetsSpecified`
+/// Header part of `MotorControlMultipleTargets`
 ///
 /// This struct is NOT public.
 #[derive(Serialize, Debug)]
-struct MotorControlWithMultipleTargetsSpecifiedHeader {
+struct MotorControlMultipleTargetsHeader {
     command: CommandId,
     id: RequestId,
     timeout: Timeout,
@@ -188,7 +188,7 @@ struct MotorControlWithMultipleTargetsSpecifiedHeader {
     write_mode: WriteMode,
 }
 
-impl ToPayload<Vec<u8>> for MotorControlWithMultipleTargetsSpecifiedHeader {
+impl ToPayload<Vec<u8>> for MotorControlMultipleTargetsHeader {
     fn to_payload(self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()
     }
@@ -391,12 +391,12 @@ mod test {
     fn motor_target1() {
         _setup();
 
-        let st = MotorControlWithTargetSpecified::default();
+        let st = MotorControlTarget::default();
         let payload = st.to_payload();
         println!("len: {:2} payload:{:?}", payload.len(), payload);
         assert_eq!(payload.len(), 13);
 
-        let st = MotorControlWithTargetSpecified {
+        let st = MotorControlTarget {
             timeout: Timeout::Second(10),
             movement_type: MovementType::Liner,
             speed: Speed {
@@ -404,7 +404,7 @@ mod test {
                 speed_change_type: SpeedChangeType::Acceleration,
             },
             _reserved_1: 0xff,
-            ..MotorControlWithTargetSpecified::default()
+            ..MotorControlTarget::default()
         };
         let payload = st.to_payload();
         println!("len: {:2} payload:{:?}", payload.len(), payload);
@@ -415,12 +415,12 @@ mod test {
     fn motor_target2() {
         _setup();
 
-        let st = MotorControlWithMultipleTargetsSpecified::default();
+        let st = MotorControlMultipleTargets::default();
         let payload = st.to_payload();
         println!("len: {:2} payload:{:?}", payload.len(), payload);
         assert_eq!(payload.len(), 14);
 
-        let st = MotorControlWithMultipleTargetsSpecified {
+        let st = MotorControlMultipleTargets {
             timeout: Timeout::default(),
             movement_type: MovementType::CurveWithoutReverse,
             speed: Speed {
@@ -429,7 +429,7 @@ mod test {
             },
             write_mode: WriteMode::Append,
             target_list: vec![Target::default(), Target::default(), Target::default()],
-            ..MotorControlWithMultipleTargetsSpecified::default()
+            ..MotorControlMultipleTargets::default()
         };
         let payload = st.to_payload();
         println!("len: {:2} payload:{:?}", payload.len(), payload);
