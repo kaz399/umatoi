@@ -1,4 +1,4 @@
-use crate::payload::ToPayload;
+use crate::{payload::ToPayload, position::CubeLocation, position::Point};
 use serde::Serialize;
 
 /// Position ID
@@ -6,12 +6,8 @@ use serde::Serialize;
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PositionIdData {
-    pub x: u16,
-    pub y: u16,
-    pub angle: u16,
-    pub sensor_x: u16,
-    pub sensor_y: u16,
-    pub sensor_angle: u16,
+    pub center: CubeLocation,
+    pub sensor: CubeLocation,
 }
 
 /// Standard ID
@@ -55,12 +51,20 @@ impl IdInformation {
             0x01u8 => {
                 if byte_code.len() >= 13 {
                     Some(IdInformation::PositionId(PositionIdData {
-                        x: u16::from_le_bytes([byte_code[1], byte_code[2]]),
-                        y: u16::from_le_bytes([byte_code[3], byte_code[4]]),
-                        angle: u16::from_le_bytes([byte_code[5], byte_code[6]]),
-                        sensor_x: u16::from_le_bytes([byte_code[7], byte_code[8]]),
-                        sensor_y: u16::from_le_bytes([byte_code[9], byte_code[10]]),
-                        sensor_angle: u16::from_le_bytes([byte_code[11], byte_code[12]]),
+                        center: CubeLocation {
+                            point: Point {
+                                x: isize::from_le_bytes([byte_code[1], byte_code[2], 0, 0, 0, 0, 0, 0]),
+                                y: isize::from_le_bytes([byte_code[3], byte_code[4], 0, 0, 0, 0, 0, 0]),
+                            },
+                            angle: u16::from_le_bytes([byte_code[5], byte_code[6]]),
+                        },
+                        sensor: CubeLocation {
+                            point: Point {
+                                x: isize::from_le_bytes([byte_code[7], byte_code[8], 0, 0, 0, 0, 0, 0]),
+                                y: isize::from_le_bytes([byte_code[9], byte_code[10], 0, 0, 0, 0, 0, 0]),
+                            },
+                            angle: u16::from_le_bytes([byte_code[11], byte_code[12]]),
+                        }
                     }))
                 } else {
                     None
@@ -119,12 +123,8 @@ mod test {
         _setup();
 
         let res = IdInformation::PositionId(PositionIdData {
-            x: 1,
-            y: 2,
-            angle: 3,
-            sensor_x: 4,
-            sensor_y: 5,
-            sensor_angle: 6,
+            center: CubeLocation { point: Point { x:1, y:2 }, angle: 3 },
+            sensor: CubeLocation { point: Point { x:4, y:5 }, angle: 6 },
         });
         let payload = res.to_payload();
         println!("len:{:2} data:{:?}", payload.len(), payload);
