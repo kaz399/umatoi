@@ -210,14 +210,14 @@ impl ToioMat {
 /// Cube location on a toio mat
 
 pub struct RelativeCubeLocation {
-    cube_location: CubeLocation,
+    location: CubeLocation,
     mat: ToioMat,
 }
 
 impl Default for RelativeCubeLocation {
     fn default() -> Self {
         Self {
-            cube_location: CubeLocation::default(),
+            location: CubeLocation::default(),
             mat: ToioMat::NoMat,
         }
     }
@@ -229,12 +229,12 @@ impl Add for RelativeCubeLocation {
     fn add(self, p: Self) -> Self {
         if self.mat == p.mat {
             Self {
-                cube_location: self.cube_location + p.cube_location,
+                location: self.location + p.location,
                 mat: self.mat,
             }
         } else {
             Self {
-                cube_location: self.absolute_cube_location() + p.absolute_cube_location(),
+                location: self.absolute_location() + p.absolute_location(),
                 mat: ToioMat::NoMat,
             }
         }
@@ -247,12 +247,12 @@ impl Sub for RelativeCubeLocation {
     fn sub(self, p: Self) -> Self {
         if self.mat == p.mat {
             Self {
-                cube_location: self.cube_location - p.cube_location,
+                location: self.location - p.location,
                 mat: self.mat,
             }
         } else {
             Self {
-                cube_location: self.absolute_cube_location() - p.absolute_cube_location(),
+                location: self.absolute_location() - p.absolute_location(),
                 mat: ToioMat::NoMat,
             }
         }
@@ -261,22 +261,22 @@ impl Sub for RelativeCubeLocation {
 
 impl RelativeCubeLocation {
     pub fn absolute_point(&self) -> Point {
-        self.cube_location.point + self.mat.rect().top_left
+        self.location.point + self.mat.rect().top_left
     }
 
-    pub fn absolute_cube_location(&self) -> CubeLocation {
+    pub fn absolute_location(&self) -> CubeLocation {
         CubeLocation {
-            point: self.cube_location.point + self.mat.rect().top_left,
-            angle: self.cube_location.angle,
+            point: self.location.point + self.mat.rect().top_left,
+            angle: self.location.angle,
         }
     }
 
     pub fn from_absolute_location(&mut self, abs_location: CubeLocation) -> CubeLocation {
-        self.cube_location = CubeLocation {
+        self.location = CubeLocation {
             point: abs_location.point - self.mat.rect().top_left,
             angle: abs_location.angle,
         };
-        self.cube_location
+        self.location
     }
 }
 
@@ -378,7 +378,7 @@ mod test {
     #[test]
     fn position_mat3() {
         let relative_location: RelativeCubeLocation = RelativeCubeLocation {
-            cube_location: CubeLocation {
+            location: CubeLocation {
                 point: Point { x: 0, y:0 },
                 angle: 0 },
                 mat: ToioMat::GesundroidMat,
