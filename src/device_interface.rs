@@ -1,12 +1,12 @@
 pub mod ble;
 
+use crate::cube::NotificationHandler;
+
 use async_trait::async_trait;
-use btleplug::api::BDAddr;
-use std::error::Error;
-use std::future::Future;
-use std::pin::Pin;
-use std::time::Duration;
+use std::vec::Vec;
 use uuid::Uuid;
+use anyhow::Result;
+
 
 pub enum CoreCubeNotificationControl {
     Run,
@@ -15,59 +15,42 @@ pub enum CoreCubeNotificationControl {
 }
 
 #[async_trait]
-pub trait DeviceInterface<'device_life> {
-    type NotificationHandler: Send + Sync + 'static;
+pub trait CubeInterface
+{
+    async fn connect(&mut self) -> Result<()>;
 
-    fn new() -> Self;
-
-    async fn connect(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
-
-    async fn disconnect(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
+    async fn disconnect(&mut self) -> Result<()>;
 
     // read data from specified characteristic
-    async fn read(&self, uuid: Uuid) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>>;
+    async fn read(&self, uuid: Uuid) -> Result<Vec<u8>>;
 
     // write data to specified characteristic (without response)
     async fn write(
         &self,
         uuid: Uuid,
         bytes: &[u8],
-    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>>;
+    ) -> Result<bool>;
 
     // write data to specified characteristic (with response)
     async fn write_with_response(
         &self,
         uuid: Uuid,
         bytes: &[u8],
-    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>>;
+    ) -> Result<bool>;
 
     // register handler function to specified notify
-    async fn register_notify_handler(
+    async fn register_notification_handler(
         &mut self,
-        func: Self::NotificationHandler,
-    ) -> Result<uuid::Uuid, Box<dyn Error + Send + Sync + 'static>>;
+        func: NotificationHandler,
+    ) -> Result<uuid::Uuid>;
 
     // register handler function to specified notify
-    async fn unregister_notify_handler(
+    async fn unregister_notification_handler(
         &mut self,
         id_handler: Uuid,
-    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>>;
+    ) -> Result<bool>;
 
-    async fn receive_notify(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>>;
-
-    // run notify receiver
-    fn create_notification_receiver(
-        &'device_life self,
-    ) -> Result<
-        Pin<Box<dyn Future<Output = ()> + Send + 'device_life>>,
-        Box<dyn Error + Send + Sync + 'device_life>,
-    >;
-
-    // scan
-    async fn scan(
-        &mut self,
-        address: Option<BDAddr>,
-        device_name: Option<String>,
-        wait: Duration,
-    ) -> Result<&mut Self, Box<dyn Error + Send + Sync + 'static>>;
+    async fn notification_receiver(
+        &mut self
+    ) -> ();
 }

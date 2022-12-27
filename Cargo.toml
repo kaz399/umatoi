@@ -21,6 +21,7 @@ btleplug = "0.10.3"
 serde = { version = "1.0.145", features = ["derive"] }
 bincode = "1.3.3"
 once_cell = "1.15.0"
+anyhow = "1.0.68"
 
 [dev-dependencies]
 lazy_static = "1.4.0"

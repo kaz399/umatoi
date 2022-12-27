@@ -1,11 +1,13 @@
-use log::{debug, error};
 use std::error::Error;
 use std::time::Duration;
-use thiserror::Error;
 use tokio::time;
+use anyhow::Result;
+
 
 use btleplug::api::{Central, Manager as _, Peripheral as _, ScanFilter};
-use btleplug::platform::{Manager, Peripheral};
+use btleplug::platform::Manager;
+
+
 
 pub async fn scan_example(
     filter: ScanFilter,
@@ -75,45 +77,8 @@ pub async fn scan_example(
     Ok(())
 }
 
-#[derive(Error, Debug, PartialEq, Eq)]
-pub enum ScannerError {
-    #[error("bluetooth adapter is not found")]
-    AdapterNotFound,
-    #[error("internal error of scanner.rs")]
-    FoundBug,
-}
-
-pub async fn scan(
-    filter: ScanFilter,
-    wait: Duration,
-) -> Result<Vec<Peripheral>, Box<dyn Error + Send + Sync + 'static>> {
-    let mut peripheral_list: Vec<Peripheral> = Vec::new();
-    let manager = Manager::new().await?;
-    let adapter_list = manager.adapters().await?;
-
-    if adapter_list.is_empty() {
-        error!("No Bluetooth adapters found");
-        return Err(Box::new(ScannerError::AdapterNotFound));
-    }
-
-    for adapter in adapter_list.iter() {
-        println!("Starting scan on {}...", adapter.adapter_info().await?);
-        adapter.start_scan(filter.clone()).await?;
-        time::sleep(wait).await;
-        adapter.stop_scan().await?;
-        peripheral_list.extend(adapter.peripherals().await?);
-    }
-    for (index, peripheral) in peripheral_list.iter().enumerate() {
-        debug!("{} {:?}", index, peripheral);
-    }
-    debug!("total {} peripherals found", peripheral_list.len());
-    Ok(peripheral_list)
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
     }
@@ -121,6 +86,5 @@ mod tests {
     #[tokio::test]
     async fn scanner_scan_cube() {
         _setup();
-        let _scan_result = scan(ScanFilter::default(), Duration::from_secs(2)).await;
     }
 }

@@ -1,302 +1,226 @@
+use anyhow::{anyhow, Result};
 use crate::cube::characteristic_uuid::CoreCubeUuid;
 use crate::cube::{CoreCubeError, NotificationData};
-use crate::device_interface::{CoreCubeNotificationControl, DeviceInterface};
-use crate::notification_manager::{HandlerFunction, NotificationManager};
-use crate::scanner;
+use crate::device_interface::{CubeInterface, NotificationHandler};
+use crate::notification_manager::NotificationManager;
 use async_trait::async_trait;
 use btleplug::api::{
-    BDAddr, CharPropFlags, Characteristic, Peripheral as _, ScanFilter, WriteType,
+    Central, CharPropFlags, Characteristic, Manager as _, Peripheral as _, ScanFilter, WriteType,
 };
-use btleplug::platform::Peripheral;
+use btleplug::platform::{Manager, Peripheral};
 use futures::stream::StreamExt;
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use std::collections::HashMap;
-use std::error::Error;
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::mpsc;
 use std::time::Duration;
+use std::vec::Vec;
+use tokio::time;
 use uuid::Uuid;
 
-pub struct BleInterface {
-    pub(crate) ble_address: Option<BDAddr>,
-    pub(crate) ble_name: Option<String>,
-    pub(crate) ble_peripheral: Option<Peripheral>,
-    pub(crate) ble_characteristics: HashMap<Uuid, Characteristic>,
-    pub(crate) notify_enabled: Vec<Uuid>,
-    pub(crate) root_notify_manager: NotificationManager<NotificationData>,
+type BleInterface = Peripheral;
+
+pub struct BleCube<'nm_life> {
+    pub ble_peripheral: BleInterface,
+    pub ble_characteristics: HashMap<Uuid, Characteristic>,
+    pub notification_enabled: Vec<Uuid>,
+    pub root_notification_manager: &'nm_life NotificationManager<NotificationData>,
 }
 
-impl Default for BleInterface {
-    fn default() -> Self {
+
+impl<'nm_life> BleCube<'nm_life> {
+
+    pub fn new(peripheral: Peripheral, notification_manager: &'nm_life NotificationManager<NotificationData>) -> Self {
         Self {
-            ble_address: None,
-            ble_name: None,
-            ble_peripheral: None,
+            ble_peripheral: peripheral,
             ble_characteristics: HashMap::new(),
-            notify_enabled: Vec::new(),
-            root_notify_manager: NotificationManager::new(),
+            notification_enabled: Vec::new(),
+            root_notification_manager: notification_manager,
         }
     }
+
+    pub async fn receive_notification(&mut self) -> Result<()> {
+        let mut notification_stream = self.ble_peripheral.notifications().await?.take(1);
+        if let Some(data) = notification_stream.next().await {
+            return match self.root_notification_manager.invoke_all_handlers(data) {
+                Ok(_) => Ok(()),
+                Err(err) => Err(anyhow!(err)),
+            };
+        }
+        Ok(())
+    }
+
 }
-
-impl BleInterface {
-    pub fn new() -> Self {
-        Self::default()
+pub async fn nm_task(ble_peripheral: Peripheral, notification_manager: &NotificationManager<NotificationData>) -> Result<()> {
+    let mut notification_stream = ble_peripheral.notifications().await?.take(1);
+    if let Some(data) = notification_stream.next().await {
+        return match notification_manager.invoke_all_handlers(data) {
+            Ok(_) => Ok(()),
+            Err(err) => Err(anyhow!(err)),
+        };
     }
-
-    pub fn set_ble_address(&mut self, addr: BDAddr) -> bool {
-        match self.ble_peripheral {
-            Some(_) => false,
-            None => {
-                self.ble_address = Some(addr);
-                true
-            }
-        }
-    }
-
-    pub fn get_ble_address(&self) -> Option<BDAddr> {
-        self.ble_address
-    }
-
-    pub fn set_ble_name(&mut self, name: String) -> bool {
-        match self.ble_peripheral {
-            Some(_) => false,
-            None => {
-                self.ble_name = Some(name);
-                true
-            }
-        }
-    }
-
-    pub fn get_ble_name(self) -> Option<String> {
-        self.ble_name
-    }
-
-    async fn _run_notify_receiver(&self, rx: mpsc::Receiver<CoreCubeNotificationControl>) {
-        if let Some(ble) = &self.ble_peripheral.clone() {
-            let mut notification_stream = ble.notifications().await.unwrap();
-            while let Some(data) = notification_stream.next().await {
-                if let Ok(ctrl) = rx.try_recv() {
-                    match ctrl {
-                        CoreCubeNotificationControl::Quit => break,
-                        CoreCubeNotificationControl::Pause => continue,
-                        _ => (),
-                    }
-                }
-                let _ = self.root_notify_manager.invoke_all_handlers(data);
-            }
-            debug!("stop notify receiver");
-        }
-    }
+    Ok(())
 }
 
 #[async_trait]
-impl<'device_life> DeviceInterface<'device_life> for BleInterface {
-    type NotificationHandler = HandlerFunction<NotificationData>;
+impl<'nm_life> CubeInterface for BleCube<'nm_life> {
 
-    fn new() -> Self {
-        BleInterface::new()
-    }
-
-    async fn connect(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-        if let Some(ble) = &self.ble_peripheral {
-            ble.connect().await?;
-            let is_connected = ble.is_connected().await?;
-            assert!(is_connected);
-            ble.discover_services().await?;
-            for service in ble.services() {
-                for characteristic in service.characteristics {
-                    //println!("characteristic uuid: {:?}", characteristic.uuid);
-                    if characteristic.properties.contains(CharPropFlags::NOTIFY) {
-                        self.notify_enabled.push(characteristic.uuid);
-                        debug!("enable notify uuid: {:?}", characteristic.uuid);
-                        ble.subscribe(&characteristic).await?;
-                    }
-                    self.ble_characteristics
-                        .insert(characteristic.uuid, characteristic);
+    async fn connect(&mut self) -> Result<()> {
+        self.ble_peripheral.connect().await?;
+        let is_connected = self.ble_peripheral.is_connected().await?;
+        assert!(is_connected);
+        self.ble_peripheral.discover_services().await?;
+        for service in self.ble_peripheral.services() {
+            for characteristic in service.characteristics {
+                //println!("characteristic uuid: {:?}", characteristic.uuid);
+                if characteristic.properties.contains(CharPropFlags::NOTIFY) {
+                    self.notification_enabled.push(characteristic.uuid);
+                    debug!("enable notification uuid: {:?}", characteristic.uuid);
+                    self.ble_peripheral.subscribe(&characteristic).await?;
                 }
+                self.ble_characteristics
+                    .insert(characteristic.uuid, characteristic);
             }
-            Ok(())
-        } else {
-            Err(Box::new(CoreCubeError::NoBlePeripherals))
         }
+        Ok(())
     }
 
-    async fn disconnect(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-        if let Some(ble) = &self.ble_peripheral {
-            for notified in &self.notify_enabled {
-                debug!("disable notify uuid: {:?}", notified);
-                ble.unsubscribe(&self.ble_characteristics[notified]).await?;
-            }
-            ble.disconnect().await?;
-            // windows: is_connected is not turned off when device disconnect.
-            // macos: is_connected is not turned off when device disconnect.
-            if cfg!(target_os = "linux") {
-                let is_connected = ble.is_connected().await?;
-                assert!(!is_connected);
-            }
-            self.ble_characteristics.clear();
-            Ok(())
-        } else {
-            Err(Box::new(CoreCubeError::NoBlePeripherals))
+    async fn disconnect(&mut self) -> Result<()> {
+        for notified in &self.notification_enabled {
+            debug!("disable notification uuid: {:?}", notified);
+            self.ble_peripheral.unsubscribe(&self.ble_characteristics[notified]).await?;
         }
+        self.ble_peripheral.disconnect().await?;
+        // windows: is_connected is not turned off when device disconnect.
+        // macos: is_connected is not turned off when device disconnect.
+        if cfg!(target_os = "linux") {
+            let is_connected = self.ble_peripheral.is_connected().await?;
+            assert!(!is_connected);
+        }
+        self.ble_characteristics.clear();
+        Ok(())
     }
 
-    async fn read(&self, uuid: Uuid) -> Result<Vec<u8>, Box<dyn Error + Send + Sync + 'static>> {
-        if let Some(ble) = &self.ble_peripheral {
-            let characteristic = self.ble_characteristics.get(&uuid).unwrap();
-            let data = ble.read(characteristic).await?;
-            Ok(data)
-        } else {
-            Err(Box::new(CoreCubeError::NoBlePeripherals))
-        }
+    async fn read(&self, uuid: Uuid) -> Result<Vec<u8>> {
+        let characteristic = self.ble_characteristics.get(&uuid).unwrap();
+        let data = self.ble_peripheral.read(characteristic).await?;
+        Ok(data)
     }
 
     async fn write(
         &self,
         uuid: Uuid,
         bytes: &[u8],
-    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
-        if let Some(ble) = &self.ble_peripheral {
-            let characteristic = self.ble_characteristics.get(&uuid).unwrap();
-            ble.write(characteristic, bytes, WriteType::WithoutResponse)
-                .await?;
-            Ok(true)
-        } else {
-            Err(Box::new(CoreCubeError::NoBlePeripherals))
-        }
+    ) -> Result<bool> {
+        let characteristic = self.ble_characteristics.get(&uuid).unwrap();
+        self.ble_peripheral.write(characteristic, bytes, WriteType::WithoutResponse)
+            .await?;
+        Ok(true)
     }
 
     async fn write_with_response(
         &self,
         uuid: Uuid,
         bytes: &[u8],
-    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
-        if let Some(ble) = &self.ble_peripheral {
-            let characteristic = self.ble_characteristics.get(&uuid).unwrap();
-            ble.write(characteristic, bytes, WriteType::WithResponse)
-                .await?;
-            Ok(true)
-        } else {
-            Err(Box::new(CoreCubeError::NoBlePeripherals))
-        }
-    }
-
-    async fn register_notify_handler(
-        &mut self,
-        func: Self::NotificationHandler,
-    ) -> Result<Uuid, Box<dyn Error + Send + Sync + 'static>> {
-        let id_handler = self.root_notify_manager.register(func)?;
-        Ok(id_handler)
-    }
-
-    async fn unregister_notify_handler(
-        &mut self,
-        id_handler: Uuid,
-    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
-        self.root_notify_manager.unregister(id_handler)?;
+    ) -> Result<bool> {
+        let characteristic = self.ble_characteristics.get(&uuid).unwrap();
+        self.ble_peripheral.write(characteristic, bytes, WriteType::WithResponse)
+            .await?;
         Ok(true)
     }
 
-    async fn receive_notify(&mut self) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-        if let Some(ble) = &self.ble_peripheral {
-            let mut notification_stream = ble.notifications().await?.take(1);
-            if let Some(data) = notification_stream.next().await {
-                self.root_notify_manager.invoke_all_handlers(data)?;
-            }
-            Ok(())
-        } else {
-            Err(Box::new(CoreCubeError::NoBlePeripherals))
-        }
-    }
-
-    fn create_notification_receiver(
-        &'device_life self,
-    ) -> Result<
-        Pin<Box<dyn Future<Output = ()> + Send + 'device_life>>,
-        Box<dyn Error + Send + Sync + 'device_life>,
-    > {
-        if let Some(ble) = &self.ble_peripheral {
-            let notification_receiver = async move {
-                let mut notification_stream = ble.notifications().await.unwrap();
-                while let Some(data) = notification_stream.next().await {
-                    let _ = self.root_notify_manager.invoke_all_handlers(data);
-                }
-                debug!("stop notify receiver");
-            };
-            Ok(Box::pin(notification_receiver))
-        } else {
-            Err(Box::new(CoreCubeError::NoBlePeripherals))
-        }
-    }
-
-    async fn scan(
+    async fn register_notification_handler(
         &mut self,
-        address: Option<BDAddr>,
-        device_name: Option<String>,
-        wait: Duration,
-    ) -> Result<&mut BleInterface, Box<dyn Error + Send + Sync + 'static>> {
-        let peripheral_list = scanner::scan(ScanFilter::default(), wait).await?;
-        for peripheral in peripheral_list.into_iter() {
-            if peripheral.is_connected().await? {
-                debug!("skip connected device");
-                continue;
-            }
-            let mut found = false;
-            let properties = peripheral.properties().await?.unwrap();
-            for service_uuid in properties.services.iter() {
-                info!("service uuid: {}", service_uuid);
-                if *service_uuid == CoreCubeUuid::Service.uuid() {
-                    debug!("found toio core cube: service uuid: {}", service_uuid);
-                    found = true;
-                    break;
-                }
-            }
-            if found {
-                let device_local_name = properties.local_name.unwrap();
-                let device_address = peripheral.address();
-
-                if let Some(cube_local_name) = &device_name {
-                    if device_local_name != *cube_local_name {
-                        debug!(
-                            "local name does not match (device:{}, specified:{})",
-                            device_local_name, cube_local_name
-                        );
-                        continue;
-                    }
-                }
-                if cfg!(target_os = "macos") {
-                    warn!("scanning cube with BDAddress is not supported on MacOS");
-                } else if let Some(cube_address) = &address {
-                    if device_address != *cube_address {
-                        debug!(
-                            "address does not match (device:{}, specified:{})",
-                            device_address, cube_address
-                        );
-                        continue;
-                    }
-                }
-                self.ble_name = Some(device_local_name.clone());
-                self.ble_address = Some(device_address);
-                self.ble_peripheral = Some(peripheral);
-                info!(
-                    "found toio core cube: local_name: {}, addr: {}",
-                    device_local_name, device_address
-                );
-                return Ok(self);
-            }
+        func: NotificationHandler,
+    ) -> Result<Uuid> {
+        match self.root_notification_manager.register(func) {
+            Ok(id_handler) => Ok(id_handler),
+            Err(err) => Err(anyhow!(err)),
         }
-        error!("toio core cube is not found");
-        Err(Box::new(CoreCubeError::CubeNotFound))
+    }
+
+    async fn unregister_notification_handler(
+        &mut self,
+        id_handler: Uuid,
+    ) -> Result<bool> {
+        match self.root_notification_manager.unregister(id_handler) {
+            Ok(_) => Ok(true),
+            Err(err) => Err(anyhow!(err)),
+        }
+    }
+
+    async fn notification_receiver(&mut self) {
+        debug!("start notification receiver");
+        let mut notification_stream = self.ble_peripheral.notifications().await.unwrap();
+        while let Some(data) = notification_stream.next().await {
+            let _ = self.root_notification_manager.invoke_all_handlers(data);
+        }
+        debug!("stop notification receiver");
     }
 }
+
+
+pub struct BleScanner;
+
+impl BleScanner
+{
+    async fn scan_ble(
+        &self,
+        filter: ScanFilter,
+        wait: Duration,
+    ) -> Result<Vec<BleInterface>> {
+        let manager = Manager::new().await?;
+        let adapter_list = manager.adapters().await?;
+        let mut peripheral_list: Vec<BleInterface> = Vec::new();
+
+        if adapter_list.is_empty() {
+            error!("No Bluetooth adapters found");
+            return Ok(peripheral_list)
+        }
+
+        for adapter in adapter_list.iter() {
+            println!("Starting scan on {}...", adapter.adapter_info().await?);
+            adapter.start_scan(filter.clone()).await?;
+            time::sleep(wait).await;
+            adapter.stop_scan().await?;
+            for (index, peripheral) in adapter.peripherals().await?.iter().enumerate() {
+                debug!("{} {:?}", index, peripheral);
+                if peripheral.is_connected().await? {
+                    debug!("skip connected device");
+                    continue;
+                }
+                let properties = peripheral.properties().await?.unwrap();
+                for service_uuid in properties.services.iter() {
+                    info!("service uuid: {}", service_uuid);
+                    if *service_uuid == CoreCubeUuid::Service.uuid() {
+                        debug!("found toio core cube: service uuid: {}", service_uuid);
+                        peripheral_list.push(peripheral.clone());
+                    }
+                }
+            }
+        }
+        debug!("total {} peripherals found", peripheral_list.len());
+        Ok(peripheral_list)
+    }
+
+    pub async fn scan(
+        &self,
+        num: usize,
+        wait: Duration,
+    ) -> Result<Vec<BleInterface>> {
+        let mut peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
+        peripheral_list.truncate(num);
+        if peripheral_list.is_empty() {
+            error!("toio core cube is not found");
+            return Err(CoreCubeError::CubeNotFound.into());
+        }
+        Ok(peripheral_list)
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::cube::id_information::{self, IdInformation};
-    use crate::cube::{CoreCube, CoreCubeBasicFunction};
     use std::sync::Arc;
     use std::time::Duration;
     use tokio::time;
@@ -337,7 +261,8 @@ mod tests {
     #[tokio::test]
     async fn cube_scan1() {
         _setup();
-        let mut cube = CoreCube::<BleInterface>::new();
+        let mut scanner = BleScanner;
+        let mut cube = CoreCube::<BleCubeInterface>::new();
         cube.scan(None, None, Duration::from_secs(5)).await.unwrap();
         drop(cube);
         _teardown();
@@ -346,7 +271,7 @@ mod tests {
     #[tokio::test]
     async fn cube_scan2() {
         _setup();
-        let mut cube = CoreCube::<BleInterface>::new();
+        let mut cube = CoreCube::<BleCubeInterface>::new();
         cube.scan(
             Some(BDAddr::from(TEST_CUBE_BDADDR)),
             None,
@@ -361,7 +286,7 @@ mod tests {
     #[tokio::test]
     async fn cube_scan3() {
         _setup();
-        let mut cube = CoreCube::<BleInterface>::new();
+        let mut cube = CoreCube::<BleCubeInterface>::new();
         cube.scan(
             None,
             Some(TEST_CUBE_NAME.to_string()),
@@ -376,7 +301,7 @@ mod tests {
     #[tokio::test]
     async fn cube_scan4() {
         _setup();
-        let mut cube = CoreCube::<BleInterface>::new();
+        let mut cube = CoreCube::<BleCubeInterface>::new();
         cube.scan(
             Some(BDAddr::from(TEST_CUBE_BDADDR)),
             Some(TEST_CUBE_NAME.to_string()),
@@ -391,7 +316,7 @@ mod tests {
     #[tokio::test]
     async fn cube_scan5() {
         _setup();
-        let mut cube = CoreCube::<BleInterface>::new();
+        let mut cube = CoreCube::<BleCubeInterface>::new();
         cube.scan(
             Some(BDAddr::from(TEST_CUBE_BDADDR)),
             Some(TEST_CUBE_NAME.to_string()),
@@ -403,7 +328,7 @@ mod tests {
         .await
         .unwrap();
 
-        let mut cube2 = CoreCube::<BleInterface>::new();
+        let mut cube2 = CoreCube::<BleCubeInterface>::new();
         let result = cube2
             .scan(
                 Some(BDAddr::from(TEST_CUBE_BDADDR)),
@@ -428,7 +353,7 @@ mod tests {
     #[tokio::test]
     async fn cube_notify1() {
         _setup();
-        let cube_arc = Arc::new(tokio::sync::RwLock::new(CoreCube::<BleInterface>::new()));
+        let cube_arc = Arc::new(tokio::sync::RwLock::new(CoreCube::<BleCubeInterface>::new()));
         let notification_cube = cube_arc.clone();
         let cube = cube_arc.clone();
 
@@ -496,3 +421,4 @@ mod tests {
         _teardown();
     }
 }
+

@@ -1,14 +1,15 @@
+use anyhow::Result;
 use log::{debug, error};
 use std::collections::HashMap;
-use std::error::Error;
+use std::sync::{Arc, Mutex};
 use thiserror::Error;
 use uuid::Uuid;
 
 pub type HandlerFunction<T> = Box<dyn Fn(T) + Send + Sync + 'static>;
 
 pub struct NotificationManager<T> {
-    order: Vec<uuid::Uuid>,
-    pub handlers: HashMap<uuid::Uuid, HandlerFunction<T>>,
+    order: Arc<Mutex<Vec<uuid::Uuid>>>,
+    pub handlers: Arc<Mutex<HashMap<uuid::Uuid, HandlerFunction<T>>>>,
 }
 
 #[derive(Error, Debug, PartialEq, Eq)]
@@ -24,8 +25,8 @@ pub enum NotificationManagerError {
 impl<T> Default for NotificationManager<T> {
     fn default() -> Self {
         Self {
-            order: Vec::new(),
-            handlers: HashMap::new(),
+            order: Arc::new(Mutex::new(Vec::new())),
+            handlers: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 }
@@ -40,14 +41,18 @@ where
 
     /// register notification handler
     pub fn register(
-        &mut self,
+        &self,
         func: HandlerFunction<T>,
-    ) -> Result<uuid::Uuid, Box<dyn Error + Send + Sync + 'static>> {
+    ) -> Result<uuid::Uuid> {
         let id = Uuid::new_v4();
         debug!("uuid: {}", id);
-        if !self.order.contains(&id) {
-            self.order.push(id);
-            self.handlers.insert(id, func);
+        let order_binding = self.order.clone();
+        let mut order = order_binding.lock().unwrap();
+        if !order.contains(&id) {
+            let handlers_binding  = self.handlers.clone();
+            let mut handlers = handlers_binding.lock().unwrap();
+            order.push(id);
+            handlers.insert(id, func);
             Ok(id)
         } else {
             Err(NotificationManagerError::HandlerNameIsUsed(id).into())
@@ -56,27 +61,35 @@ where
 
     /// unregister notification handler
     pub fn unregister(
-        &mut self,
+        &self,
         id: uuid::Uuid,
-    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
-        for (index, registered_id) in self.order.iter().enumerate() {
+    ) -> Result<bool> {
+        let order_binding = self.order.clone();
+        let mut order = order_binding.lock().unwrap();
+        for (index, registered_id) in order.iter().enumerate() {
             if id == *registered_id {
-                self.handlers.remove(registered_id);
-                self.order.remove(index);
+                let handlers_binding  = self.handlers.clone();
+                let mut handlers = handlers_binding.lock().unwrap();
+                handlers.remove(registered_id);
+                order.remove(index);
                 return Ok(true);
             }
         }
-        Err(Box::new(NotificationManagerError::HandlerNotFound(id)))
+        Err(NotificationManagerError::HandlerNotFound(id).into())
     }
 
     /// invoke all handlers
     pub fn invoke_all_handlers(
         &self,
         data: T,
-    ) -> Result<bool, Box<dyn Error + Send + Sync + 'static>> {
-        for id in self.order.iter() {
+    ) -> Result<bool> {
+        let order_binding = self.order.clone();
+        let order = order_binding.lock().unwrap();
+        let handlers_binding  = self.handlers.clone();
+        let handlers = handlers_binding.lock().unwrap();
+        for id in order.iter() {
             debug!("invoke handler {}", id);
-            if let Some(handler) = self.handlers.get(id) {
+            if let Some(handler) = handlers.get(id) {
                 handler(data.clone());
             } else {
                 return Err(NotificationManagerError::FoundBug.into());
