@@ -1,11 +1,11 @@
 use clap::Parser;
 use once_cell::sync::OnceCell;
-use std::sync::{Arc, Mutex};
+use std::sync:: Mutex;
 use time::Duration;
-use tokio::{spawn, time};
+use tokio::time;
 use umatoi::cube::id_information::IdInformation;
 use umatoi::cube::NotificationData;
-use umatoi::device_interface::ble::{BleCube, BleScanner, nm_task};
+use umatoi::device_interface::ble::{BleCube, BleScanner, ble_notification_receiver};
 use umatoi::device_interface::CubeInterface;
 use umatoi::notification_manager::NotificationManager;
 
@@ -82,20 +82,21 @@ pub async fn main() {
 
     assert!(!found_interfaces.is_empty());
 
-    let mut cube =  BleCube::new(found_interfaces[0].clone(), &nf_manager);
+    let mut cube =  BleCube::new(found_interfaces[0].clone());
     cube.connect().await.unwrap();
 
-    let handler_uuid = cube.register_notification_handler(Box::new(notify_handler)).await.unwrap();
+    let handler_uuid = nf_manager.register(Box::new(notify_handler)).unwrap();
 
     let notification_task = tokio::spawn(async move {
-        let _ = nm_task(found_interfaces[0].clone(), &nf_manager).await;
+        println!("start notification task");
+        let _ = ble_notification_receiver(found_interfaces[0].clone(), &nf_manager).await;
+        println!("end notification task");
+        let result = nf_manager.unregister(handler_uuid).unwrap();
+        assert!(result);
     });
-    // let notification_task = tokio::spawn(async move {
-    //     cube.notification_receiver().await;
-    // });
 
-    let result = cube.unregister_notification_handler(handler_uuid).await.unwrap();
-    assert!(result);
+    tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+    println!("disconnect");
 
     notification_task.abort();
 

@@ -1,7 +1,7 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use crate::cube::characteristic_uuid::CoreCubeUuid;
 use crate::cube::{CoreCubeError, NotificationData};
-use crate::device_interface::{CubeInterface, NotificationHandler};
+use crate::device_interface::CubeInterface;
 use crate::notification_manager::NotificationManager;
 use async_trait::async_trait;
 use btleplug::api::{
@@ -18,50 +18,35 @@ use uuid::Uuid;
 
 type BleInterface = Peripheral;
 
-pub struct BleCube<'nm_life> {
+pub struct BleCube {
     pub ble_peripheral: BleInterface,
     pub ble_characteristics: HashMap<Uuid, Characteristic>,
     pub notification_enabled: Vec<Uuid>,
-    pub root_notification_manager: &'nm_life NotificationManager<NotificationData>,
 }
 
 
-impl<'nm_life> BleCube<'nm_life> {
+impl BleCube {
 
-    pub fn new(peripheral: Peripheral, notification_manager: &'nm_life NotificationManager<NotificationData>) -> Self {
+    pub fn new(peripheral: Peripheral) -> Self {
         Self {
             ble_peripheral: peripheral,
             ble_characteristics: HashMap::new(),
             notification_enabled: Vec::new(),
-            root_notification_manager: notification_manager,
         }
-    }
-
-    pub async fn receive_notification(&mut self) -> Result<()> {
-        let mut notification_stream = self.ble_peripheral.notifications().await?.take(1);
-        if let Some(data) = notification_stream.next().await {
-            return match self.root_notification_manager.invoke_all_handlers(data) {
-                Ok(_) => Ok(()),
-                Err(err) => Err(anyhow!(err)),
-            };
-        }
-        Ok(())
     }
 
 }
-pub async fn nm_task(ble_peripheral: Peripheral, notification_manager: &NotificationManager<NotificationData>) -> Result<()> {
-    let mut notification_stream = ble_peripheral.notifications().await?.take(1);
-    if let Some(data) = notification_stream.next().await {
-        return match notification_manager.invoke_all_handlers(data) {
-            Ok(_) => Ok(()),
-            Err(err) => Err(anyhow!(err)),
-        };
+
+pub async fn ble_notification_receiver(ble_peripheral: Peripheral, notification_manager: &NotificationManager<NotificationData>) -> Result<()> {
+    let mut notification_stream = ble_peripheral.notifications().await.unwrap();
+    while let Some(data) = notification_stream.next().await {
+        let _ = notification_manager.invoke_all_handlers(data);
     }
     Ok(())
 }
 
 #[async_trait]
-impl<'nm_life> CubeInterface for BleCube<'nm_life> {
+impl CubeInterface for BleCube {
 
     async fn connect(&mut self) -> Result<()> {
         self.ble_peripheral.connect().await?;
@@ -125,35 +110,6 @@ impl<'nm_life> CubeInterface for BleCube<'nm_life> {
         self.ble_peripheral.write(characteristic, bytes, WriteType::WithResponse)
             .await?;
         Ok(true)
-    }
-
-    async fn register_notification_handler(
-        &mut self,
-        func: NotificationHandler,
-    ) -> Result<Uuid> {
-        match self.root_notification_manager.register(func) {
-            Ok(id_handler) => Ok(id_handler),
-            Err(err) => Err(anyhow!(err)),
-        }
-    }
-
-    async fn unregister_notification_handler(
-        &mut self,
-        id_handler: Uuid,
-    ) -> Result<bool> {
-        match self.root_notification_manager.unregister(id_handler) {
-            Ok(_) => Ok(true),
-            Err(err) => Err(anyhow!(err)),
-        }
-    }
-
-    async fn notification_receiver(&mut self) {
-        debug!("start notification receiver");
-        let mut notification_stream = self.ble_peripheral.notifications().await.unwrap();
-        while let Some(data) = notification_stream.next().await {
-            let _ = self.root_notification_manager.invoke_all_handlers(data);
-        }
-        debug!("stop notification receiver");
     }
 }
 

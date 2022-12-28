@@ -1,7 +1,5 @@
 pub mod ble;
 
-use crate::cube::NotificationHandler;
-
 use async_trait::async_trait;
 use std::vec::Vec;
 use uuid::Uuid;
@@ -37,20 +35,4 @@ pub trait CubeInterface
         uuid: Uuid,
         bytes: &[u8],
     ) -> Result<bool>;
-
-    // register handler function to specified notify
-    async fn register_notification_handler(
-        &mut self,
-        func: NotificationHandler,
-    ) -> Result<uuid::Uuid>;
-
-    // register handler function to specified notify
-    async fn unregister_notification_handler(
-        &mut self,
-        id_handler: Uuid,
-    ) -> Result<bool>;
-
-    async fn notification_receiver(
-        &mut self
-    ) -> ();
 }
