@@ -428,7 +428,11 @@ mod test {
                 speed_change_type: SpeedChangeType::AccelerationAndDeceleration,
             },
             write_mode: WriteMode::Append,
-            target_list: vec![TargetPosition::default(), TargetPosition::default(), TargetPosition::default()],
+            target_list: vec![
+                TargetPosition::default(),
+                TargetPosition::default(),
+                TargetPosition::default(),
+            ],
             ..MotorControlMultipleTargets::default()
         };
         let payload = st.to_payload();

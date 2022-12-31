@@ -1,15 +1,13 @@
 use clap::Parser;
 use once_cell::sync::OnceCell;
-use std::sync:: Mutex;
+use std::sync::Mutex;
 use time::Duration;
 use tokio::time;
 use umatoi::characteristic::id_information::IdInformation;
 use umatoi::characteristic::NotificationData;
-use umatoi::device_interface::ble::{BleCube, BleScanner, ble_notification_receiver};
+use umatoi::device_interface::ble::{ble_notification_receiver, BleCube, BleScanner};
 use umatoi::device_interface::CubeInterface;
 use umatoi::notification_manager::NotificationManager;
-
-
 
 #[derive(Parser)]
 #[clap(
@@ -82,7 +80,7 @@ pub async fn main() {
 
     assert!(!found_interfaces.is_empty());
 
-    let mut cube =  BleCube::new(found_interfaces[0].clone());
+    let mut cube = BleCube::new(found_interfaces[0].clone());
     cube.connect().await.unwrap();
 
     let handler_uuid = nf_manager.register(Box::new(notify_handler)).unwrap();

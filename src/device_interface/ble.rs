@@ -1,9 +1,9 @@
-use anyhow::Result;
 use crate::characteristic::characteristic_uuid::CoreCubeUuid;
 use crate::characteristic::NotificationData;
 use crate::cube::CoreCubeError;
 use crate::device_interface::CubeInterface;
 use crate::notification_manager::NotificationManager;
+use anyhow::Result;
 use async_trait::async_trait;
 use btleplug::api::{
     Central, CharPropFlags, Characteristic, Manager as _, Peripheral as _, ScanFilter, WriteType,
@@ -25,9 +25,7 @@ pub struct BleCube {
     pub notification_enabled: Vec<Uuid>,
 }
 
-
 impl BleCube {
-
     pub fn new(peripheral: Peripheral) -> Self {
         Self {
             ble_peripheral: peripheral,
@@ -35,10 +33,12 @@ impl BleCube {
             notification_enabled: Vec::new(),
         }
     }
-
 }
 
-pub async fn ble_notification_receiver(ble_peripheral: Peripheral, notification_manager: &NotificationManager<NotificationData>) -> Result<()> {
+pub async fn ble_notification_receiver(
+    ble_peripheral: Peripheral,
+    notification_manager: &NotificationManager<NotificationData>,
+) -> Result<()> {
     let mut notification_stream = ble_peripheral.notifications().await.unwrap();
     while let Some(data) = notification_stream.next().await {
         let _ = notification_manager.invoke_all_handlers(data);
@@ -48,7 +48,6 @@ pub async fn ble_notification_receiver(ble_peripheral: Peripheral, notification_
 
 #[async_trait]
 impl CubeInterface for BleCube {
-
     async fn connect(&mut self) -> Result<()> {
         self.ble_peripheral.connect().await?;
         let is_connected = self.ble_peripheral.is_connected().await?;
@@ -72,7 +71,9 @@ impl CubeInterface for BleCube {
     async fn disconnect(&mut self) -> Result<()> {
         for notified in &self.notification_enabled {
             debug!("disable notification uuid: {:?}", notified);
-            self.ble_peripheral.unsubscribe(&self.ble_characteristics[notified]).await?;
+            self.ble_peripheral
+                .unsubscribe(&self.ble_characteristics[notified])
+                .await?;
         }
         self.ble_peripheral.disconnect().await?;
         // windows: is_connected is not turned off when device disconnect.
@@ -91,46 +92,34 @@ impl CubeInterface for BleCube {
         Ok(data)
     }
 
-    async fn write(
-        &self,
-        uuid: Uuid,
-        bytes: &[u8],
-    ) -> Result<bool> {
+    async fn write(&self, uuid: Uuid, bytes: &[u8]) -> Result<bool> {
         let characteristic = self.ble_characteristics.get(&uuid).unwrap();
-        self.ble_peripheral.write(characteristic, bytes, WriteType::WithoutResponse)
+        self.ble_peripheral
+            .write(characteristic, bytes, WriteType::WithoutResponse)
             .await?;
         Ok(true)
     }
 
-    async fn write_with_response(
-        &self,
-        uuid: Uuid,
-        bytes: &[u8],
-    ) -> Result<bool> {
+    async fn write_with_response(&self, uuid: Uuid, bytes: &[u8]) -> Result<bool> {
         let characteristic = self.ble_characteristics.get(&uuid).unwrap();
-        self.ble_peripheral.write(characteristic, bytes, WriteType::WithResponse)
+        self.ble_peripheral
+            .write(characteristic, bytes, WriteType::WithResponse)
             .await?;
         Ok(true)
     }
 }
 
-
 pub struct BleScanner;
 
-impl BleScanner
-{
-    async fn scan_ble(
-        &self,
-        filter: ScanFilter,
-        wait: Duration,
-    ) -> Result<Vec<BleInterface>> {
+impl BleScanner {
+    async fn scan_ble(&self, filter: ScanFilter, wait: Duration) -> Result<Vec<BleInterface>> {
         let manager = Manager::new().await?;
         let adapter_list = manager.adapters().await?;
         let mut peripheral_list: Vec<BleInterface> = Vec::new();
 
         if adapter_list.is_empty() {
             error!("No Bluetooth adapters found");
-            return Ok(peripheral_list)
+            return Ok(peripheral_list);
         }
 
         for adapter in adapter_list.iter() {
@@ -158,11 +147,7 @@ impl BleScanner
         Ok(peripheral_list)
     }
 
-    pub async fn scan(
-        &self,
-        num: usize,
-        wait: Duration,
-    ) -> Result<Vec<BleInterface>> {
+    pub async fn scan(&self, num: usize, wait: Duration) -> Result<Vec<BleInterface>> {
         let mut peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
         peripheral_list.truncate(num);
         if peripheral_list.is_empty() {
@@ -172,7 +157,6 @@ impl BleScanner
         Ok(peripheral_list)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -378,4 +362,3 @@ mod tests {
         _teardown();
     }
 }
-

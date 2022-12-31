@@ -1,10 +1,9 @@
 //! Official Specification:  <https://toio.github.io/toio-spec/en/docs/ble_button>
 
+use crate::characteristic::characteristic_uuid::CoreCubeUuid;
+use crate::device_interface::CubeInterface;
 use anyhow::Result;
 use std::time;
-use crate::device_interface::CubeInterface;
-use crate::characteristic::characteristic_uuid::CoreCubeUuid;
-
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ButtonState {
@@ -33,7 +32,6 @@ impl From<u8> for ButtonState {
     }
 }
 
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ButtonInformation {
     pub time: time::Instant,
@@ -55,12 +53,14 @@ impl ButtonInformation {
             return None;
         }
         match byte_data[0] {
-            0x01u8 => Some(ButtonInformation { time: time::Instant::now(), state: ButtonState::from(byte_data[1]) }),
+            0x01u8 => Some(ButtonInformation {
+                time: time::Instant::now(),
+                state: ButtonState::from(byte_data[1]),
+            }),
             _ => None,
         }
     }
 }
-
 
 pub async fn read(interface: &dyn CubeInterface) -> Result<Vec<u8>> {
     interface.read(CoreCubeUuid::ButtonInfo.into()).await

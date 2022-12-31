@@ -1,8 +1,8 @@
 //! Official Specification: <https://toio.github.io/toio-spec/docs/hardware_position_id>
 
 use serde::Serialize;
-use std::ops::{Add, Sub};
 use std::convert::{From, TryFrom};
+use std::ops::{Add, Sub};
 
 /// Point
 
@@ -26,18 +26,15 @@ impl TryFrom<&[usize]> for Point {
 
     fn try_from(data: &[usize]) -> Result<Self, Self::Error> {
         if (data[0] <= isize::MAX as usize) && (data[1] <= isize::MAX as usize) {
-            Ok(
-                Self {
-                    x: data[0] as isize,
-                    y: data[1] as isize,
-                }
-            )
+            Ok(Self {
+                x: data[0] as isize,
+                y: data[1] as isize,
+            })
         } else {
             Err(())
         }
     }
 }
-
 
 impl Add for Point {
     type Output = Self;
@@ -156,7 +153,7 @@ pub enum ToioMat {
     PicotonsAutoplayMat,
     SimpleMat,
     GesundroidMat,
-    UserDefinedMat { rect: MatRect} ,
+    UserDefinedMat { rect: MatRect },
 }
 
 impl ToioMat {
@@ -201,10 +198,9 @@ impl ToioMat {
                 top_left: Point { x: 1050, y: 45 },
                 bottom_right: Point { x: 1460, y: 455 },
             },
-            ToioMat::UserDefinedMat { rect } =>  *rect,
+            ToioMat::UserDefinedMat { rect } => *rect,
         }
     }
-
 }
 
 /// Cube location on a toio mat
@@ -262,7 +258,7 @@ impl Sub for RelativeCubeLocation {
 impl RelativeCubeLocation {
     pub fn new_from_absolute_location(mat: ToioMat, abs_location: CubeLocation) -> Self {
         Self {
-            location:  CubeLocation {
+            location: CubeLocation {
                 point: abs_location.point - mat.rect().top_left,
                 angle: abs_location.angle,
             },
@@ -366,10 +362,10 @@ mod test {
             rect: MatRect {
                 top_left: Point { x: 10, y: 10 },
                 bottom_right: Point { x: 30, y: 30 },
-            }
+            },
         };
         let rect1 = toio_mat.rect();
-        let rect2: MatRect  = MatRect {
+        let rect2: MatRect = MatRect {
             top_left: Point { x: 10, y: 10 },
             bottom_right: Point { x: 30, y: 30 },
         };
@@ -389,12 +385,12 @@ mod test {
     fn position_mat3() {
         let relative_location: RelativeCubeLocation = RelativeCubeLocation {
             location: CubeLocation {
-                point: Point { x: 0, y:0 },
-                angle: 0 },
-                mat: ToioMat::GesundroidMat,
+                point: Point { x: 0, y: 0 },
+                angle: 0,
+            },
+            mat: ToioMat::GesundroidMat,
         };
         let absolute_point = ToioMat::GesundroidMat.rect().top_left;
         assert_eq!(absolute_point, relative_location.absolute_point());
     }
-
 }

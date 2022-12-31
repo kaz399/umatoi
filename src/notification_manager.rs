@@ -40,16 +40,13 @@ where
     }
 
     /// register notification handler
-    pub fn register(
-        &self,
-        func: HandlerFunction<T>,
-    ) -> Result<uuid::Uuid> {
+    pub fn register(&self, func: HandlerFunction<T>) -> Result<uuid::Uuid> {
         let id = Uuid::new_v4();
         debug!("uuid: {}", id);
         let order_binding = self.order.clone();
         let mut order = order_binding.lock().unwrap();
         if !order.contains(&id) {
-            let handlers_binding  = self.handlers.clone();
+            let handlers_binding = self.handlers.clone();
             let mut handlers = handlers_binding.lock().unwrap();
             order.push(id);
             handlers.insert(id, func);
@@ -60,15 +57,12 @@ where
     }
 
     /// unregister notification handler
-    pub fn unregister(
-        &self,
-        id: uuid::Uuid,
-    ) -> Result<bool> {
+    pub fn unregister(&self, id: uuid::Uuid) -> Result<bool> {
         let order_binding = self.order.clone();
         let mut order = order_binding.lock().unwrap();
         for (index, registered_id) in order.iter().enumerate() {
             if id == *registered_id {
-                let handlers_binding  = self.handlers.clone();
+                let handlers_binding = self.handlers.clone();
                 let mut handlers = handlers_binding.lock().unwrap();
                 handlers.remove(registered_id);
                 order.remove(index);
@@ -79,13 +73,10 @@ where
     }
 
     /// invoke all handlers
-    pub fn invoke_all_handlers(
-        &self,
-        data: T,
-    ) -> Result<bool> {
+    pub fn invoke_all_handlers(&self, data: T) -> Result<bool> {
         let order_binding = self.order.clone();
         let order = order_binding.lock().unwrap();
-        let handlers_binding  = self.handlers.clone();
+        let handlers_binding = self.handlers.clone();
         let handlers = handlers_binding.lock().unwrap();
         for id in order.iter() {
             debug!("invoke handler {}", id);

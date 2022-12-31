@@ -53,18 +53,54 @@ impl IdInformation {
                     Some(IdInformation::PositionId(PositionIdData {
                         center: CubeLocation {
                             point: Point {
-                                x: isize::from_le_bytes([byte_code[1], byte_code[2], 0, 0, 0, 0, 0, 0]),
-                                y: isize::from_le_bytes([byte_code[3], byte_code[4], 0, 0, 0, 0, 0, 0]),
+                                x: isize::from_le_bytes([
+                                    byte_code[1],
+                                    byte_code[2],
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                ]),
+                                y: isize::from_le_bytes([
+                                    byte_code[3],
+                                    byte_code[4],
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                ]),
                             },
                             angle: u16::from_le_bytes([byte_code[5], byte_code[6]]),
                         },
                         sensor: CubeLocation {
                             point: Point {
-                                x: isize::from_le_bytes([byte_code[7], byte_code[8], 0, 0, 0, 0, 0, 0]),
-                                y: isize::from_le_bytes([byte_code[9], byte_code[10], 0, 0, 0, 0, 0, 0]),
+                                x: isize::from_le_bytes([
+                                    byte_code[7],
+                                    byte_code[8],
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                ]),
+                                y: isize::from_le_bytes([
+                                    byte_code[9],
+                                    byte_code[10],
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                ]),
                             },
                             angle: u16::from_le_bytes([byte_code[11], byte_code[12]]),
-                        }
+                        },
                     }))
                 } else {
                     None
@@ -123,8 +159,14 @@ mod test {
         _setup();
 
         let res = IdInformation::PositionId(PositionIdData {
-            center: CubeLocation { point: Point { x:1, y:2 }, angle: 3 },
-            sensor: CubeLocation { point: Point { x:4, y:5 }, angle: 6 },
+            center: CubeLocation {
+                point: Point { x: 1, y: 2 },
+                angle: 3,
+            },
+            sensor: CubeLocation {
+                point: Point { x: 4, y: 5 },
+                angle: 6,
+            },
         });
         let payload = res.to_payload();
         println!("len:{:2} data:{:?}", payload.len(), payload);

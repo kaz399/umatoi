@@ -21,12 +21,8 @@ impl Response {
         if let Some(response_data) = ResponseMotorControlTarget::new(byte_data) {
             return Some(Response::MotorControlTarget(response_data));
         }
-        if let Some(response_data) =
-            ResponseMotorControlMultipleTargets::new(byte_data)
-        {
-            return Some(Response::MotorControlMultipleTargets(
-                response_data,
-            ));
+        if let Some(response_data) = ResponseMotorControlMultipleTargets::new(byte_data) {
+            return Some(Response::MotorControlMultipleTargets(response_data));
         }
         if let Some(response_data) = ResponseMotorSpeed::new(byte_data) {
             return Some(Response::MotorSpeed(response_data));
@@ -39,9 +35,7 @@ impl From<Response> for u8 {
     fn from(response_type: Response) -> u8 {
         match response_type {
             Response::MotorControlTarget(_) => CommandId::TargetPosition.response(),
-            Response::MotorControlMultipleTargets(_) => {
-                CommandId::MultiTargetPositions.response()
-            }
+            Response::MotorControlMultipleTargets(_) => CommandId::MultiTargetPositions.response(),
             Response::MotorSpeed(_) => 0xe0u8,
         }
     }
@@ -93,11 +87,10 @@ mod test {
     fn motor_response2() {
         _setup();
 
-        let res =
-            Response::MotorControlTarget(ResponseMotorControlTarget {
-                request_id: RequestId::new(),
-                response_code: ResponseCode::ErrorTimeout,
-            });
+        let res = Response::MotorControlTarget(ResponseMotorControlTarget {
+            request_id: RequestId::new(),
+            response_code: ResponseCode::ErrorTimeout,
+        });
         let payload = res.to_payload();
         println!("len:{:2} data:{:?}", payload.len(), payload);
         assert_eq!(payload.len(), 3);
@@ -107,12 +100,10 @@ mod test {
     fn motor_response3() {
         _setup();
 
-        let res = Response::MotorControlMultipleTargets(
-            ResponseMotorControlMultipleTargets {
-                request_id: RequestId::new(),
-                response_code: ResponseCode::ErrorInvalidParameter,
-            },
-        );
+        let res = Response::MotorControlMultipleTargets(ResponseMotorControlMultipleTargets {
+            request_id: RequestId::new(),
+            response_code: ResponseCode::ErrorInvalidParameter,
+        });
         let payload = res.to_payload();
         println!("len:{:2} data:{:?}", payload.len(), payload);
         assert_eq!(payload.len(), 3);

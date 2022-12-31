@@ -41,7 +41,7 @@ impl Serialize for CommandId {
 /// Indicator color
 
 #[derive(Serialize, Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub struct Color{
+pub struct Color {
     pub r: u8,
     pub g: u8,
     pub b: u8,
@@ -191,7 +191,6 @@ impl Default for RepeatedTuringOnAndOff {
         }
     }
 }
-
 
 /// TurnOffAll
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_light#turn-off-all-indicators>

@@ -1,8 +1,8 @@
 //! Official Specification:  <https://toio.github.io/toio-spec/en/docs/ble_battery>
 
-use anyhow::Result;
-use crate::device_interface::CubeInterface;
 use crate::characteristic::characteristic_uuid::CoreCubeUuid;
+use crate::device_interface::CubeInterface;
+use anyhow::Result;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BatteryInformation {
@@ -11,9 +11,7 @@ pub struct BatteryInformation {
 
 impl Default for BatteryInformation {
     fn default() -> Self {
-        Self {
-            level: 0,
-        }
+        Self { level: 0 }
     }
 }
 
@@ -22,13 +20,11 @@ impl BatteryInformation {
         if byte_data.is_empty() {
             return None;
         }
-        Some(BatteryInformation{
+        Some(BatteryInformation {
             level: byte_data[1].into(),
-        }
-        )
+        })
     }
 }
-
 
 pub async fn read(interface: &dyn CubeInterface) -> Result<Vec<u8>> {
     interface.read(CoreCubeUuid::BatteryInfo.into()).await

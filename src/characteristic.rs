@@ -14,4 +14,3 @@ use btleplug::api::ValueNotification;
 
 pub type NotificationData = ValueNotification;
 pub type NotificationHandler = HandlerFunction<NotificationData>;
-

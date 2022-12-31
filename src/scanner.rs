@@ -1,13 +1,10 @@
+use anyhow::Result;
 use std::error::Error;
 use std::time::Duration;
 use tokio::time;
-use anyhow::Result;
-
 
 use btleplug::api::{Central, Manager as _, Peripheral as _, ScanFilter};
 use btleplug::platform::Manager;
-
-
 
 pub async fn scan_example(
     filter: ScanFilter,
