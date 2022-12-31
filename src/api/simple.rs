@@ -1,9 +1,9 @@
 //! Simple API
 
 use anyhow::Result;
-use crate::cube::motor::acceleration::{Acceleration, AngleVelocity, Priority};
-use crate::cube::motor::def::Period;
-use crate::cube::motor::target::TargetPosition;
+use crate::characteristic::motor::acceleration::{Acceleration, AngleVelocity, Priority};
+use crate::characteristic::motor::def::Period;
+use crate::characteristic::motor::target::TargetPosition;
 use async_trait::async_trait;
 
 #[async_trait]

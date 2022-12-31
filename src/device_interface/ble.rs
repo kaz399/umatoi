@@ -1,6 +1,7 @@
 use anyhow::Result;
-use crate::cube::characteristic_uuid::CoreCubeUuid;
-use crate::cube::{CoreCubeError, NotificationData};
+use crate::characteristic::characteristic_uuid::CoreCubeUuid;
+use crate::characteristic::NotificationData;
+use crate::cube::CoreCubeError;
 use crate::device_interface::CubeInterface;
 use crate::notification_manager::NotificationManager;
 use async_trait::async_trait;
@@ -176,7 +177,7 @@ impl BleScanner
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cube::id_information::{self, IdInformation};
+    use crate::characteristic::id_information::{self, IdInformation};
     use std::sync::Arc;
     use std::time::Duration;
     use tokio::time;

@@ -1,4 +1,5 @@
 pub mod api;
+pub mod characteristic;
 pub mod cube;
 pub mod device_interface;
 pub mod notification_manager;

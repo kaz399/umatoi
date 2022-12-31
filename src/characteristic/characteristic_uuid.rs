@@ -11,6 +11,7 @@ const TOIO_UUID_LIGHT_CTRL: Uuid = Uuid::from_u128(0x10B20103_5B3B_4571_9508_CF3
 const TOIO_UUID_SOUND_CTRL: Uuid = Uuid::from_u128(0x10B20104_5B3B_4571_9508_CF3EFCD7BBAE);
 const TOIO_UUID_CONFIG: Uuid = Uuid::from_u128(0x10B201FF_5B3B_4571_9508_CF3EFCD7BBAE);
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum CoreCubeUuid {
     Service,
     IdInfo,
@@ -50,6 +51,12 @@ impl CoreCubeUuid {
             CoreCubeUuid::SoundCtrl => "SoundCtrl",
             CoreCubeUuid::Config => "Config",
         }
+    }
+}
+
+impl From<CoreCubeUuid> for Uuid {
+    fn from(value: CoreCubeUuid) -> Self {
+        value.uuid()
     }
 }
 

@@ -1,5 +1,5 @@
 use super::def::ConfigurationType;
-use crate::cube::sensor::posture_angle::PostureDataType;
+use crate::characteristic::sensor::posture_angle::PostureDataType;
 use serde::Serialize;
 use serde::Serializer;
 
