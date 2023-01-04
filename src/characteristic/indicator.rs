@@ -1,9 +1,11 @@
 //! Official Specification: <https://toio.github.io/toio-spec/en/docs/ble_light>
 
-use anyhow::Result;
 use crate::characteristic::characteristic_uuid::CoreCubeUuid;
 use crate::device_interface::CubeInterface;
 use crate::payload::ToPayload;
+use anyhow::Result;
+use serde::ser::SerializeSeq;
+use serde::ser::SerializeStruct;
 use serde::Serialize;
 use serde::Serializer;
 use std::cmp::min;
@@ -43,7 +45,7 @@ impl Serialize for CommandId {
 
 /// Indicator color
 
-#[derive(Serialize, Debug, Default, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -76,9 +78,22 @@ impl ToPayload<Vec<u8>> for Color {
     }
 }
 
+impl Serialize for Color {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut color = serializer.serialize_struct("Color", 3)?;
+        color.serialize_field("r", &self.r)?;
+        color.serialize_field("g", &self.g)?;
+        color.serialize_field("b", &self.b)?;
+        color.end()
+    }
+}
+
 /// Period
 
-#[derive(Serialize, Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct Period {
     pub period: u8,
 }
@@ -111,6 +126,17 @@ impl ToPayload<Vec<u8>> for Period {
     }
 }
 
+impl Serialize for Period {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut color = serializer.serialize_struct("Period", 1)?;
+        color.serialize_field("period", &self.period)?;
+        color.end()
+    }
+}
+
 /// Indicator parameter
 
 #[derive(Default, Debug, Copy, Clone)]
@@ -126,6 +152,26 @@ impl ToPayload<Vec<u8>> for Params {
         payload.push(1);
         payload.extend(&self.color.to_payload());
         payload
+    }
+}
+
+impl Serialize for Params {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let duration = bincode::serialize(&self.duration).unwrap();
+        let color = bincode::serialize(&self.color).unwrap();
+        let mut params = serializer.serialize_seq(Some(duration.len() + 2 + color.len()))?;
+        for data in duration {
+            params.serialize_element(&data)?;
+        }
+        params.serialize_element(&1u8)?;
+        params.serialize_element(&1u8)?;
+        for data in color {
+            params.serialize_element(&data)?;
+        }
+        params.end()
     }
 }
 
@@ -155,6 +201,22 @@ impl Default for TurningOnAndOff {
             id: 0x01,
             params: Params::default(),
         }
+    }
+}
+
+impl Serialize for TurningOnAndOff {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let params = bincode::serialize(&self.params).unwrap();
+        let mut payload = serializer.serialize_seq(Some(params.len() + 2))?;
+        payload.serialize_element(&self.command)?;
+        payload.serialize_element(&self.id)?;
+        for data in params {
+            payload.serialize_element(&data)?;
+        }
+        payload.end()
     }
 }
 
@@ -243,7 +305,6 @@ impl Default for TurnOff {
         }
     }
 }
-
 
 pub async fn write(interface: &dyn CubeInterface, bytes: &[u8]) -> Result<bool> {
     interface.write(CoreCubeUuid::LightCtrl.into(), bytes).await
