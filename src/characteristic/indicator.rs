@@ -8,7 +8,6 @@ use serde::ser::SerializeSeq;
 use serde::ser::SerializeStruct;
 use serde::Serialize;
 use serde::Serializer;
-use std::cmp::min;
 
 /// Command
 ///
@@ -145,16 +144,6 @@ pub struct Params {
     pub color: Color,
 }
 
-impl ToPayload<Vec<u8>> for Params {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload = self.duration.to_payload();
-        payload.push(1);
-        payload.push(1);
-        payload.extend(&self.color.to_payload());
-        payload
-    }
-}
-
 impl Serialize for Params {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -181,24 +170,13 @@ impl Serialize for Params {
 #[derive(Debug, Copy, Clone)]
 pub struct TurningOnAndOff {
     pub command: CommandId,
-    pub id: u8,
     pub params: Params,
-}
-
-impl ToPayload<Vec<u8>> for TurningOnAndOff {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload = bincode::serialize(&self.command).unwrap();
-        payload.extend(&self.params.to_payload());
-        payload[3] = self.id;
-        payload
-    }
 }
 
 impl Default for TurningOnAndOff {
     fn default() -> Self {
         Self {
             command: CommandId::TurningOnAndOff,
-            id: 0x01,
             params: Params::default(),
         }
     }
@@ -210,9 +188,8 @@ impl Serialize for TurningOnAndOff {
         S: Serializer,
     {
         let params = bincode::serialize(&self.params).unwrap();
-        let mut payload = serializer.serialize_seq(Some(params.len() + 2))?;
+        let mut payload = serializer.serialize_seq(Some(params.len() + 1))?;
         payload.serialize_element(&self.command)?;
-        payload.serialize_element(&self.id)?;
         for data in params {
             payload.serialize_element(&data)?;
         }
@@ -227,23 +204,7 @@ impl Serialize for TurningOnAndOff {
 pub struct RepeatedTuringOnAndOff {
     pub command: CommandId,
     pub repeat: u8,
-    pub id: u8,
     pub params_list: Vec<Params>,
-}
-
-impl ToPayload<Vec<u8>> for RepeatedTuringOnAndOff {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload = bincode::serialize(&self.command).unwrap();
-        payload.push(self.repeat);
-        let num_of_params = min(self.params_list.len(), u8::MAX.into()) as u8;
-        payload.push(num_of_params);
-        for params in &self.params_list {
-            let mut params_payload = params.to_payload();
-            params_payload[2] = self.id;
-            payload.extend(params_payload);
-        }
-        payload
-    }
 }
 
 impl Default for RepeatedTuringOnAndOff {
@@ -251,11 +212,28 @@ impl Default for RepeatedTuringOnAndOff {
         Self {
             command: CommandId::RepeatedTuringOnAndOff,
             repeat: 1,
-            id: 1,
             params_list: Vec::new(),
         }
     }
 }
+
+impl Serialize for RepeatedTuringOnAndOff {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let params_list= bincode::serialize(&self.params_list).unwrap();
+        let mut payload = serializer.serialize_seq(Some(params_list.len() + 3))?;
+        payload.serialize_element(&self.command)?;
+        payload.serialize_element(&self.repeat)?;
+        payload.serialize_element(&self.params_list.len())?;
+        for data in params_list {
+            payload.serialize_element(&data)?;
+        }
+        payload.end()
+    }
+}
+
 
 /// TurnOffAll
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_light#turn-off-all-indicators>

@@ -1,11 +1,18 @@
 //! Official Specification: <https://toio.github.io/toio-spec/en/docs/ble_motor>
 
+use crate::characteristic::characteristic_uuid::CoreCubeUuid;
+use crate::device_interface::CubeInterface;
+use anyhow::Result;
 pub mod acceleration;
 pub mod control;
 pub mod def;
 pub mod response;
 pub mod speed;
 pub mod target;
+
+pub async fn write(interface: &dyn CubeInterface, bytes: &[u8]) -> Result<bool> {
+    interface.write(CoreCubeUuid::MotorCtrl.into(), bytes).await
+}
 
 #[cfg(test)]
 mod test {
