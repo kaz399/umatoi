@@ -2,7 +2,6 @@
 
 use crate::characteristic::characteristic_uuid::CoreCubeUuid;
 use crate::device_interface::CubeInterface;
-use crate::payload::ToPayload;
 use anyhow::Result;
 use serde::ser::SerializeSeq;
 use serde::ser::SerializeStruct;
@@ -71,12 +70,6 @@ impl From<u32> for Color {
     }
 }
 
-impl ToPayload<Vec<u8>> for Color {
-    fn to_payload(self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
-    }
-}
-
 impl Serialize for Color {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -116,12 +109,6 @@ impl Period {
             },
             _ => Period { period: 0 },
         }
-    }
-}
-
-impl ToPayload<Vec<u8>> for Period {
-    fn to_payload(self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
     }
 }
 
@@ -170,6 +157,7 @@ impl Serialize for Params {
 #[derive(Debug, Copy, Clone)]
 pub struct TurningOnAndOff {
     pub command: CommandId,
+    pub id: u8,
     pub params: Params,
 }
 
@@ -177,6 +165,7 @@ impl Default for TurningOnAndOff {
     fn default() -> Self {
         Self {
             command: CommandId::TurningOnAndOff,
+            id: 1,
             params: Params::default(),
         }
     }
@@ -190,8 +179,12 @@ impl Serialize for TurningOnAndOff {
         let params = bincode::serialize(&self.params).unwrap();
         let mut payload = serializer.serialize_seq(Some(params.len() + 1))?;
         payload.serialize_element(&self.command)?;
-        for data in params {
-            payload.serialize_element(&data)?;
+        for (i, data ) in params.iter().enumerate() {
+            if (i % 6) == 2 {
+                payload.serialize_element(&self.id)?;
+            } else {
+                payload.serialize_element(&data)?;
+            }
         }
         payload.end()
     }
@@ -204,6 +197,7 @@ impl Serialize for TurningOnAndOff {
 pub struct RepeatedTuringOnAndOff {
     pub command: CommandId,
     pub repeat: u8,
+    pub id: u8,
     pub params_list: Vec<Params>,
 }
 
@@ -212,6 +206,7 @@ impl Default for RepeatedTuringOnAndOff {
         Self {
             command: CommandId::RepeatedTuringOnAndOff,
             repeat: 1,
+            id: 1,
             params_list: Vec::new(),
         }
     }
@@ -227,8 +222,12 @@ impl Serialize for RepeatedTuringOnAndOff {
         payload.serialize_element(&self.command)?;
         payload.serialize_element(&self.repeat)?;
         payload.serialize_element(&self.params_list.len())?;
-        for data in params_list {
-            payload.serialize_element(&data)?;
+        for (i, data ) in params_list.iter().enumerate() {
+            if (i % 6) == 2 {
+                payload.serialize_element(&self.id)?;
+            } else {
+                payload.serialize_element(&data)?;
+            }
         }
         payload.end()
     }
@@ -243,17 +242,22 @@ pub struct TurnOffAll {
     command: CommandId,
 }
 
-impl ToPayload<Vec<u8>> for TurnOffAll {
-    fn to_payload(self) -> Vec<u8> {
-        bincode::serialize(&self.command).unwrap()
-    }
-}
-
 impl Default for TurnOffAll {
     fn default() -> Self {
         Self {
             command: CommandId::TurnOffAll,
         }
+    }
+}
+
+impl Serialize for TurnOffAll {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut payload = serializer.serialize_seq(Some(1))?;
+        payload.serialize_element(&self.command)?;
+        payload.end()
     }
 }
 
@@ -266,15 +270,6 @@ pub struct TurnOff {
     pub id: u8,
 }
 
-impl ToPayload<Vec<u8>> for TurnOff {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload = bincode::serialize(&self.command).unwrap();
-        payload.push(1);
-        payload.push(self.id);
-        payload
-    }
-}
-
 impl Default for TurnOff {
     fn default() -> Self {
         Self {
@@ -283,6 +278,19 @@ impl Default for TurnOff {
         }
     }
 }
+
+impl Serialize for TurnOff {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut payload = serializer.serialize_seq(Some(2))?;
+        payload.serialize_element(&self.command)?;
+        payload.serialize_element(&self.id)?;
+        payload.end()
+    }
+}
+
 
 pub async fn write(interface: &dyn CubeInterface, bytes: &[u8]) -> Result<bool> {
     interface.write(CoreCubeUuid::LightCtrl.into(), bytes).await
