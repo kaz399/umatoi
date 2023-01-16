@@ -6,7 +6,7 @@ use crate::notification_manager::NotificationManager;
 use anyhow::Result;
 use async_trait::async_trait;
 use btleplug::api::{
-    Central, CharPropFlags, Characteristic, Manager as _, Peripheral as _, ScanFilter, WriteType,
+    Central, CharPropFlags, Characteristic, Manager as _, Peripheral as _, ScanFilter, WriteType, BDAddr,
 };
 use btleplug::platform::{Manager, Peripheral};
 use futures::stream::StreamExt;
@@ -156,6 +156,14 @@ impl BleScanner {
         }
         Ok(peripheral_list)
     }
+    
+    pub async fn scan_with_address(&self, address_list: &[BDAddr], wait: Duration) -> Result<Vec<BleInterface>> {
+        Ok(Vec::new())
+    }
+
+    pub async fn scan_with_name(&self, name_list: &[&str], wait: Duration) -> Result<Vec<BleInterface>> {
+        Ok(Vec::new())
+    }
 }
 
 #[cfg(test)]
@@ -203,54 +211,36 @@ mod tests {
     async fn cube_scan1() {
         _setup();
         let mut scanner = BleScanner;
-        let mut cube = CoreCube::<BleCubeInterface>::new();
-        cube.scan(None, None, Duration::from_secs(5)).await.unwrap();
-        drop(cube);
+        let mut interfaces = scanner.scan(1, Duration::from_secs(5)).await.unwrap();
+        assert!(! interfaces.is_empty());
         _teardown();
     }
 
     #[tokio::test]
     async fn cube_scan2() {
         _setup();
-        let mut cube = CoreCube::<BleCubeInterface>::new();
-        cube.scan(
+        let mut scanner = BleScanner;
+        let mut interfaces = scanner.scan_with_address(
             Some(BDAddr::from(TEST_CUBE_BDADDR)),
-            None,
             Duration::from_secs(3),
         )
         .await
         .unwrap();
-        drop(cube);
+        assert!(! interfaces.is_empty());
         _teardown();
     }
 
     #[tokio::test]
     async fn cube_scan3() {
         _setup();
-        let mut cube = CoreCube::<BleCubeInterface>::new();
-        cube.scan(
-            None,
+        let mut scanner = BleScanner;
+        let mut interfaces = scanner.scan_with_name(
             Some(TEST_CUBE_NAME.to_string()),
             Duration::from_secs(3),
         )
         .await
         .unwrap();
-        drop(cube);
-        _teardown();
-    }
-
-    #[tokio::test]
-    async fn cube_scan4() {
-        _setup();
-        let mut cube = CoreCube::<BleCubeInterface>::new();
-        cube.scan(
-            Some(BDAddr::from(TEST_CUBE_BDADDR)),
-            Some(TEST_CUBE_NAME.to_string()),
-            Duration::from_secs(3),
-        )
-        .await
-        .unwrap();
-        drop(cube);
+        assert!(! interfaces.is_empty());
         _teardown();
     }
 

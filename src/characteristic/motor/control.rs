@@ -96,7 +96,7 @@ impl MotorControlWithSpecifiedDuration {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::cube::motor::def::{MotorId, Velocity};
+    use crate::characteristic::motor::def::{MotorId, Velocity};
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();

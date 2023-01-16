@@ -124,7 +124,9 @@ mod tests {
         let _handler2 = notification_manager.register(Box::new(&func2)).unwrap();
         let _handler3 = notification_manager.register(Box::new(&func3)).unwrap();
 
-        assert_eq!(notification_manager.handlers.len(), 3);
+        let handlers_bindings = notification_manager.handlers.clone();
+        let handlers = handlers_bindings.lock().unwrap();
+        assert_eq!(handlers.len(), 3);
     }
 
     #[test]
@@ -136,13 +138,21 @@ mod tests {
         let handler2 = notification_manager.register(Box::new(&func2)).unwrap();
         let handler3 = notification_manager.register(Box::new(&func3)).unwrap();
 
-        assert_eq!(notification_manager.handlers.len(), 3);
+        {
+            let handlers_bindings = notification_manager.handlers.clone();
+            let handlers = handlers_bindings.lock().unwrap();
+            assert_eq!(handlers.len(), 3);
+        }
 
         notification_manager.unregister(handler3).unwrap();
         notification_manager.unregister(handler2).unwrap();
         notification_manager.unregister(handler1).unwrap();
 
-        assert_eq!(notification_manager.handlers.len(), 0);
+        {
+            let handlers_bindings = notification_manager.handlers.clone();
+            let handlers = handlers_bindings.lock().unwrap();
+            assert_eq!(handlers.len(), 0);
+        }
     }
 
     #[test]
@@ -154,13 +164,21 @@ mod tests {
         let handler2 = notification_manager.register(Box::new(&func2)).unwrap();
         let handler3 = notification_manager.register(Box::new(&func3)).unwrap();
 
-        assert_eq!(notification_manager.handlers.len(), 3);
+        {
+            let handlers_bindings = notification_manager.handlers.clone();
+            let handlers = handlers_bindings.lock().unwrap();
+            assert_eq!(handlers.len(), 3);
+        }
 
         notification_manager.unregister(handler1).unwrap();
         notification_manager.unregister(handler2).unwrap();
         notification_manager.unregister(handler3).unwrap();
 
-        assert_eq!(notification_manager.handlers.len(), 0);
+        {
+            let handlers_bindings = notification_manager.handlers.clone();
+            let handlers = handlers_bindings.lock().unwrap();
+            assert_eq!(handlers.len(), 0);
+        }
     }
 
     #[test]
@@ -172,7 +190,11 @@ mod tests {
         let handler2 = notification_manager.register(Box::new(&func2)).unwrap();
         let handler3 = notification_manager.register(Box::new(&func3)).unwrap();
 
-        assert_eq!(notification_manager.handlers.len(), 3);
+        {
+            let handlers_bindings = notification_manager.handlers.clone();
+            let handlers = handlers_bindings.lock().unwrap();
+            assert_eq!(handlers.len(), 3);
+        }
 
         let data = Vec::from(NOTIFY_DATA_ARRAY);
         let result = notification_manager.invoke_all_handlers(data);
@@ -182,6 +204,10 @@ mod tests {
         notification_manager.unregister(handler2).unwrap();
         notification_manager.unregister(handler3).unwrap();
 
-        assert_eq!(notification_manager.handlers.len(), 0);
+        {
+            let handlers_bindings = notification_manager.handlers.clone();
+            let handlers = handlers_bindings.lock().unwrap();
+            assert_eq!(handlers.len(), 0);
+        }
     }
 }

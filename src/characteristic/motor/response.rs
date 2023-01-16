@@ -62,9 +62,9 @@ impl ToPayload<Vec<u8>> for Response {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::cube::motor::def::RequestId;
-    use crate::cube::motor::def::ResponseCode;
-    use crate::cube::motor::speed::ResponseMotorSpeed;
+    use crate::characteristic::motor::def::RequestId;
+    use crate::characteristic::motor::def::ResponseCode;
+    use crate::characteristic::motor::speed::ResponseMotorSpeed;
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
