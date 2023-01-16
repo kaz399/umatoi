@@ -117,6 +117,12 @@ impl BleScanner {
         let adapter_list = manager.adapters().await?;
         let mut peripheral_list: Vec<BleInterface> = Vec::new();
 
+        struct RssiBle {
+            rssi: i16,
+            ble: BleInterface
+        }
+        let mut rssi_peripheral_list: Vec<RssiBle> = Vec::new();
+
         if adapter_list.is_empty() {
             error!("No Bluetooth adapters found");
             return Ok(peripheral_list);
@@ -138,8 +144,18 @@ impl BleScanner {
                     info!("service uuid: {}", service_uuid);
                     if *service_uuid == CoreCubeUuid::Service.uuid() {
                         debug!("found toio core cube: service uuid: {}", service_uuid);
-                        peripheral_list.push(peripheral.clone());
+                        let rssi = peripheral.properties().await.unwrap().unwrap().rssi.unwrap();
+                        let rssi_ble = RssiBle {
+                            rssi,
+                            ble: peripheral.clone()
+
+                        };
+                        rssi_peripheral_list.push(rssi_ble);
                     }
+                }
+                rssi_peripheral_list.sort_by(|a, b| a.rssi.cmp(&b.rssi));
+                for inerface in rssi_peripheral_list.iter() {
+                    peripheral_list.push(inerface.ble.clone());
                 }
             }
         }
@@ -156,7 +172,7 @@ impl BleScanner {
         }
         Ok(peripheral_list)
     }
-    
+
     pub async fn scan_with_address(&self, address_list: &[BDAddr], wait: Duration) -> Result<Vec<BleInterface>> {
         Ok(Vec::new())
     }
