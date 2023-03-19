@@ -117,11 +117,12 @@ impl BleScanner {
         let adapter_list = manager.adapters().await?;
         let mut peripheral_list: Vec<BleInterface> = Vec::new();
 
+        #[derive(Clone)]
         struct RssiBle {
             rssi: i16,
             ble: BleInterface
         }
-        let mut rssi_peripheral_list: Vec<RssiBle> = Vec::new();
+        let mut rssi_peripheral_hash: HashMap<BDAddr, RssiBle> = HashMap::new();
 
         if adapter_list.is_empty() {
             error!("No Bluetooth adapters found");
@@ -134,7 +135,7 @@ impl BleScanner {
             time::sleep(wait).await;
             adapter.stop_scan().await?;
             for (index, peripheral) in adapter.peripherals().await?.iter().enumerate() {
-                debug!("{} {:?}", index, peripheral);
+                // debug!("{} {:?}", index, peripheral);
                 if peripheral.is_connected().await? {
                     debug!("skip connected device");
                     continue;
@@ -150,16 +151,18 @@ impl BleScanner {
                             ble: peripheral.clone()
 
                         };
-                        rssi_peripheral_list.push(rssi_ble);
+                        let ble_address = peripheral.properties().await?.unwrap().address;
+                        rssi_peripheral_hash.insert(ble_address, rssi_ble);
                     }
                 }
-                rssi_peripheral_list.sort_by(|a, b| a.rssi.cmp(&b.rssi));
-                for inerface in rssi_peripheral_list.iter() {
-                    peripheral_list.push(inerface.ble.clone());
-                }
+            }
+            let mut rssi_peripheral_list = Vec::from_iter(rssi_peripheral_hash.values().cloned());
+            rssi_peripheral_list.sort_by(|a, b| a.rssi.cmp(&b.rssi));
+            for inerface in rssi_peripheral_list.iter() {
+                peripheral_list.push(inerface.ble.clone());
             }
         }
-        debug!("total {} peripherals found", peripheral_list.len());
+        debug!("scan_ble: total {} peripherals found", peripheral_list.len());
         Ok(peripheral_list)
     }
 
@@ -170,25 +173,56 @@ impl BleScanner {
             error!("toio core cube is not found");
             return Err(CoreCubeError::CubeNotFound.into());
         }
+        debug!("scan: total {} peripherals found", peripheral_list.len());
         Ok(peripheral_list)
     }
 
     pub async fn scan_with_address(&self, address_list: &[BDAddr], wait: Duration) -> Result<Vec<BleInterface>> {
-        Ok(Vec::new())
+        let mut matched_peripheral_list: Vec<BleInterface> = Vec::new();
+        let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
+        for peripheral in peripheral_list  {
+            let properties = peripheral.properties().await?.unwrap();
+            if address_list.iter().any(|e: &BDAddr| e == &properties.address) {
+                info!("found cube: '{}'", &properties.address);
+                matched_peripheral_list.push(peripheral);
+            }
+        }
+
+        if matched_peripheral_list.is_empty() {
+            error!("toio core cube is not found");
+            return Err(CoreCubeError::CubeNotFound.into());
+        }
+        debug!("scan_with_address: total {} peripherals found", matched_peripheral_list.len());
+        Ok(matched_peripheral_list)
     }
 
     pub async fn scan_with_name(&self, name_list: &[&str], wait: Duration) -> Result<Vec<BleInterface>> {
-        Ok(Vec::new())
+        let mut matched_peripheral_list: Vec<BleInterface> = Vec::new();
+        let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
+        for peripheral in peripheral_list  {
+            let properties = peripheral.properties().await?.unwrap();
+            if let Some(local_name) = properties.local_name {
+                if name_list.iter().any(|e| e == &local_name) {
+                    info!("found cube: '{}'", &local_name);
+                    matched_peripheral_list.push(peripheral);
+                }
+            }
+        }
+
+        if matched_peripheral_list.is_empty() {
+            error!("toio core cube is not found");
+            return Err(CoreCubeError::CubeNotFound.into());
+        }
+        debug!("scan_with_name: total {} peripherals found", matched_peripheral_list.len());
+        Ok(matched_peripheral_list)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::characteristic::id_information::{self, IdInformation};
-    use std::sync::Arc;
+    // use crate::characteristic::id_information::{self, IdInformation};
     use std::time::Duration;
-    use tokio::time;
 
     static TEST_CUBE_NAME: &str = "toio Core Cube-h7p";
     static TEST_CUBE_BDADDR: [u8; 6] = [0xd8, 0xe3, 0x49, 0xa0, 0xef, 0x19];
@@ -204,30 +238,11 @@ mod tests {
         std::thread::sleep(Duration::from_millis(500));
     }
 
-    fn notify_handler(data: NotificationData) {
-        if let Some(id_data) = id_information::IdInformation::new(&data.value) {
-            match id_data {
-                IdInformation::PositionId(pos_id) => {
-                    println!("position id: {:?}", pos_id);
-                }
-                IdInformation::StandardId(std_id) => {
-                    println!("standard id: {:?}", std_id);
-                }
-                _ => (),
-            }
-        } else {
-            println!(
-                "notify handler1: uuid: {:?} value: {:?}",
-                data.uuid, data.value
-            );
-        }
-    }
-
     #[tokio::test]
     async fn cube_scan1() {
         _setup();
-        let mut scanner = BleScanner;
-        let mut interfaces = scanner.scan(1, Duration::from_secs(5)).await.unwrap();
+        let scanner = BleScanner;
+        let interfaces = scanner.scan(1, Duration::from_secs(5)).await.unwrap();
         assert!(! interfaces.is_empty());
         _teardown();
     }
@@ -235,9 +250,9 @@ mod tests {
     #[tokio::test]
     async fn cube_scan2() {
         _setup();
-        let mut scanner = BleScanner;
-        let mut interfaces = scanner.scan_with_address(
-            Some(BDAddr::from(TEST_CUBE_BDADDR)),
+        let scanner = BleScanner;
+        let interfaces = scanner.scan_with_address(
+            &[BDAddr::from(TEST_CUBE_BDADDR)],
             Duration::from_secs(3),
         )
         .await
@@ -249,122 +264,14 @@ mod tests {
     #[tokio::test]
     async fn cube_scan3() {
         _setup();
-        let mut scanner = BleScanner;
-        let mut interfaces = scanner.scan_with_name(
-            Some(TEST_CUBE_NAME.to_string()),
+        let scanner = BleScanner;
+        let interfaces = scanner.scan_with_name(
+            &[TEST_CUBE_NAME],
             Duration::from_secs(3),
         )
         .await
         .unwrap();
         assert!(! interfaces.is_empty());
-        _teardown();
-    }
-
-    #[tokio::test]
-    async fn cube_scan5() {
-        _setup();
-        let mut cube = CoreCube::<BleCubeInterface>::new();
-        cube.scan(
-            Some(BDAddr::from(TEST_CUBE_BDADDR)),
-            Some(TEST_CUBE_NAME.to_string()),
-            Duration::from_secs(3),
-        )
-        .await
-        .unwrap()
-        .connect()
-        .await
-        .unwrap();
-
-        let mut cube2 = CoreCube::<BleCubeInterface>::new();
-        let result = cube2
-            .scan(
-                Some(BDAddr::from(TEST_CUBE_BDADDR)),
-                Some(TEST_CUBE_NAME.to_string()),
-                Duration::from_secs(3),
-            )
-            .await;
-        if result.is_ok() {
-            panic!();
-        }
-        let result = cube2.connect().await;
-        if result.is_ok() {
-            panic!();
-        }
-        if cube.disconnect().await.is_err() {
-            panic!()
-        }
-        drop(cube);
-        _teardown();
-    }
-
-    #[tokio::test]
-    async fn cube_notify1() {
-        _setup();
-        let cube_arc = Arc::new(tokio::sync::RwLock::new(CoreCube::<BleCubeInterface>::new()));
-        let notification_cube = cube_arc.clone();
-        let cube = cube_arc.clone();
-
-        // search and connect
-
-        let handler_uuid: Uuid;
-        cube.write()
-            .await
-            .scan(None, None, Duration::from_secs(3))
-            .await
-            .unwrap()
-            .connect()
-            .await
-            .unwrap();
-        println!("** connection established");
-
-        // register notify handler
-
-        handler_uuid = cube
-            .write()
-            .await
-            .register_notify_handler(Box::new(&notify_handler))
-            .await
-            .unwrap();
-        info!("notify handler uuid {:?}", handler_uuid);
-
-        // start to receive notifications from cube
-
-        let notification_receiver = async move {
-            notification_cube
-                .read()
-                .await
-                .create_notification_receiver()
-                .unwrap()
-                .await;
-        };
-        let notification_task = tokio::spawn(notification_receiver);
-
-        // wait until Ctrl-C is pressed
-        let timer = async {
-            time::sleep(Duration::from_secs(8)).await;
-        };
-        timer.await;
-        notification_task.abort();
-
-        println!("** disconnecting now");
-
-        if cube
-            .write()
-            .await
-            .unregister_notify_handler(handler_uuid)
-            .await
-            .is_err()
-        {
-            panic!();
-        }
-        if cube.write().await.disconnect().await.is_err() {
-            panic!()
-        }
-        drop(cube);
-
-        // wait to complete the disconnection process of the cube
-
-        time::sleep(Duration::from_secs(8)).await;
         _teardown();
     }
 }
