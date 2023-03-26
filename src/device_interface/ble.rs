@@ -12,6 +12,8 @@ use btleplug::platform::{Manager, Peripheral};
 use futures::stream::StreamExt;
 use log::{debug, error, info};
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
 use std::time::Duration;
 use std::vec::Vec;
 use tokio::time;
@@ -33,9 +35,20 @@ impl BleCube {
             notification_enabled: Vec::new(),
         }
     }
+
+    pub fn create_notification_receiver(&self, notification_handler: Box<dyn Fn(btleplug::api::ValueNotification) + Send + Sync>) -> Pin<Box<dyn Future<Output = ()> + Send>> {
+        let ble_peripheral = self.ble_peripheral.clone();
+        Box::pin(async {
+            let nf_manager = NotificationManager::<NotificationData>::new();
+            let handler_uuid = nf_manager.register(notification_handler).unwrap();
+            let _ = ble_notification_receiver(ble_peripheral, &nf_manager).await;
+            nf_manager.unregister(handler_uuid).unwrap();
+        })
+    }
+
 }
 
-pub async fn ble_notification_receiver(
+pub async fn ble_notification_receiver (
     ble_peripheral: Peripheral,
     notification_manager: &NotificationManager<NotificationData>,
 ) -> Result<()> {
