@@ -5,9 +5,8 @@ use time::Duration;
 use tokio::time;
 use umatoi::characteristic::id_information::IdInformation;
 use umatoi::characteristic::NotificationData;
-use umatoi::device_interface::ble::{ble_notification_receiver, BleCube, BleScanner};
+use umatoi::device_interface::ble::{BleCube, BleScanner};
 use umatoi::device_interface::CubeInterface;
-use umatoi::notification_manager::NotificationManager;
 
 #[derive(Parser)]
 #[clap(
@@ -76,27 +75,18 @@ pub async fn main() {
     let _arg: AppArg = AppArg::parse();
     let scanner = BleScanner;
     let found_interfaces = scanner.scan(1, Duration::from_secs(5)).await.unwrap();
-    let nf_manager = NotificationManager::<NotificationData>::new();
 
     assert!(!found_interfaces.is_empty());
 
     let mut cube = BleCube::new(found_interfaces[0].clone());
     cube.connect().await.unwrap();
 
-    let handler_uuid = nf_manager.register(Box::new(notify_handler)).unwrap();
-
-    let notification_task = tokio::spawn(async move {
-        println!("start notification task");
-        let _ = ble_notification_receiver(found_interfaces[0].clone(), &nf_manager).await;
-        println!("end notification task");
-        let result = nf_manager.unregister(handler_uuid).unwrap();
-        assert!(result);
-    });
+    let notification_receiver = cube.create_notification_receiver(Box::new(notify_handler));
+    let notification_task = tokio::spawn(notification_receiver);
 
     tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
     println!("disconnect");
 
     notification_task.abort();
-
     cube.disconnect().await.unwrap();
 }
