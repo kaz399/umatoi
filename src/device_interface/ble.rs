@@ -2,7 +2,7 @@ use crate::characteristic::characteristic_uuid::CoreCubeUuid;
 use crate::characteristic::NotificationData;
 use crate::cube::CoreCubeError;
 use crate::device_interface::CubeInterface;
-use crate::notification_manager::NotificationManager;
+use crate::notification_manager::{HandlerFunction, NotificationManager};
 use anyhow::Result;
 use async_trait::async_trait;
 use btleplug::api::{
@@ -36,13 +36,20 @@ impl BleCube {
         }
     }
 
-    pub fn create_notification_receiver(&self, notification_handler: Box<dyn Fn(btleplug::api::ValueNotification) + Send + Sync>) -> Pin<Box<dyn Future<Output = ()> + Send>> {
+    pub fn create_notification_receiver(&self, handlers: Box<Vec<HandlerFunction<NotificationData>>>) -> Pin<Box<dyn Future<Output = ()> + Send>> {
         let ble_peripheral = self.ble_peripheral.clone();
-        Box::pin(async {
+        Box::pin(async move {
             let nf_manager = NotificationManager::<NotificationData>::new();
-            let handler_uuid = nf_manager.register(notification_handler).unwrap();
+            let mut registered_handlers:Vec::<Uuid> = vec![];
+
+            for notification_handler in *handlers {
+                let handler_uuid = nf_manager.register(Box::new(notification_handler)).unwrap();
+                registered_handlers.push(handler_uuid);
+            }
             let _ = ble_notification_receiver(ble_peripheral, &nf_manager).await;
-            nf_manager.unregister(handler_uuid).unwrap();
+            for handler_uuid in registered_handlers {
+                nf_manager.unregister(handler_uuid).unwrap();
+            }
         })
     }
 

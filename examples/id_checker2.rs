@@ -25,7 +25,7 @@ static POSITION_ID_MISSED: OnceCell<Mutex<usize>> = OnceCell::new();
 static STANDARD_ID_READ: OnceCell<Mutex<usize>> = OnceCell::new();
 static STANDARD_ID_MISSED: OnceCell<Mutex<usize>> = OnceCell::new();
 
-fn notify_handler(data: NotificationData) {
+fn notify_handler1(data: NotificationData) {
     if let Some(id_data) = IdInformation::new(&data.value) {
         match id_data {
             IdInformation::PositionId(pos_id) => {
@@ -44,6 +44,19 @@ fn notify_handler(data: NotificationData) {
                 *update += 1;
                 println!("standard id: {:?}", std_id);
             }
+            _ => (),
+        }
+    } else {
+        println!(
+            "notify handler1: uuid: {:?} value: {:?}",
+            data.uuid, data.value
+        );
+    }
+}
+
+fn notify_handler2(data: NotificationData) {
+    if let Some(id_data) = IdInformation::new(&data.value) {
+        match id_data {
             IdInformation::PositionIdMissed => {
                 let mut update = POSITION_ID_MISSED
                     .get_or_init(|| Mutex::new(0))
@@ -62,11 +75,6 @@ fn notify_handler(data: NotificationData) {
             }
             _ => (),
         }
-    } else {
-        println!(
-            "notify handler1: uuid: {:?} value: {:?}",
-            data.uuid, data.value
-        );
     }
 }
 
@@ -81,7 +89,7 @@ pub async fn main() {
     let mut cube = BleCube::new(found_interfaces[0].clone());
     cube.connect().await.unwrap();
 
-    let notification_receiver = cube.create_notification_receiver(Box::new(notify_handler));
+    let notification_receiver = cube.create_notification_receiver(Box::new(vec![Box::new(notify_handler1), Box::new(notify_handler2)]));
     let notification_task = tokio::spawn(notification_receiver);
 
     tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
