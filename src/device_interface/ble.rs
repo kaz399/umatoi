@@ -134,8 +134,8 @@ impl BleScanner {
             adapter.start_scan(filter.clone()).await?;
             time::sleep(wait).await;
             adapter.stop_scan().await?;
-            for (index, peripheral) in adapter.peripherals().await?.iter().enumerate() {
-                // debug!("{} {:?}", index, peripheral);
+            for (_index, peripheral) in adapter.peripherals().await?.iter().enumerate() {
+                // debug!("{} {:?}", _index, peripheral);
                 if peripheral.is_connected().await? {
                     debug!("skip connected device");
                     continue;
