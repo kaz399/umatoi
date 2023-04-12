@@ -79,7 +79,7 @@ impl MotorControlWithSpecifiedDuration {
     pub fn from_primitive(
         left: i16,
         right: i16,
-        period_ms: u64,
+        period_ms: usize,
     ) -> Result<Self, Box<dyn Error + Send + Sync + 'static>> {
         let left = MotorDriveParameter::new(MotorId::Left, Velocity::new(left)?)?;
         let right = MotorDriveParameter::new(MotorId::Right, Velocity::new(right)?)?;

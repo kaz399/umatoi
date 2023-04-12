@@ -3,6 +3,7 @@ pub mod characteristic;
 pub mod cube;
 pub mod device_interface;
 pub mod notification_manager;
+pub mod integer_converter;
 pub mod payload;
 pub mod position;
 pub mod scanner;

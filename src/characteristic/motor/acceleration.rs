@@ -6,13 +6,13 @@ use serde::Serializer;
 /// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-acceleration-specified>
 
 #[derive(Serialize, Debug, Copy, Clone)]
-struct MotorControlAcceleration {
-    command: CommandId,
-    acceleration: Acceleration,
-    angle_velocity: AngleVelocity,
-    moving_direction: MovingDirection,
-    priority: Priority,
-    period: Period,
+pub struct MotorControlAcceleration {
+    pub command: CommandId,
+    pub acceleration: Acceleration,
+    pub angle_velocity: AngleVelocity,
+    pub moving_direction: MovingDirection,
+    pub priority: Priority,
+    pub period: Period,
 }
 
 impl ToPayload<Vec<u8>> for MotorControlAcceleration {

@@ -7,14 +7,14 @@ use serde::Serialize;
 /// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified>
 
 #[derive(Debug, Copy, Clone)]
-struct MotorControlTarget {
-    command: CommandId,
-    id: RequestId,
-    timeout: Timeout,
-    movement_type: MovementType,
-    speed: Speed,
-    _reserved_1: u8,
-    target: TargetPosition,
+pub struct MotorControlTarget {
+    pub command: CommandId,
+    pub id: RequestId,
+    pub timeout: Timeout,
+    pub movement_type: MovementType,
+    pub speed: Speed,
+    pub _reserved_1: u8,
+    pub target: TargetPosition,
 }
 
 impl ToPayload<Vec<u8>> for MotorControlTarget {
@@ -81,14 +81,14 @@ impl ResponseMotorControlTarget {
 
 #[derive(Debug, Clone)]
 pub struct MotorControlMultipleTargets {
-    command: CommandId,
-    id: RequestId,
-    timeout: Timeout,
-    movement_type: MovementType,
-    speed: Speed,
-    _reserved_1: u8,
-    write_mode: WriteMode,
-    target_list: Vec<TargetPosition>,
+    pub command: CommandId,
+    pub id: RequestId,
+    pub timeout: Timeout,
+    pub movement_type: MovementType,
+    pub speed: Speed,
+    pub _reserved_1: u8,
+    pub write_mode: WriteMode,
+    pub target_list: Vec<TargetPosition>,
 }
 
 impl ToPayload<Vec<u8>> for MotorControlMultipleTargets {
@@ -233,8 +233,8 @@ impl Serialize for MovementType {
 
 #[derive(Serialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Speed {
-    max: u8,
-    speed_change_type: SpeedChangeType,
+    pub max: u8,
+    pub speed_change_type: SpeedChangeType,
 }
 
 /// Speed change type

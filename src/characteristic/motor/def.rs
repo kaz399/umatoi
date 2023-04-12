@@ -203,7 +203,7 @@ impl Period {
         Self { period: 0 }
     }
 
-    pub fn from_millis(period: u64) -> Self {
+    pub fn from_millis(period: usize) -> Self {
         let period = period / 10;
         match period {
             1..=255 => Period {
