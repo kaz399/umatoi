@@ -44,7 +44,7 @@ impl Serialize for CommandId {
 
 impl CommandId {
     pub fn response(self) -> u8 {
-        u8::from(self) & 0x80u8
+        u8::from(self) | 0x80u8
     }
 }
 
@@ -125,7 +125,7 @@ pub enum MotorError {
 
 #[derive(Debug, Serialize, Copy, Clone, PartialEq, Eq)]
 pub struct RequestId {
-    id: u8,
+    pub id: u8,
 }
 
 /// Request ID counter (global scope)
@@ -189,7 +189,7 @@ impl Serialize for Timeout {
 
 #[derive(Serialize, Default, Debug, Copy, Clone)]
 pub struct Period {
-    period: u8,
+    pub period: u8,
 }
 
 impl From<Period> for u8 {
@@ -276,8 +276,8 @@ impl Serialize for MotorDirection {
 
 #[derive(Serialize, Debug, Copy, Clone)]
 pub struct Velocity {
-    direction: u8,
-    speed: u8,
+    pub direction: u8,
+    pub speed: u8,
 }
 
 impl Default for Velocity {
@@ -311,8 +311,8 @@ impl Velocity {
 
 #[derive(Serialize, Debug, Copy, Clone)]
 pub struct MotorDriveParameter {
-    id: MotorId,
-    velocity: Velocity,
+    pub id: MotorId,
+    pub velocity: Velocity,
 }
 
 impl Default for MotorDriveParameter {

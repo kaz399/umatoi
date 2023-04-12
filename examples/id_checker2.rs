@@ -89,7 +89,10 @@ pub async fn main() {
     let mut cube = BleCube::new(found_interfaces[0].clone());
     cube.connect().await.unwrap();
 
-    let notification_receiver = cube.create_notification_receiver(Box::new(vec![Box::new(notify_handler1), Box::new(notify_handler2)]));
+    let notification_receiver = cube.create_notification_receiver(Box::new(vec![
+        Box::new(notify_handler1),
+        Box::new(notify_handler2),
+    ]));
     let notification_task = tokio::spawn(notification_receiver);
 
     tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;

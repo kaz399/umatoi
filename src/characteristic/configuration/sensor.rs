@@ -8,9 +8,9 @@ use serde::Serializer;
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetHorizontalDetectionThreshold {
-    configuration_type: ConfigurationType,
-    _reserved: u8,
-    threshold: u8,
+    pub configuration_type: ConfigurationType,
+    pub _reserved: u8,
+    pub threshold: u8,
 }
 
 impl SetHorizontalDetectionThreshold {
@@ -28,9 +28,9 @@ impl SetHorizontalDetectionThreshold {
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetCollisionDetectionTreshold {
-    configuration_type: ConfigurationType,
-    _reserved: u8,
-    threshold: u8,
+    pub configuration_type: ConfigurationType,
+    pub _reserved: u8,
+    pub threshold: u8,
 }
 
 impl SetCollisionDetectionTreshold {
@@ -48,9 +48,9 @@ impl SetCollisionDetectionTreshold {
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetDoubleTapDetectionTimeInterval {
-    configuration_type: ConfigurationType,
-    _reserved: u8,
-    interval: u8,
+    pub configuration_type: ConfigurationType,
+    pub _reserved: u8,
+    pub interval: u8,
 }
 
 impl SetDoubleTapDetectionTimeInterval {
@@ -68,11 +68,11 @@ impl SetDoubleTapDetectionTimeInterval {
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetMagneticSensor {
-    configuration_type: ConfigurationType,
-    _reserved: u8,
-    function_type: MagnetFunction,
-    interval: u8,
-    condition: MagnetNotificationCondition,
+    pub configuration_type: ConfigurationType,
+    pub _reserved: u8,
+    pub function_type: MagnetFunction,
+    pub interval: u8,
+    pub condition: MagnetNotificationCondition,
 }
 
 impl SetMagneticSensor {
@@ -152,7 +152,7 @@ impl Serialize for MagnetNotificationCondition {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResponseMagneticSensorData {
-    result: bool,
+    pub result: bool,
 }
 
 impl ResponseMagneticSensorData {
@@ -175,11 +175,11 @@ impl ResponseMagneticSensorData {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetPostureAngleDetection {
-    configuration_type: ConfigurationType,
-    _reserved: u8,
-    data_type: PostureDataType,
-    interval: u8,
-    condition: PostureAngleNotificationCondition,
+    pub configuration_type: ConfigurationType,
+    pub _reserved: u8,
+    pub data_type: PostureDataType,
+    pub interval: u8,
+    pub condition: PostureAngleNotificationCondition,
 }
 
 impl SetPostureAngleDetection {

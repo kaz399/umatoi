@@ -38,16 +38,16 @@ impl Default for MotorControlAcceleration {
 
 #[derive(Serialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Acceleration {
-    translational_speed: u8,
-    acceleration: u8,
+    pub translational_speed: u8,
+    pub acceleration: u8,
 }
 
 /// Angle velocity
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct AngleVelocity {
-    rotation_velocity: u16,
-    rotation_direction: RotationDirection,
+    pub rotation_velocity: u16,
+    pub rotation_direction: RotationDirection,
 }
 
 impl Default for AngleVelocity {

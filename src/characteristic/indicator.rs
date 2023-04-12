@@ -179,7 +179,7 @@ impl Serialize for TurningOnAndOff {
         let params = bincode::serialize(&self.params).unwrap();
         let mut payload = serializer.serialize_seq(Some(params.len() + 1))?;
         payload.serialize_element(&self.command)?;
-        for (i, data ) in params.iter().enumerate() {
+        for (i, data) in params.iter().enumerate() {
             if (i % 6) == 2 {
                 payload.serialize_element(&self.id)?;
             } else {
@@ -217,12 +217,12 @@ impl Serialize for RepeatedTuringOnAndOff {
     where
         S: Serializer,
     {
-        let params_list= bincode::serialize(&self.params_list).unwrap();
+        let params_list = bincode::serialize(&self.params_list).unwrap();
         let mut payload = serializer.serialize_seq(Some(params_list.len() + 3))?;
         payload.serialize_element(&self.command)?;
         payload.serialize_element(&self.repeat)?;
         payload.serialize_element(&self.params_list.len())?;
-        for (i, data ) in params_list.iter().enumerate() {
+        for (i, data) in params_list.iter().enumerate() {
             if (i % 6) == 2 {
                 payload.serialize_element(&self.id)?;
             } else {
@@ -233,13 +233,12 @@ impl Serialize for RepeatedTuringOnAndOff {
     }
 }
 
-
 /// TurnOffAll
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_light#turn-off-all-indicators>
 
 #[derive(Debug, Copy, Clone)]
 pub struct TurnOffAll {
-    command: CommandId,
+    pub command: CommandId,
 }
 
 impl Default for TurnOffAll {
@@ -266,7 +265,7 @@ impl Serialize for TurnOffAll {
 
 #[derive(Debug, Copy, Clone)]
 pub struct TurnOff {
-    command: CommandId,
+    pub command: CommandId,
     pub id: u8,
 }
 
@@ -290,7 +289,6 @@ impl Serialize for TurnOff {
         payload.end()
     }
 }
-
 
 pub async fn write(interface: &dyn CubeInterface, bytes: &[u8]) -> Result<bool> {
     interface.write(CoreCubeUuid::LightCtrl.into(), bytes).await

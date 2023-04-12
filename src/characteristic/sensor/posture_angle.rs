@@ -8,8 +8,8 @@ use serde::Serializer;
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct RequestPostureAngleDetection {
-    command: CommandId,
-    data_type: PostureDataType,
+    pub command: CommandId,
+    pub data_type: PostureDataType,
 }
 
 impl Default for RequestPostureAngleDetection {

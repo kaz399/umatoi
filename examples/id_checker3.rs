@@ -3,11 +3,14 @@ use once_cell::sync::OnceCell;
 use std::sync::Mutex;
 use time::Duration;
 use tokio::time;
+use umatoi::api::simple::Simple;
 use umatoi::characteristic::id_information::IdInformation;
+use umatoi::characteristic::motor;
+use umatoi::characteristic::motor::target::TargetPosition;
 use umatoi::characteristic::NotificationData;
 use umatoi::device_interface::ble::{BleCube, BleScanner};
 use umatoi::device_interface::CubeInterface;
-use umatoi::api::simple::Simple;
+use umatoi::position::{CubeLocation, Point};
 
 #[derive(Parser)]
 #[clap(
@@ -79,6 +82,23 @@ fn notify_handler2(data: NotificationData) {
     }
 }
 
+fn notify_handler3(data: NotificationData) {
+    if let Some(motor_response) = motor::response::Response::new(&data.value) {
+        match motor_response {
+            motor::response::Response::MotorControlTarget(res) => {
+                println!("ResponseMotorControlTarget: {:?}", res.response_code);
+            }
+            motor::response::Response::MotorControlMultipleTargets(res) => {
+                println!(
+                    "ResponseMotorControlMultipleTargets: {:?}",
+                    res.response_code
+                );
+            }
+            _ => (),
+        }
+    }
+}
+
 #[tokio::main]
 pub async fn main() {
     let _arg: AppArg = AppArg::parse();
@@ -90,10 +110,23 @@ pub async fn main() {
     let mut cube = BleCube::new(found_interfaces[0].clone());
     cube.connect().await.unwrap();
 
-    let notification_receiver = cube.create_notification_receiver(Box::new(vec![Box::new(notify_handler1), Box::new(notify_handler2)]));
+    let notification_receiver = cube.create_notification_receiver(Box::new(vec![
+        Box::new(notify_handler1),
+        Box::new(notify_handler2),
+        Box::new(notify_handler3),
+    ]));
     let notification_task = tokio::spawn(notification_receiver);
 
-    cube.motor_control(50, 50, 0).await.unwrap();
+    // cube.motor_control(50, 50, 2000).await.unwrap();
+
+    let target: TargetPosition = TargetPosition {
+        cube_location: CubeLocation {
+            point: Point { x: 360, y: 170 },
+            angle: 180,
+        },
+        ..TargetPosition::default()
+    };
+    cube.motor_control_target(30, target).await.unwrap();
 
     tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
     cube.motor_stop().await.unwrap();

@@ -8,9 +8,9 @@ use std::error::Error;
 
 #[derive(Serialize, Debug, Copy, Clone)]
 pub struct MotorControl {
-    command: CommandId,
-    left: MotorDriveParameter,
-    right: MotorDriveParameter,
+    pub command: CommandId,
+    pub left: MotorDriveParameter,
+    pub right: MotorDriveParameter,
 }
 
 impl Default for MotorControl {
@@ -50,10 +50,10 @@ impl MotorControl {
 
 #[derive(Serialize, Debug, Copy, Clone)]
 pub struct MotorControlWithSpecifiedDuration {
-    command: CommandId,
-    left: MotorDriveParameter,
-    right: MotorDriveParameter,
-    period: Period,
+    pub command: CommandId,
+    pub left: MotorDriveParameter,
+    pub right: MotorDriveParameter,
+    pub period: Period,
 }
 
 impl Default for MotorControlWithSpecifiedDuration {

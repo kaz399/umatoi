@@ -1,7 +1,9 @@
 //! Simple API
 
 use crate::characteristic::characteristic_uuid::CoreCubeUuid;
-use crate::characteristic::motor::acceleration::{Acceleration, AngleVelocity, MotorControlAcceleration, Priority, MovingDirection};
+use crate::characteristic::motor::acceleration::{
+    Acceleration, AngleVelocity, MotorControlAcceleration, MovingDirection, Priority,
+};
 use crate::characteristic::motor::control::{MotorControl, MotorControlWithSpecifiedDuration};
 use crate::characteristic::motor::def::Period;
 use crate::characteristic::motor::target::TargetPosition;
@@ -9,14 +11,10 @@ use crate::characteristic::motor::target::{
     MotorControlMultipleTargets, MotorControlTarget, Speed,
 };
 use crate::device_interface::CubeInterface;
-use crate::integer_converter::{
-    i_to_u8,
-    i_to_i16,
-};
+use crate::integer_converter::{i_to_i16, i_to_u8};
 use crate::payload::ToPayload;
 use async_trait::async_trait;
 use std::error::Error;
-
 
 #[async_trait]
 pub trait Simple {
@@ -141,7 +139,6 @@ impl<T: CubeInterface + Send + Sync + 'static> Simple for T {
     ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         let period: Period = Period::from_millis(period_ms);
         let motor: MotorControlAcceleration = MotorControlAcceleration {
-
             acceleration,
             angle_velocity,
             moving_direction,

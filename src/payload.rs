@@ -3,4 +3,3 @@
 pub trait ToPayload<T> {
     fn to_payload(self) -> T;
 }
-

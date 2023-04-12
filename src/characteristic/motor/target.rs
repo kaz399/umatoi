@@ -321,8 +321,8 @@ impl Serialize for RotationOption {
 
 #[derive(Debug, Copy, Clone)]
 pub struct TargetPosition {
-    cube_location: CubeLocation,
-    rotation_option: RotationOption,
+    pub cube_location: CubeLocation,
+    pub rotation_option: RotationOption,
 }
 
 impl Default for TargetPosition {

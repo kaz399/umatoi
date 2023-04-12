@@ -6,8 +6,8 @@ use serde::Serialize;
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct RequestBleProtocolVersion {
-    configuration_type: ConfigurationType,
-    _reserved: u8,
+    pub configuration_type: ConfigurationType,
+    pub _reserved: u8,
 }
 
 impl Default for RequestBleProtocolVersion {
@@ -30,7 +30,7 @@ impl RequestBleProtocolVersion {
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResponseBleProtocolVersionData {
-    version: [u8; 5],
+    pub version: [u8; 5],
 }
 
 impl ResponseBleProtocolVersionData {

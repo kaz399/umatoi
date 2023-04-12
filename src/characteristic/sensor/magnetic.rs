@@ -9,7 +9,7 @@ use std::u8;
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct RequestMagneticSensor {
-    command: CommandId,
+    pub command: CommandId,
 }
 
 impl Default for RequestMagneticSensor {

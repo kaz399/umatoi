@@ -8,7 +8,7 @@ use serde::Serializer;
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct RequestMotionDetection {
-    command: CommandId,
+    pub command: CommandId,
 }
 
 impl Default for RequestMotionDetection {

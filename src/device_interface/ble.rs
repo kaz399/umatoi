@@ -6,7 +6,8 @@ use crate::notification_manager::{HandlerFunction, NotificationManager};
 use anyhow::Result;
 use async_trait::async_trait;
 use btleplug::api::{
-    Central, CharPropFlags, Characteristic, Manager as _, Peripheral as _, ScanFilter, WriteType, BDAddr,
+    BDAddr, Central, CharPropFlags, Characteristic, Manager as _, Peripheral as _, ScanFilter,
+    WriteType,
 };
 use btleplug::platform::{Manager, Peripheral};
 use futures::stream::StreamExt;
@@ -36,11 +37,14 @@ impl BleCube {
         }
     }
 
-    pub fn create_notification_receiver(&self, handlers: Box<Vec<HandlerFunction<NotificationData>>>) -> Pin<Box<dyn Future<Output = ()> + Send>> {
+    pub fn create_notification_receiver(
+        &self,
+        handlers: Box<Vec<HandlerFunction<NotificationData>>>,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
         let ble_peripheral = self.ble_peripheral.clone();
         Box::pin(async move {
             let nf_manager = NotificationManager::<NotificationData>::new();
-            let mut registered_handlers:Vec::<Uuid> = vec![];
+            let mut registered_handlers: Vec<Uuid> = vec![];
 
             for notification_handler in *handlers {
                 let handler_uuid = nf_manager.register(Box::new(notification_handler)).unwrap();
@@ -52,10 +56,9 @@ impl BleCube {
             }
         })
     }
-
 }
 
-pub async fn ble_notification_receiver (
+pub async fn ble_notification_receiver(
     ble_peripheral: Peripheral,
     notification_manager: &NotificationManager<NotificationData>,
 ) -> Result<()> {
@@ -140,7 +143,7 @@ impl BleScanner {
         #[derive(Clone)]
         struct RssiBle {
             rssi: i16,
-            ble: BleInterface
+            ble: BleInterface,
         }
         let mut rssi_peripheral_hash: HashMap<BDAddr, RssiBle> = HashMap::new();
 
@@ -165,11 +168,16 @@ impl BleScanner {
                     info!("service uuid: {}", service_uuid);
                     if *service_uuid == CoreCubeUuid::Service.uuid() {
                         debug!("found toio core cube: service uuid: {}", service_uuid);
-                        let rssi = peripheral.properties().await.unwrap().unwrap().rssi.unwrap();
+                        let rssi = peripheral
+                            .properties()
+                            .await
+                            .unwrap()
+                            .unwrap()
+                            .rssi
+                            .unwrap();
                         let rssi_ble = RssiBle {
                             rssi,
-                            ble: peripheral.clone()
-
+                            ble: peripheral.clone(),
                         };
                         let ble_address = peripheral.properties().await?.unwrap().address;
                         rssi_peripheral_hash.insert(ble_address, rssi_ble);
@@ -182,7 +190,10 @@ impl BleScanner {
                 peripheral_list.push(inerface.ble.clone());
             }
         }
-        debug!("scan_ble: total {} peripherals found", peripheral_list.len());
+        debug!(
+            "scan_ble: total {} peripherals found",
+            peripheral_list.len()
+        );
         Ok(peripheral_list)
     }
 
@@ -197,12 +208,19 @@ impl BleScanner {
         Ok(peripheral_list)
     }
 
-    pub async fn scan_with_address(&self, address_list: &[BDAddr], wait: Duration) -> Result<Vec<BleInterface>> {
+    pub async fn scan_with_address(
+        &self,
+        address_list: &[BDAddr],
+        wait: Duration,
+    ) -> Result<Vec<BleInterface>> {
         let mut matched_peripheral_list: Vec<BleInterface> = Vec::new();
         let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
-        for peripheral in peripheral_list  {
+        for peripheral in peripheral_list {
             let properties = peripheral.properties().await?.unwrap();
-            if address_list.iter().any(|e: &BDAddr| e == &properties.address) {
+            if address_list
+                .iter()
+                .any(|e: &BDAddr| e == &properties.address)
+            {
                 info!("found cube: '{}'", &properties.address);
                 matched_peripheral_list.push(peripheral);
             }
@@ -212,14 +230,21 @@ impl BleScanner {
             error!("toio core cube is not found");
             return Err(CoreCubeError::CubeNotFound.into());
         }
-        debug!("scan_with_address: total {} peripherals found", matched_peripheral_list.len());
+        debug!(
+            "scan_with_address: total {} peripherals found",
+            matched_peripheral_list.len()
+        );
         Ok(matched_peripheral_list)
     }
 
-    pub async fn scan_with_name(&self, name_list: &[&str], wait: Duration) -> Result<Vec<BleInterface>> {
+    pub async fn scan_with_name(
+        &self,
+        name_list: &[&str],
+        wait: Duration,
+    ) -> Result<Vec<BleInterface>> {
         let mut matched_peripheral_list: Vec<BleInterface> = Vec::new();
         let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
-        for peripheral in peripheral_list  {
+        for peripheral in peripheral_list {
             let properties = peripheral.properties().await?.unwrap();
             if let Some(local_name) = properties.local_name {
                 if name_list.iter().any(|e| e == &local_name) {
@@ -233,7 +258,10 @@ impl BleScanner {
             error!("toio core cube is not found");
             return Err(CoreCubeError::CubeNotFound.into());
         }
-        debug!("scan_with_name: total {} peripherals found", matched_peripheral_list.len());
+        debug!(
+            "scan_with_name: total {} peripherals found",
+            matched_peripheral_list.len()
+        );
         Ok(matched_peripheral_list)
     }
 }
@@ -263,7 +291,7 @@ mod tests {
         _setup();
         let scanner = BleScanner;
         let interfaces = scanner.scan(1, Duration::from_secs(5)).await.unwrap();
-        assert!(! interfaces.is_empty());
+        assert!(!interfaces.is_empty());
         _teardown();
     }
 
@@ -271,13 +299,11 @@ mod tests {
     async fn cube_scan2() {
         _setup();
         let scanner = BleScanner;
-        let interfaces = scanner.scan_with_address(
-            &[BDAddr::from(TEST_CUBE_BDADDR)],
-            Duration::from_secs(3),
-        )
-        .await
-        .unwrap();
-        assert!(! interfaces.is_empty());
+        let interfaces = scanner
+            .scan_with_address(&[BDAddr::from(TEST_CUBE_BDADDR)], Duration::from_secs(3))
+            .await
+            .unwrap();
+        assert!(!interfaces.is_empty());
         _teardown();
     }
 
@@ -285,13 +311,11 @@ mod tests {
     async fn cube_scan3() {
         _setup();
         let scanner = BleScanner;
-        let interfaces = scanner.scan_with_name(
-            &[TEST_CUBE_NAME],
-            Duration::from_secs(3),
-        )
-        .await
-        .unwrap();
-        assert!(! interfaces.is_empty());
+        let interfaces = scanner
+            .scan_with_name(&[TEST_CUBE_NAME], Duration::from_secs(3))
+            .await
+            .unwrap();
+        assert!(!interfaces.is_empty());
         _teardown();
     }
 }

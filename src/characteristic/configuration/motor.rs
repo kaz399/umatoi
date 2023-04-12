@@ -6,9 +6,9 @@ use serde::Serialize;
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct EnableMotorSpeed {
-    configuration_type: ConfigurationType,
-    _reserved: u8,
-    enable: bool,
+    pub configuration_type: ConfigurationType,
+    pub _reserved: u8,
+    pub enable: bool,
 }
 
 impl EnableMotorSpeed {
@@ -26,7 +26,7 @@ impl EnableMotorSpeed {
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResponseEnableMotorSpeedData {
-    result: bool,
+    pub result: bool,
 }
 
 impl ResponseEnableMotorSpeedData {

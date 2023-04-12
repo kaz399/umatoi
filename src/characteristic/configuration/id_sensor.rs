@@ -6,10 +6,10 @@ use serde::{Serialize, Serializer};
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetIdSensorNotification {
-    configuration_type: ConfigurationType,
-    _reserved: u8,
-    minimum_interval: u8,
-    condition: IdSensorNotificationCondition,
+    pub configuration_type: ConfigurationType,
+    pub _reserved: u8,
+    pub minimum_interval: u8,
+    pub condition: IdSensorNotificationCondition,
 }
 
 impl SetIdSensorNotification {
@@ -55,7 +55,7 @@ impl Serialize for IdSensorNotificationCondition {
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResponseIdSensorNotificationData {
-    result: bool,
+    pub result: bool,
 }
 
 impl ResponseIdSensorNotificationData {
@@ -75,9 +75,9 @@ impl ResponseIdSensorNotificationData {
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetIdSensorMissedNotification {
-    configuration_type: ConfigurationType,
-    _reserved: u8,
-    sensitivity: u8,
+    pub configuration_type: ConfigurationType,
+    pub _reserved: u8,
+    pub sensitivity: u8,
 }
 
 impl SetIdSensorMissedNotification {
@@ -95,7 +95,7 @@ impl SetIdSensorMissedNotification {
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResponseIdSensorMissedNotificationData {
-    result: bool,
+    pub result: bool,
 }
 
 impl ResponseIdSensorMissedNotificationData {

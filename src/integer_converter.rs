@@ -1,7 +1,7 @@
 //! convert integer
 
 macro_rules! clip {
-    ($from_t:ty, $to_t:ty, $n:expr) => (
+    ($from_t:ty, $to_t:ty, $n:expr) => {
         if $n > <$to_t>::MAX as $from_t {
             <$to_t>::MAX
         } else if $n < <$to_t>::MIN as $from_t {
@@ -10,9 +10,8 @@ macro_rules! clip {
             let ret: $to_t = $n.try_into().unwrap();
             ret
         }
-    )
+    };
 }
-
 
 // isize
 
@@ -48,7 +47,6 @@ pub fn i_to_u64(a: isize) -> u64 {
     clip!(isize, u64, a)
 }
 
-
 // usize
 
 pub fn u_to_i8(a: usize) -> i8 {
@@ -82,8 +80,6 @@ pub fn u_to_i64(a: usize) -> i64 {
 pub fn u_to_u64(a: usize) -> u64 {
     clip!(usize, u64, a)
 }
-
-
 
 #[cfg(test)]
 mod tests {
