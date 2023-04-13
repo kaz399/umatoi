@@ -5,8 +5,8 @@ use time::Duration;
 use tokio::time;
 use umatoi::api::simple::Simple;
 use umatoi::characteristic::id_information::IdInformation;
-use umatoi::characteristic::motor;
 use umatoi::characteristic::motor::target::TargetPosition;
+use umatoi::characteristic::motor::MotorResponse;
 use umatoi::characteristic::NotificationData;
 use umatoi::device_interface::ble::{BleCube, BleScanner};
 use umatoi::device_interface::CubeInterface;
@@ -83,12 +83,12 @@ fn notify_handler2(data: NotificationData) {
 }
 
 fn notify_handler3(data: NotificationData) {
-    if let Some(motor_response) = motor::response::Response::new(&data.value) {
+    if let Some(motor_response) = MotorResponse::new(&data.value) {
         match motor_response {
-            motor::response::Response::MotorControlTarget(res) => {
+            MotorResponse::MotorControlTarget(res) => {
                 println!("ResponseMotorControlTarget: {:?}", res.response_code);
             }
-            motor::response::Response::MotorControlMultipleTargets(res) => {
+            MotorResponse::MotorControlMultipleTargets(res) => {
                 println!(
                     "ResponseMotorControlMultipleTargets: {:?}",
                     res.response_code
