@@ -33,12 +33,12 @@ impl From<u8> for ButtonState {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ButtonInformationResponse {
+pub struct ButtonInformation {
     pub time: time::Instant,
     pub state: ButtonState,
 }
 
-impl Default for ButtonInformationResponse {
+impl Default for ButtonInformation {
     fn default() -> Self {
         Self {
             time: time::Instant::now(),
@@ -47,13 +47,13 @@ impl Default for ButtonInformationResponse {
     }
 }
 
-impl ButtonInformationResponse {
-    pub fn new(byte_data: &[u8]) -> Option<ButtonInformationResponse> {
+impl ButtonInformation {
+    pub fn new(byte_data: &[u8]) -> Option<ButtonInformation> {
         if byte_data.len() < 2 {
             return None;
         }
         match byte_data[0] {
-            0x01u8 => Some(ButtonInformationResponse {
+            0x01u8 => Some(ButtonInformation {
                 time: time::Instant::now(),
                 state: ButtonState::from(byte_data[1]),
             }),

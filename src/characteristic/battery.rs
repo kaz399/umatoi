@@ -4,17 +4,23 @@ use crate::characteristic::characteristic_uuid::CoreCubeUuid;
 use crate::device_interface::CubeInterface;
 use anyhow::Result;
 
-#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
-pub struct BatteryInformationResponse {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct BatteryInformation {
     pub level: usize,
 }
 
-impl BatteryInformationResponse {
-    pub fn new(byte_data: &[u8]) -> Option<BatteryInformationResponse> {
+impl Default for BatteryInformation {
+    fn default() -> Self {
+        Self { level: 0 }
+    }
+}
+
+impl BatteryInformation {
+    pub fn new(byte_data: &[u8]) -> Option<BatteryInformation> {
         if byte_data.is_empty() {
             return None;
         }
-        Some(BatteryInformationResponse {
+        Some(BatteryInformation {
             level: byte_data[1].into(),
         })
     }

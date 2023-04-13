@@ -1,4 +1,4 @@
-use super::def::{CommandId, RequestId, MotorResponseCode, Timeout};
+use super::def::{CommandId, RequestId, ResponseCode, Timeout};
 use crate::payload::ToPayload;
 use crate::position::CubeLocation;
 use serde::ser::Serializer;
@@ -58,7 +58,7 @@ impl MotorControlTarget {
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResponseMotorControlTarget {
     pub request_id: RequestId,
-    pub response_code: MotorResponseCode,
+    pub response_code: ResponseCode,
 }
 
 impl ResponseMotorControlTarget {
@@ -69,7 +69,7 @@ impl ResponseMotorControlTarget {
         if byte_data[0] == CommandId::TargetPosition.response() {
             Some(Self {
                 request_id: RequestId::received(byte_data[1]),
-                response_code: MotorResponseCode::from(byte_data[2]),
+                response_code: ResponseCode::from(byte_data[2]),
             })
         } else {
             None
@@ -136,7 +136,7 @@ impl MotorControlMultipleTargets {
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResponseMotorControlMultipleTargets {
     pub request_id: RequestId,
-    pub response_code: MotorResponseCode,
+    pub response_code: ResponseCode,
 }
 
 impl ResponseMotorControlMultipleTargets {
@@ -147,7 +147,7 @@ impl ResponseMotorControlMultipleTargets {
         if byte_data[0] == CommandId::MultiTargetPositions.response() {
             Some(Self {
                 request_id: RequestId::received(byte_data[1]),
-                response_code: MotorResponseCode::from(byte_data[2]),
+                response_code: ResponseCode::from(byte_data[2]),
             })
         } else {
             None
