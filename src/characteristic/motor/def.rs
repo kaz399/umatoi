@@ -53,7 +53,7 @@ impl CommandId {
 /// No default.
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ResponseCode {
+pub enum MotorResponseCode {
     Success,
     ErrorTimeout,
     ErrorIdMissed,
@@ -65,39 +65,39 @@ pub enum ResponseCode {
     UnknownError(u8),
 }
 
-impl From<ResponseCode> for u8 {
-    fn from(response_code: ResponseCode) -> u8 {
+impl From<MotorResponseCode> for u8 {
+    fn from(response_code: MotorResponseCode) -> u8 {
         match response_code {
-            ResponseCode::Success => 0u8,
-            ResponseCode::ErrorTimeout => 1u8,
-            ResponseCode::ErrorIdMissed => 2u8,
-            ResponseCode::ErrorInvalidParameter => 3u8,
-            ResponseCode::ErrorInvalidCubeState => 4u8,
-            ResponseCode::SuccessWithOverwrite => 5u8,
-            ResponseCode::ErrorNotSupported => 6u8,
-            ResponseCode::ErrorFailToAppend => 7u8,
-            ResponseCode::UnknownError(x) => x,
+            MotorResponseCode::Success => 0u8,
+            MotorResponseCode::ErrorTimeout => 1u8,
+            MotorResponseCode::ErrorIdMissed => 2u8,
+            MotorResponseCode::ErrorInvalidParameter => 3u8,
+            MotorResponseCode::ErrorInvalidCubeState => 4u8,
+            MotorResponseCode::SuccessWithOverwrite => 5u8,
+            MotorResponseCode::ErrorNotSupported => 6u8,
+            MotorResponseCode::ErrorFailToAppend => 7u8,
+            MotorResponseCode::UnknownError(x) => x,
         }
     }
 }
 
-impl From<u8> for ResponseCode {
-    fn from(binary_code: u8) -> ResponseCode {
+impl From<u8> for MotorResponseCode {
+    fn from(binary_code: u8) -> MotorResponseCode {
         match binary_code {
-            0 => ResponseCode::Success,
-            1 => ResponseCode::ErrorTimeout,
-            2 => ResponseCode::ErrorIdMissed,
-            4 => ResponseCode::ErrorInvalidParameter,
-            5 => ResponseCode::ErrorInvalidCubeState,
-            6 => ResponseCode::SuccessWithOverwrite,
-            7 => ResponseCode::ErrorNotSupported,
-            8 => ResponseCode::ErrorFailToAppend,
-            x => ResponseCode::UnknownError(x),
+            0 => MotorResponseCode::Success,
+            1 => MotorResponseCode::ErrorTimeout,
+            2 => MotorResponseCode::ErrorIdMissed,
+            4 => MotorResponseCode::ErrorInvalidParameter,
+            5 => MotorResponseCode::ErrorInvalidCubeState,
+            6 => MotorResponseCode::SuccessWithOverwrite,
+            7 => MotorResponseCode::ErrorNotSupported,
+            8 => MotorResponseCode::ErrorFailToAppend,
+            x => MotorResponseCode::UnknownError(x),
         }
     }
 }
 
-impl Serialize for ResponseCode {
+impl Serialize for MotorResponseCode {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

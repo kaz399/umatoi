@@ -22,7 +22,7 @@ pub struct StandardIdData {
 /// Id information
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum IdInformation {
+pub enum IdInformationResponse {
     PositionId(PositionIdData),
     StandardId(StandardIdData),
     StandardIdMissed,
@@ -30,27 +30,27 @@ pub enum IdInformation {
     Unknown(u8),
 }
 
-impl From<IdInformation> for u8 {
-    fn from(id_information: IdInformation) -> u8 {
+impl From<IdInformationResponse> for u8 {
+    fn from(id_information: IdInformationResponse) -> u8 {
         match id_information {
-            IdInformation::PositionId(_) => 0x01u8,
-            IdInformation::StandardId(_) => 0x02u8,
-            IdInformation::StandardIdMissed => 0x03u8,
-            IdInformation::PositionIdMissed => 0x04u8,
-            IdInformation::Unknown(x) => x,
+            IdInformationResponse::PositionId(_) => 0x01u8,
+            IdInformationResponse::StandardId(_) => 0x02u8,
+            IdInformationResponse::StandardIdMissed => 0x03u8,
+            IdInformationResponse::PositionIdMissed => 0x04u8,
+            IdInformationResponse::Unknown(x) => x,
         }
     }
 }
 
-impl IdInformation {
-    pub fn new(byte_code: &[u8]) -> Option<IdInformation> {
+impl IdInformationResponse {
+    pub fn new(byte_code: &[u8]) -> Option<IdInformationResponse> {
         if byte_code.is_empty() {
             return None;
         }
         match byte_code[0] {
             0x01u8 => {
                 if byte_code.len() >= 13 {
-                    Some(IdInformation::PositionId(PositionIdData {
+                    Some(IdInformationResponse::PositionId(PositionIdData {
                         center: CubeLocation {
                             point: Point {
                                 x: isize::from_le_bytes([
@@ -108,7 +108,7 @@ impl IdInformation {
             }
             0x02u8 => {
                 if byte_code.len() >= 4 {
-                    Some(IdInformation::StandardId(StandardIdData {
+                    Some(IdInformationResponse::StandardId(StandardIdData {
                         value: u32::from_le_bytes([
                             byte_code[1],
                             byte_code[2],
@@ -121,26 +121,26 @@ impl IdInformation {
                     None
                 }
             }
-            0x03u8 => Some(IdInformation::PositionIdMissed),
-            0x04u8 => Some(IdInformation::StandardIdMissed),
+            0x03u8 => Some(IdInformationResponse::PositionIdMissed),
+            0x04u8 => Some(IdInformationResponse::StandardIdMissed),
             _ => None,
         }
     }
 }
 
-impl ToPayload<Vec<u8>> for IdInformation {
+impl ToPayload<Vec<u8>> for IdInformationResponse {
     fn to_payload(self) -> Vec<u8> {
         let mut payload: Vec<u8> = vec![u8::from(self)];
         match self {
-            IdInformation::PositionId(st) => {
+            IdInformationResponse::PositionId(st) => {
                 payload.extend(bincode::serialize(&st).unwrap());
             }
-            IdInformation::StandardId(st) => {
+            IdInformationResponse::StandardId(st) => {
                 payload.extend(bincode::serialize(&st).unwrap());
             }
-            IdInformation::PositionIdMissed => (),
-            IdInformation::StandardIdMissed => (),
-            IdInformation::Unknown(_) => (),
+            IdInformationResponse::PositionIdMissed => (),
+            IdInformationResponse::StandardIdMissed => (),
+            IdInformationResponse::Unknown(_) => (),
         }
         payload
     }
@@ -158,7 +158,7 @@ mod test {
     fn id_information1() {
         _setup();
 
-        let res = IdInformation::PositionId(PositionIdData {
+        let res = IdInformationResponse::PositionId(PositionIdData {
             center: CubeLocation {
                 point: Point { x: 1, y: 2 },
                 angle: 3,
