@@ -1,8 +1,7 @@
 //! Official Specification: <https://toio.github.io/toio-spec/en/docs/ble_light>
 
-use crate::characteristic::characteristic_uuid::CoreCubeUuid;
+use crate::characteristic::CoreCubeUuid;
 use crate::device_interface::CubeInterface;
-use anyhow::Result;
 use serde::ser::SerializeSeq;
 use serde::ser::SerializeStruct;
 use serde::Serialize;
@@ -290,6 +289,9 @@ impl Serialize for TurnOff {
     }
 }
 
-pub async fn write(interface: &dyn CubeInterface, bytes: &[u8]) -> Result<bool> {
+pub async fn write(
+    interface: &dyn CubeInterface,
+    bytes: &[u8],
+) -> Result<bool, Box<dyn std::error::Error + Send + Sync + 'static>> {
     interface.write(CoreCubeUuid::LightCtrl.into(), bytes).await
 }

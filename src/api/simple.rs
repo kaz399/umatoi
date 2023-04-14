@@ -1,6 +1,5 @@
 //! Simple API
 
-use crate::characteristic::characteristic_uuid::CoreCubeUuid;
 use crate::characteristic::motor::acceleration::{
     Acceleration, AngleVelocity, MotorControlAcceleration, MovingDirection, Priority,
 };
@@ -10,6 +9,7 @@ use crate::characteristic::motor::target::TargetPosition;
 use crate::characteristic::motor::target::{
     MotorControlMultipleTargets, MotorControlTarget, Speed,
 };
+use crate::characteristic::CoreCubeUuid;
 use crate::device_interface::CubeInterface;
 use crate::integer_converter::{i_to_i16, i_to_u8};
 use crate::payload::ToPayload;

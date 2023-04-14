@@ -1,8 +1,7 @@
 //! Official Specification:  <https://toio.github.io/toio-spec/en/docs/ble_battery>
 
-use crate::characteristic::characteristic_uuid::CoreCubeUuid;
+use crate::characteristic::CoreCubeUuid;
 use crate::device_interface::CubeInterface;
-use anyhow::Result;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BatteryInformation {
@@ -26,6 +25,8 @@ impl BatteryInformation {
     }
 }
 
-pub async fn read(interface: &dyn CubeInterface) -> Result<Vec<u8>> {
+pub async fn read(
+    interface: &dyn CubeInterface,
+) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync + 'static>> {
     interface.read(CoreCubeUuid::BatteryInfo.into()).await
 }

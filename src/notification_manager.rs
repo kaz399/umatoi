@@ -1,4 +1,3 @@
-use anyhow::Result;
 use log::{debug, error};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -40,7 +39,10 @@ where
     }
 
     /// register notification handler
-    pub fn register(&self, func: HandlerFunction<T>) -> Result<uuid::Uuid> {
+    pub fn register(
+        &self,
+        func: HandlerFunction<T>,
+    ) -> Result<uuid::Uuid, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let id = Uuid::new_v4();
         debug!("uuid: {}", id);
         let order_binding = self.order.clone();
@@ -57,7 +59,10 @@ where
     }
 
     /// unregister notification handler
-    pub fn unregister(&self, id: uuid::Uuid) -> Result<bool> {
+    pub fn unregister(
+        &self,
+        id: uuid::Uuid,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let order_binding = self.order.clone();
         let mut order = order_binding.lock().unwrap();
         for (index, registered_id) in order.iter().enumerate() {
@@ -73,7 +78,10 @@ where
     }
 
     /// invoke all handlers
-    pub fn invoke_all_handlers(&self, data: T) -> Result<bool> {
+    pub fn invoke_all_handlers(
+        &self,
+        data: T,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let order_binding = self.order.clone();
         let order = order_binding.lock().unwrap();
         let handlers_binding = self.handlers.clone();

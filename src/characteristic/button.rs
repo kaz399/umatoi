@@ -1,8 +1,7 @@
 //! Official Specification:  <https://toio.github.io/toio-spec/en/docs/ble_button>
 
-use crate::characteristic::characteristic_uuid::CoreCubeUuid;
+use crate::characteristic::CoreCubeUuid;
 use crate::device_interface::CubeInterface;
-use anyhow::Result;
 use std::time;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -62,6 +61,8 @@ impl ButtonInformation {
     }
 }
 
-pub async fn read(interface: &dyn CubeInterface) -> Result<Vec<u8>> {
+pub async fn read(
+    interface: &dyn CubeInterface,
+) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync + 'static>> {
     interface.read(CoreCubeUuid::ButtonInfo.into()).await
 }

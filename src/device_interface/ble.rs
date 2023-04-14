@@ -1,9 +1,8 @@
-use crate::characteristic::characteristic_uuid::CoreCubeUuid;
+use crate::characteristic::CoreCubeUuid;
 use crate::characteristic::NotificationData;
-use crate::cube::CoreCubeError;
 use crate::device_interface::CubeInterface;
 use crate::notification_manager::{HandlerFunction, NotificationManager};
-use anyhow::Result;
+use crate::CoreCubeError;
 use async_trait::async_trait;
 use btleplug::api::{
     BDAddr, Central, CharPropFlags, Characteristic, Manager as _, Peripheral as _, ScanFilter,
@@ -61,7 +60,7 @@ impl BleCube {
 pub async fn ble_notification_receiver(
     ble_peripheral: Peripheral,
     notification_manager: &NotificationManager<NotificationData>,
-) -> Result<()> {
+) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     let mut notification_stream = ble_peripheral.notifications().await.unwrap();
     while let Some(data) = notification_stream.next().await {
         let _ = notification_manager.invoke_all_handlers(data);
@@ -71,7 +70,7 @@ pub async fn ble_notification_receiver(
 
 #[async_trait]
 impl CubeInterface for BleCube {
-    async fn connect(&mut self) -> Result<()> {
+    async fn connect(&mut self) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
         self.ble_peripheral.connect().await?;
         let is_connected = self.ble_peripheral.is_connected().await?;
         assert!(is_connected);
@@ -91,7 +90,9 @@ impl CubeInterface for BleCube {
         Ok(())
     }
 
-    async fn disconnect(&mut self) -> Result<()> {
+    async fn disconnect(
+        &mut self,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
         for notified in &self.notification_enabled {
             debug!("disable notification uuid: {:?}", notified);
             self.ble_peripheral
@@ -109,13 +110,20 @@ impl CubeInterface for BleCube {
         Ok(())
     }
 
-    async fn read(&self, uuid: Uuid) -> Result<Vec<u8>> {
+    async fn read(
+        &self,
+        uuid: Uuid,
+    ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let characteristic = self.ble_characteristics.get(&uuid).unwrap();
         let data = self.ble_peripheral.read(characteristic).await?;
         Ok(data)
     }
 
-    async fn write(&self, uuid: Uuid, bytes: &[u8]) -> Result<bool> {
+    async fn write(
+        &self,
+        uuid: Uuid,
+        bytes: &[u8],
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let characteristic = self.ble_characteristics.get(&uuid).unwrap();
         self.ble_peripheral
             .write(characteristic, bytes, WriteType::WithoutResponse)
@@ -123,7 +131,11 @@ impl CubeInterface for BleCube {
         Ok(true)
     }
 
-    async fn write_with_response(&self, uuid: Uuid, bytes: &[u8]) -> Result<bool> {
+    async fn write_with_response(
+        &self,
+        uuid: Uuid,
+        bytes: &[u8],
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let characteristic = self.ble_characteristics.get(&uuid).unwrap();
         self.ble_peripheral
             .write(characteristic, bytes, WriteType::WithResponse)
@@ -135,7 +147,11 @@ impl CubeInterface for BleCube {
 pub struct BleScanner;
 
 impl BleScanner {
-    async fn scan_ble(&self, filter: ScanFilter, wait: Duration) -> Result<Vec<BleInterface>> {
+    async fn scan_ble(
+        &self,
+        filter: ScanFilter,
+        wait: Duration,
+    ) -> Result<Vec<BleInterface>, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let manager = Manager::new().await?;
         let adapter_list = manager.adapters().await?;
         let mut peripheral_list: Vec<BleInterface> = Vec::new();
@@ -197,7 +213,11 @@ impl BleScanner {
         Ok(peripheral_list)
     }
 
-    pub async fn scan(&self, num: usize, wait: Duration) -> Result<Vec<BleInterface>> {
+    pub async fn scan(
+        &self,
+        num: usize,
+        wait: Duration,
+    ) -> Result<Vec<BleInterface>, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let mut peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
         peripheral_list.truncate(num);
         if peripheral_list.is_empty() {
@@ -212,7 +232,7 @@ impl BleScanner {
         &self,
         address_list: &[BDAddr],
         wait: Duration,
-    ) -> Result<Vec<BleInterface>> {
+    ) -> Result<Vec<BleInterface>, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let mut matched_peripheral_list: Vec<BleInterface> = Vec::new();
         let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
         for peripheral in peripheral_list {
@@ -241,7 +261,7 @@ impl BleScanner {
         &self,
         name_list: &[&str],
         wait: Duration,
-    ) -> Result<Vec<BleInterface>> {
+    ) -> Result<Vec<BleInterface>, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let mut matched_peripheral_list: Vec<BleInterface> = Vec::new();
         let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
         for peripheral in peripheral_list {
