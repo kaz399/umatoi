@@ -1,7 +1,7 @@
 //! Official Specification: <https://toio.github.io/toio-spec/en/docs/ble_light>
 
 use crate::characteristic::CoreCubeUuid;
-use crate::device_interface::CubeInterface;
+use crate::interface::CubeInterface;
 use serde::ser::SerializeSeq;
 use serde::ser::SerializeStruct;
 use serde::Serialize;

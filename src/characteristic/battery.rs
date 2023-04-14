@@ -1,7 +1,7 @@
 //! Official Specification:  <https://toio.github.io/toio-spec/en/docs/ble_battery>
 
 use crate::characteristic::CoreCubeUuid;
-use crate::device_interface::CubeInterface;
+use crate::interface::CubeInterface;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BatteryInformation {

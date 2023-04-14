@@ -1,3 +1,5 @@
 //! API
 
-pub mod simple;
+mod simple;
+
+pub use simple::Simple;

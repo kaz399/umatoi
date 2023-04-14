@@ -3,13 +3,13 @@ use once_cell::sync::OnceCell;
 use std::sync::Mutex;
 use time::Duration;
 use tokio::time;
-use umatoi::api::simple::Simple;
+use umatoi::api::Simple;
 use umatoi::characteristic::id_information::IdInformation;
 use umatoi::characteristic::motor::target::TargetPosition;
 use umatoi::characteristic::motor::MotorResponse;
 use umatoi::characteristic::NotificationData;
-use umatoi::device_interface::ble::{BleCube, BleScanner};
-use umatoi::device_interface::CubeInterface;
+use umatoi::interface::CubeScanner;
+use umatoi::interface::ble::BleScanner;
 use umatoi::position::{CubeLocation, Point};
 
 #[derive(Parser)]
@@ -103,11 +103,11 @@ fn notify_handler3(data: NotificationData) {
 pub async fn main() {
     let _arg: AppArg = AppArg::parse();
     let scanner = BleScanner;
-    let found_interfaces = scanner.scan(1, Duration::from_secs(5)).await.unwrap();
+    let mut cubes = scanner.scan(1, Duration::from_secs(5)).await.unwrap();
 
-    assert!(!found_interfaces.is_empty());
+    assert!(!cubes.is_empty());
 
-    let mut cube = BleCube::new(found_interfaces[0].clone());
+    let cube = &mut cubes[0];
     cube.connect().await.unwrap();
 
     let notification_receiver = cube.create_notification_receiver(Box::new(vec![

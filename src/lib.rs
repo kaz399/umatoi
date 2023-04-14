@@ -2,7 +2,7 @@ mod cube_error;
 
 pub mod api;
 pub mod characteristic;
-pub mod device_interface;
+pub mod interface;
 pub mod integer_converter;
 pub mod notification_manager;
 pub mod payload;

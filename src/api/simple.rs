@@ -10,7 +10,7 @@ use crate::characteristic::motor::target::{
     MotorControlMultipleTargets, MotorControlTarget, Speed,
 };
 use crate::characteristic::CoreCubeUuid;
-use crate::device_interface::CubeInterface;
+use crate::interface::CubeInterface;
 use crate::integer_converter::{i_to_i16, i_to_u8};
 use crate::payload::ToPayload;
 use async_trait::async_trait;
@@ -63,7 +63,7 @@ pub trait Simple {
 }
 
 #[async_trait]
-impl<T: CubeInterface + Send + Sync + 'static> Simple for T {
+impl Simple for dyn CubeInterface + Send + Sync + 'static {
     async fn motor_control(
         &self,
         left: isize,

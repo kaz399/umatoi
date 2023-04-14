@@ -1,6 +1,5 @@
 use crate::characteristic::CoreCubeUuid;
 use crate::characteristic::NotificationData;
-use crate::device_interface::CubeInterface;
 use crate::notification_manager::{HandlerFunction, NotificationManager};
 use crate::CoreCubeError;
 use async_trait::async_trait;
@@ -19,8 +18,11 @@ use std::vec::Vec;
 use tokio::time;
 use uuid::Uuid;
 
+use super::{CubeInterface, CubeScanner};
+
 type BleInterface = Peripheral;
 
+#[derive(Clone)]
 pub struct BleCube {
     pub ble_peripheral: BleInterface,
     pub ble_characteristics: HashMap<Uuid, Characteristic>,
@@ -36,25 +38,6 @@ impl BleCube {
         }
     }
 
-    pub fn create_notification_receiver(
-        &self,
-        handlers: Box<Vec<HandlerFunction<NotificationData>>>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
-        let ble_peripheral = self.ble_peripheral.clone();
-        Box::pin(async move {
-            let nf_manager = NotificationManager::<NotificationData>::new();
-            let mut registered_handlers: Vec<Uuid> = vec![];
-
-            for notification_handler in *handlers {
-                let handler_uuid = nf_manager.register(Box::new(notification_handler)).unwrap();
-                registered_handlers.push(handler_uuid);
-            }
-            let _ = ble_notification_receiver(ble_peripheral, &nf_manager).await;
-            for handler_uuid in registered_handlers {
-                nf_manager.unregister(handler_uuid).unwrap();
-            }
-        })
-    }
 }
 
 pub async fn ble_notification_receiver(
@@ -142,6 +125,26 @@ impl CubeInterface for BleCube {
             .await?;
         Ok(true)
     }
+
+   fn create_notification_receiver(
+        &self,
+        handlers: Box<Vec<HandlerFunction<NotificationData>>>,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
+        let ble_peripheral = self.ble_peripheral.clone();
+        Box::pin(async move {
+            let nf_manager = NotificationManager::<NotificationData>::new();
+            let mut registered_handlers: Vec<Uuid> = vec![];
+
+            for notification_handler in *handlers {
+                let handler_uuid = nf_manager.register(Box::new(notification_handler)).unwrap();
+                registered_handlers.push(handler_uuid);
+            }
+            let _ = ble_notification_receiver(ble_peripheral, &nf_manager).await;
+            for handler_uuid in registered_handlers {
+                nf_manager.unregister(handler_uuid).unwrap();
+            }
+        })
+    }
 }
 
 pub struct BleScanner;
@@ -151,10 +154,10 @@ impl BleScanner {
         &self,
         filter: ScanFilter,
         wait: Duration,
-    ) -> Result<Vec<BleInterface>, Box<dyn std::error::Error + Send + Sync + 'static>> {
+    ) -> Result<Vec<Box<BleCube>>, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let manager = Manager::new().await?;
         let adapter_list = manager.adapters().await?;
-        let mut peripheral_list: Vec<BleInterface> = Vec::new();
+        let mut peripheral_list: Vec<Box<BleCube>> = Vec::new();
 
         #[derive(Clone)]
         struct RssiBle {
@@ -203,7 +206,7 @@ impl BleScanner {
             let mut rssi_peripheral_list = Vec::from_iter(rssi_peripheral_hash.values().cloned());
             rssi_peripheral_list.sort_by(|a, b| a.rssi.cmp(&b.rssi));
             for inerface in rssi_peripheral_list.iter() {
-                peripheral_list.push(inerface.ble.clone());
+                peripheral_list.push(Box::new(BleCube::new(inerface.ble.clone())));
             }
         }
         debug!(
@@ -212,37 +215,47 @@ impl BleScanner {
         );
         Ok(peripheral_list)
     }
+}
 
-    pub async fn scan(
+#[async_trait]
+impl CubeScanner for BleScanner {
+    async fn scan(
         &self,
         num: usize,
         wait: Duration,
-    ) -> Result<Vec<BleInterface>, Box<dyn std::error::Error + Send + Sync + 'static>> {
-        let mut peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
-        peripheral_list.truncate(num);
-        if peripheral_list.is_empty() {
+    ) -> Result<Vec<Box<dyn CubeInterface + Send + Sync + 'static>>, Box<dyn std::error::Error + Send + Sync + 'static>> {
+        let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
+        let mut matched_peripheral_list: Vec<Box<dyn CubeInterface + Send + Sync + 'static>> = Vec::new();
+        for (n, cube) in peripheral_list.into_iter().enumerate()  {
+            if n < num {
+                matched_peripheral_list.push(cube)
+            } else {
+                break;
+            }
+        }
+        if matched_peripheral_list.is_empty() {
             error!("toio core cube is not found");
             return Err(CoreCubeError::CubeNotFound.into());
         }
-        debug!("scan: total {} peripherals found", peripheral_list.len());
-        Ok(peripheral_list)
+        debug!("scan: total {} peripherals found", matched_peripheral_list.len());
+        Ok(matched_peripheral_list)
     }
 
-    pub async fn scan_with_address(
+    async fn scan_with_address(
         &self,
         address_list: &[BDAddr],
         wait: Duration,
-    ) -> Result<Vec<BleInterface>, Box<dyn std::error::Error + Send + Sync + 'static>> {
-        let mut matched_peripheral_list: Vec<BleInterface> = Vec::new();
+    ) -> Result<Vec<Box<dyn CubeInterface + Send + Sync + 'static>>, Box<dyn std::error::Error + Send + Sync + 'static>> {
+        let mut matched_peripheral_list: Vec<Box<dyn CubeInterface + Send + Sync + 'static>> = Vec::new();
         let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
-        for peripheral in peripheral_list {
-            let properties = peripheral.properties().await?.unwrap();
+        for cube in peripheral_list {
+            let properties = cube.ble_peripheral.properties().await?.unwrap();
             if address_list
                 .iter()
                 .any(|e: &BDAddr| e == &properties.address)
             {
                 info!("found cube: '{}'", &properties.address);
-                matched_peripheral_list.push(peripheral);
+                matched_peripheral_list.push(cube);
             }
         }
 
@@ -257,19 +270,19 @@ impl BleScanner {
         Ok(matched_peripheral_list)
     }
 
-    pub async fn scan_with_name(
+    async fn scan_with_name(
         &self,
         name_list: &[&str],
         wait: Duration,
-    ) -> Result<Vec<BleInterface>, Box<dyn std::error::Error + Send + Sync + 'static>> {
-        let mut matched_peripheral_list: Vec<BleInterface> = Vec::new();
+    ) -> Result<Vec<Box<dyn CubeInterface + Send + Sync + 'static>>, Box<dyn std::error::Error + Send + Sync + 'static>> {
+        let mut matched_peripheral_list: Vec<Box<dyn CubeInterface + Send + Sync + 'static>> = Vec::new();
         let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
-        for peripheral in peripheral_list {
-            let properties = peripheral.properties().await?.unwrap();
+        for cube in peripheral_list {
+            let properties = cube.ble_peripheral.properties().await?.unwrap();
             if let Some(local_name) = properties.local_name {
                 if name_list.iter().any(|e| e == &local_name) {
                     info!("found cube: '{}'", &local_name);
-                    matched_peripheral_list.push(peripheral);
+                    matched_peripheral_list.push(cube);
                 }
             }
         }

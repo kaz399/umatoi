@@ -1,7 +1,7 @@
 //! Official Specification:  <https://toio.github.io/toio-spec/en/docs/ble_button>
 
 use crate::characteristic::CoreCubeUuid;
-use crate::device_interface::CubeInterface;
+use crate::interface::CubeInterface;
 use std::time;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
