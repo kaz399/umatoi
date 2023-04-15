@@ -3,6 +3,8 @@ use crate::payload::ToPayload;
 use crate::position::CubeLocation;
 use serde::ser::Serializer;
 use serde::Serialize;
+use byteorder::{LittleEndian, WriteBytesExt};
+
 
 /// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified>
 
@@ -170,7 +172,13 @@ struct MotorControlTargetHeader {
 
 impl ToPayload<Vec<u8>> for MotorControlTargetHeader {
     fn to_payload(self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
+        // ToDo: replace with byteorder
+        // bincode::serialize(&self).unwrap()
+        let mut payload: Vec<u8> = Vec::new();
+        payload.write_u8(u8::from(self.command)).unwrap();
+        payload.write_u8(self.id.id).unwrap();
+
+        payload
     }
 }
 

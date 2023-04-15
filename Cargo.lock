@@ -1894,6 +1894,7 @@ dependencies = [
  "async-trait",
  "bincode",
  "btleplug",
+ "byteorder",
  "clap",
  "ctrlc",
  "env_logger",
