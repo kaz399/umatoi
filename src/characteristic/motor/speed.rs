@@ -1,10 +1,10 @@
 use super::def::CommandId;
-use serde::Serialize;
+use crate::payload::ToPayload;
 
 /// Motor Speed information
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#obtaining-motor-speed-information>
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResponseMotorSpeed {
     pub left: u8,
     pub right: u8,
@@ -23,5 +23,12 @@ impl ResponseMotorSpeed {
         } else {
             None
         }
+    }
+}
+
+impl ToPayload<Vec<u8>> for ResponseMotorSpeed {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.left, self.right];
+        payload
     }
 }

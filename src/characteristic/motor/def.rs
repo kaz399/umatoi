@@ -1,9 +1,9 @@
+use byteorder::WriteBytesExt;
 use once_cell::sync::OnceCell;
-use serde::ser::Serializer;
-use serde::Serialize;
 use std::error::Error;
 use std::sync::Mutex;
 use thiserror::Error;
+use crate::payload::ToPayload;
 
 /// Command
 ///
@@ -32,19 +32,16 @@ impl From<CommandId> for u8 {
     }
 }
 
-impl Serialize for CommandId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
-    }
-}
-
 impl CommandId {
     pub fn response(self) -> u8 {
         u8::from(self) | 0x80u8
+    }
+}
+
+impl ToPayload<Vec<u8>> for CommandId {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
 
@@ -97,13 +94,10 @@ impl From<u8> for ResponseCode {
     }
 }
 
-impl Serialize for ResponseCode {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for ResponseCode {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
 
@@ -123,10 +117,25 @@ pub enum MotorError {
 ///
 /// No default.
 
-#[derive(Debug, Serialize, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct RequestId {
     pub id: u8,
 }
+
+impl From<RequestId> for u8 {
+    fn from(value: RequestId) -> Self {
+        value.id
+    }
+}
+
+impl ToPayload<Vec<u8>> for RequestId {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
+    }
+
+}
+
 
 /// Request ID counter (global scope)
 static REQUEST_ID: OnceCell<Mutex<u8>> = OnceCell::new();
@@ -175,19 +184,16 @@ impl Default for Timeout {
     }
 }
 
-impl Serialize for Timeout {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for Timeout {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
 
 /// Period for running
 
-#[derive(Serialize, Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct Period {
     pub period: u8,
 }
@@ -214,6 +220,14 @@ impl Period {
     }
 }
 
+impl ToPayload<Vec<u8>> for Period {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.period];
+        payload
+    }
+}
+
+
 /// Motor Id
 ///
 /// No default.
@@ -233,15 +247,13 @@ impl From<MotorId> for u8 {
     }
 }
 
-impl Serialize for MotorId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for MotorId {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
+
 
 /// Motor direction
 ///
@@ -262,42 +274,39 @@ impl From<MotorDirection> for u8 {
     }
 }
 
-impl Serialize for MotorDirection {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for MotorDirection {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
 
 /// Cube speed
 
-#[derive(Serialize, Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct Velocity {
-    pub direction: u8,
+    pub direction: MotorDirection,
     pub speed: u8,
 }
 
 impl Default for Velocity {
     fn default() -> Self {
         Self {
-            direction: 1,
+            direction: MotorDirection::Forward,
             speed: 0,
         }
     }
 }
 
 impl Velocity {
-    pub fn new(value: i16) -> Result<Self, Box<dyn Error + Send + Sync + 'static>> {
+    pub fn set_value(value: i16) -> Result<Self, Box<dyn Error + Send + Sync + 'static>> {
         if value > 0 && value > u8::MAX.into() {
             return Err(Box::new(MotorError::InvalidParameter));
         }
         if 0 > value && -value > u8::MAX.into() {
             return Err(Box::new(MotorError::InvalidParameter));
         }
-        let direction = if value >= 0 { 0x01u8 } else { 0x02u8 };
+        let direction = if value >= 0 { MotorDirection::Forward } else { MotorDirection::Backward };
         let speed = if value >= 0 {
             (value & 0xff) as u8
         } else {
@@ -307,9 +316,18 @@ impl Velocity {
     }
 }
 
+impl ToPayload<Vec<u8>> for Velocity {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload: Vec<u8> = Vec::new();
+        payload.extend(self.direction.to_payload());
+        payload.write_u8(self.speed).unwrap();
+        payload
+    }
+}
+
 /// Motor drive parameter
 
-#[derive(Serialize, Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct MotorDriveParameter {
     pub id: MotorId,
     pub velocity: Velocity,
@@ -332,6 +350,16 @@ impl MotorDriveParameter {
         Ok(Self { id, velocity })
     }
 }
+
+impl ToPayload<Vec<u8>> for MotorDriveParameter {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload: Vec<u8> = Vec::new();
+        payload.extend(self.id.to_payload());
+        payload.extend(self.velocity.to_payload());
+        payload
+    }
+}
+
 
 #[cfg(test)]
 mod test {

@@ -73,13 +73,13 @@ impl Simple for dyn CubeInterface + Send + Sync + 'static {
         match period_ms {
             0 => {
                 let motor: MotorControl =
-                    MotorControl::from_primitive(i_to_i16(left), i_to_i16(right))?;
+                    MotorControl::set_value(i_to_i16(left), i_to_i16(right))?;
                 self.write(CoreCubeUuid::MotorCtrl.uuid(), &motor.to_payload())
                     .await?;
             }
             _ => {
                 let motor: MotorControlWithSpecifiedDuration =
-                    MotorControlWithSpecifiedDuration::from_primitive(
+                    MotorControlWithSpecifiedDuration::set_value(
                         i_to_i16(left),
                         i_to_i16(right),
                         period_ms,

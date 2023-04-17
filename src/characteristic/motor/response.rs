@@ -14,7 +14,7 @@ pub enum MotorResponse {
 }
 
 impl MotorResponse {
-    pub fn new(byte_data: &[u8]) -> Option<MotorResponse> {
+    pub fn new(byte_data: &[u8]) -> Option<Self> {
         if byte_data.is_empty() {
             return None;
         }
@@ -48,13 +48,13 @@ impl ToPayload<Vec<u8>> for MotorResponse {
         let mut payload: Vec<u8> = vec![u8::from(self)];
         match self {
             MotorResponse::MotorControlTarget(st) => {
-                payload.extend(bincode::serialize(&st).unwrap());
+                payload.extend(st.to_payload());
             }
             MotorResponse::MotorControlMultipleTargets(st) => {
-                payload.extend(bincode::serialize(&st).unwrap());
+                payload.extend(st.to_payload());
             }
             MotorResponse::MotorSpeed(st) => {
-                payload.extend(bincode::serialize(&st).unwrap());
+                payload.extend(st.to_payload());
             }
         }
         payload

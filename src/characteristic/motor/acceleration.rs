@@ -1,11 +1,10 @@
+use byteorder::{LittleEndian, WriteBytesExt};
 use super::def::{CommandId, Period};
 use crate::payload::ToPayload;
-use serde::Serialize;
-use serde::Serializer;
 
 /// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-acceleration-specified>
 
-#[derive(Serialize, Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct MotorControlAcceleration {
     pub command: CommandId,
     pub acceleration: Acceleration,
@@ -17,7 +16,14 @@ pub struct MotorControlAcceleration {
 
 impl ToPayload<Vec<u8>> for MotorControlAcceleration {
     fn to_payload(self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
+        let mut payload: Vec<u8> = Vec::new();
+        payload.extend(self.command.to_payload());
+        payload.extend(self.acceleration.to_payload());
+        payload.extend(self.angle_velocity.to_payload());
+        payload.extend(self.moving_direction.to_payload());
+        payload.extend(self.priority.to_payload());
+        payload.extend(self.period.to_payload());
+        payload
     }
 }
 
@@ -36,15 +42,23 @@ impl Default for MotorControlAcceleration {
 
 /// Acceleration
 
-#[derive(Serialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Acceleration {
     pub translational_speed: u8,
     pub acceleration: u8,
 }
 
+impl ToPayload<Vec<u8>> for Acceleration {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.translational_speed, self.acceleration];
+        payload
+    }
+}
+
+
 /// Angle velocity
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct AngleVelocity {
     pub rotation_velocity: u16,
     pub rotation_direction: RotationDirection,
@@ -58,6 +72,16 @@ impl Default for AngleVelocity {
         }
     }
 }
+
+impl ToPayload<Vec<u8>> for AngleVelocity {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload: Vec<u8> = Vec::new();
+        payload.write_u16::<LittleEndian>(self.rotation_velocity).unwrap();
+        payload.extend(self.rotation_direction.to_payload());
+        payload
+    }
+}
+
 
 /// Rotation direction
 
@@ -76,15 +100,13 @@ impl From<RotationDirection> for u8 {
     }
 }
 
-impl Serialize for RotationDirection {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for RotationDirection {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
+
 
 /// Moving direction
 
@@ -103,15 +125,13 @@ impl From<MovingDirection> for u8 {
     }
 }
 
-impl Serialize for MovingDirection {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for MovingDirection {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
+
 
 /// Priority (MotorCommandId::Acceleration)
 
@@ -130,15 +150,13 @@ impl From<Priority> for u8 {
     }
 }
 
-impl Serialize for Priority {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for Priority {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
+
 
 #[cfg(test)]
 mod test {

@@ -1,9 +1,7 @@
 use super::def::{CommandId, RequestId, ResponseCode, Timeout};
 use crate::payload::ToPayload;
 use crate::position::CubeLocation;
-use serde::ser::Serializer;
-use serde::Serialize;
-use byteorder::{LittleEndian, WriteBytesExt};
+use byteorder::WriteBytesExt;
 
 
 /// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified>
@@ -17,14 +15,6 @@ pub struct MotorControlTarget {
     pub speed: Speed,
     pub _reserved_1: u8,
     pub target: TargetPosition,
-}
-
-impl ToPayload<Vec<u8>> for MotorControlTarget {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload = self.header().to_payload();
-        payload.extend(&self.target.to_payload());
-        payload
-    }
 }
 
 impl Default for MotorControlTarget {
@@ -54,10 +44,19 @@ impl MotorControlTarget {
     }
 }
 
+
+impl ToPayload<Vec<u8>> for MotorControlTarget {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload = self.header().to_payload();
+        payload.extend(&self.target.to_payload());
+        payload
+    }
+}
+
 /// Response to motor control with target specified
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-target-specified>
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResponseMotorControlTarget {
     pub request_id: RequestId,
     pub response_code: ResponseCode,
@@ -76,6 +75,15 @@ impl ResponseMotorControlTarget {
         } else {
             None
         }
+    }
+}
+
+impl ToPayload<Vec<u8>> for ResponseMotorControlTarget {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload: Vec<u8> = Vec::new();
+        payload.extend(self.request_id.to_payload());
+        payload.extend(self.response_code.to_payload());
+        payload
     }
 }
 
@@ -135,7 +143,7 @@ impl MotorControlMultipleTargets {
 /// Responses to motor control with multiple targets specified
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-multiple-targets-specified>
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResponseMotorControlMultipleTargets {
     pub request_id: RequestId,
     pub response_code: ResponseCode,
@@ -157,10 +165,19 @@ impl ResponseMotorControlMultipleTargets {
     }
 }
 
+impl ToPayload<Vec<u8>> for ResponseMotorControlMultipleTargets {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload: Vec<u8> = Vec::new();
+        payload.extend(self.request_id.to_payload());
+        payload.extend(self.response_code.to_payload());
+        payload
+    }
+}
+
 /// Header part of `MotorControlTarget`
 ///
 /// This struct is NOT public
-#[derive(Serialize, Debug)]
+#[derive(Debug)]
 struct MotorControlTargetHeader {
     command: CommandId,
     id: RequestId,
@@ -172,11 +189,13 @@ struct MotorControlTargetHeader {
 
 impl ToPayload<Vec<u8>> for MotorControlTargetHeader {
     fn to_payload(self) -> Vec<u8> {
-        // ToDo: replace with byteorder
-        // bincode::serialize(&self).unwrap()
         let mut payload: Vec<u8> = Vec::new();
-        payload.write_u8(u8::from(self.command)).unwrap();
-        payload.write_u8(self.id.id).unwrap();
+        payload.extend(self.command.to_payload());
+        payload.extend(self.id.to_payload());
+        payload.extend(self.timeout.to_payload());
+        payload.extend(self.movement_type.to_payload());
+        payload.extend(self.speed.to_payload());
+        payload.write_u8(self._reserved_1).unwrap();
 
         payload
     }
@@ -185,7 +204,7 @@ impl ToPayload<Vec<u8>> for MotorControlTargetHeader {
 /// Header part of `MotorControlMultipleTargets`
 ///
 /// This struct is NOT public.
-#[derive(Serialize, Debug)]
+#[derive(Debug)]
 struct MotorControlMultipleTargetsHeader {
     command: CommandId,
     id: RequestId,
@@ -198,7 +217,17 @@ struct MotorControlMultipleTargetsHeader {
 
 impl ToPayload<Vec<u8>> for MotorControlMultipleTargetsHeader {
     fn to_payload(self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
+        //bincode::serialize(&self).unwrap()
+        let mut payload: Vec<u8> = Vec::new();
+        payload.extend(self.command.to_payload());
+        payload.extend(self.id.to_payload());
+        payload.extend(self.timeout.to_payload());
+        payload.extend(self.movement_type.to_payload());
+        payload.extend(self.speed.to_payload());
+        payload.write_u8(self._reserved_1).unwrap();
+        payload.extend(self.write_mode.to_payload());
+
+        payload
     }
 }
 
@@ -227,28 +256,35 @@ impl Default for MovementType {
     }
 }
 
-impl Serialize for MovementType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for MovementType {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
 
 /// Speed parameter
 
-#[derive(Serialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Speed {
     pub max: u8,
     pub speed_change_type: SpeedChangeType,
 }
 
+impl ToPayload<Vec<u8>> for Speed {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload: Vec<u8> = vec![self.max];
+        payload.extend(self.speed_change_type.to_payload());
+
+        payload
+    }
+}
+
 /// Speed change type
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SpeedChangeType {
+    #[default]
     Constant,
     Acceleration,
     Deceleration,
@@ -266,26 +302,19 @@ impl From<SpeedChangeType> for u8 {
     }
 }
 
-impl Default for SpeedChangeType {
-    fn default() -> Self {
-        SpeedChangeType::Constant
+impl ToPayload<Vec<u8>> for SpeedChangeType {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
 
-impl Serialize for SpeedChangeType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
-    }
-}
 
 /// Rotation options on the move
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RotationOption {
+    #[default]
     AbsoluteOptimal,
     AbsolutePositive,
     AbsoluteNegative,
@@ -309,19 +338,10 @@ impl From<RotationOption> for u8 {
     }
 }
 
-impl Default for RotationOption {
-    fn default() -> Self {
-        RotationOption::AbsoluteOptimal
-    }
-}
-
-impl Serialize for RotationOption {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for RotationOption {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
 
@@ -356,8 +376,9 @@ impl ToPayload<Vec<u8>> for TargetPosition {
 
 /// Write mode (MotorCommandId::MultiTargetPositions)
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub enum WriteMode {
+    #[default]
     Overwrite,
     Append,
 }
@@ -371,19 +392,10 @@ impl From<WriteMode> for u8 {
     }
 }
 
-impl Default for WriteMode {
-    fn default() -> Self {
-        WriteMode::Overwrite
-    }
-}
-
-impl Serialize for WriteMode {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for WriteMode {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
 
