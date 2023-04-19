@@ -1,14 +1,8 @@
 //! Official Specification: <https://toio.github.io/toio-spec/en/docs/ble_motor>
 
-mod response;
-
-pub mod acceleration;
-pub mod control;
+pub mod command;
 pub mod def;
-pub mod speed;
-pub mod target;
-
-pub use crate::characteristic::motor::response::MotorResponse;
+pub mod response;
 
 #[cfg(test)]
 mod test {

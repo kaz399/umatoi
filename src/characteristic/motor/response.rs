@@ -1,16 +1,16 @@
+mod speed_response;
+mod target_response;
+
 use super::def::CommandId;
-use super::speed::ResponseMotorSpeed;
-use super::target::ResponseMotorControlMultipleTargets;
-use super::target::ResponseMotorControlTarget;
 use crate::payload::ToPayload;
 
-/// Motor response
+/// Combined motor response
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MotorResponse {
-    MotorControlTarget(ResponseMotorControlTarget),
-    MotorControlMultipleTargets(ResponseMotorControlMultipleTargets),
-    MotorSpeed(ResponseMotorSpeed),
+    MotorControlTarget(target_response::ResponseMotorControlTarget),
+    MotorControlMultipleTargets(target_response::ResponseMotorControlMultipleTargets),
+    MotorSpeed(speed_response::ResponseMotorSpeed),
 }
 
 impl MotorResponse {
@@ -18,13 +18,15 @@ impl MotorResponse {
         if byte_data.is_empty() {
             return None;
         }
-        if let Some(response_data) = ResponseMotorControlTarget::new(byte_data) {
+        if let Some(response_data) = target_response::ResponseMotorControlTarget::new(byte_data) {
             return Some(MotorResponse::MotorControlTarget(response_data));
         }
-        if let Some(response_data) = ResponseMotorControlMultipleTargets::new(byte_data) {
+        if let Some(response_data) =
+            target_response::ResponseMotorControlMultipleTargets::new(byte_data)
+        {
             return Some(MotorResponse::MotorControlMultipleTargets(response_data));
         }
-        if let Some(response_data) = ResponseMotorSpeed::new(byte_data) {
+        if let Some(response_data) = speed_response::ResponseMotorSpeed::new(byte_data) {
             return Some(MotorResponse::MotorSpeed(response_data));
         }
         None
@@ -66,7 +68,6 @@ mod test {
     use super::*;
     use crate::characteristic::motor::def::RequestId;
     use crate::characteristic::motor::def::ResponseCode;
-    use crate::characteristic::motor::speed::ResponseMotorSpeed;
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
@@ -76,7 +77,7 @@ mod test {
     fn motor_response1() {
         _setup();
 
-        let res = MotorResponse::MotorSpeed(ResponseMotorSpeed {
+        let res = MotorResponse::MotorSpeed(speed_response::ResponseMotorSpeed {
             left: 10,
             right: 11,
         });
@@ -89,7 +90,7 @@ mod test {
     fn motor_response2() {
         _setup();
 
-        let res = MotorResponse::MotorControlTarget(ResponseMotorControlTarget {
+        let res = MotorResponse::MotorControlTarget(target_response::ResponseMotorControlTarget {
             request_id: RequestId::new(),
             response_code: ResponseCode::ErrorTimeout,
         });
@@ -102,10 +103,12 @@ mod test {
     fn motor_response3() {
         _setup();
 
-        let res = MotorResponse::MotorControlMultipleTargets(ResponseMotorControlMultipleTargets {
-            request_id: RequestId::new(),
-            response_code: ResponseCode::ErrorInvalidParameter,
-        });
+        let res = MotorResponse::MotorControlMultipleTargets(
+            target_response::ResponseMotorControlMultipleTargets {
+                request_id: RequestId::new(),
+                response_code: ResponseCode::ErrorInvalidParameter,
+            },
+        );
         let payload = res.to_payload();
         println!("len:{:2} data:{:?}", payload.len(), payload);
         assert_eq!(payload.len(), 3);

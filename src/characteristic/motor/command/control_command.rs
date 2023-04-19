@@ -1,4 +1,6 @@
-use super::def::{CommandId, MotorDriveParameter, MotorId, Period, Velocity};
+use crate::characteristic::motor::def::{
+    CommandId, MotorDriveParameter, MotorId, Period, Velocity,
+};
 use crate::payload::ToPayload;
 use std::error::Error;
 
@@ -91,7 +93,7 @@ impl MotorControlWithSpecifiedDuration {
 
 impl ToPayload<Vec<u8>> for MotorControlWithSpecifiedDuration {
     fn to_payload(self) -> Vec<u8> {
-        let mut payload: Vec<u8> =  Vec::new();
+        let mut payload: Vec<u8> = Vec::new();
         payload.extend(self.command.to_payload());
         payload.extend(self.left.to_payload());
         payload.extend(self.right.to_payload());
@@ -144,8 +146,10 @@ mod test {
         _setup();
 
         let run_default = MotorControl {
-            left: MotorDriveParameter::new(MotorId::Left, Velocity::set_value(-10).unwrap()).unwrap(),
-            right: MotorDriveParameter::new(MotorId::Right, Velocity::set_value(-10).unwrap()).unwrap(),
+            left: MotorDriveParameter::new(MotorId::Left, Velocity::set_value(-10).unwrap())
+                .unwrap(),
+            right: MotorDriveParameter::new(MotorId::Right, Velocity::set_value(-10).unwrap())
+                .unwrap(),
             ..MotorControl::default()
         };
         let payload = run_default.to_payload();

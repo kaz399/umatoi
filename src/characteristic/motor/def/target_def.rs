@@ -1,193 +1,21 @@
-use super::def::{CommandId, RequestId, ResponseCode, Timeout};
+use super::common_def::{CommandId, RequestId, Timeout};
 use crate::payload::ToPayload;
 use crate::position::CubeLocation;
 use byteorder::WriteBytesExt;
 
-
-/// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-target-specified>
-
-#[derive(Debug, Copy, Clone)]
-pub struct MotorControlTarget {
-    pub command: CommandId,
-    pub id: RequestId,
-    pub timeout: Timeout,
-    pub movement_type: MovementType,
-    pub speed: Speed,
-    pub _reserved_1: u8,
-    pub target: TargetPosition,
-}
-
-impl Default for MotorControlTarget {
-    fn default() -> Self {
-        Self {
-            command: CommandId::TargetPosition,
-            id: RequestId::new(),
-            timeout: Timeout::default(),
-            movement_type: MovementType::default(),
-            speed: Speed::default(),
-            _reserved_1: 0,
-            target: TargetPosition::default(),
-        }
-    }
-}
-
-impl MotorControlTarget {
-    fn header(&self) -> MotorControlTargetHeader {
-        MotorControlTargetHeader {
-            command: self.command,
-            id: self.id,
-            timeout: self.timeout,
-            movement_type: self.movement_type,
-            speed: self.speed,
-            _reserved_1: self._reserved_1,
-        }
-    }
-}
-
-
-impl ToPayload<Vec<u8>> for MotorControlTarget {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload = self.header().to_payload();
-        payload.extend(&self.target.to_payload());
-        payload
-    }
-}
-
-/// Response to motor control with target specified
-/// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-target-specified>
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ResponseMotorControlTarget {
-    pub request_id: RequestId,
-    pub response_code: ResponseCode,
-}
-
-impl ResponseMotorControlTarget {
-    pub fn new(byte_data: &[u8]) -> Option<Self> {
-        if byte_data.len() < 3 {
-            return None;
-        }
-        if byte_data[0] == CommandId::TargetPosition.response() {
-            Some(Self {
-                request_id: RequestId::received(byte_data[1]),
-                response_code: ResponseCode::from(byte_data[2]),
-            })
-        } else {
-            None
-        }
-    }
-}
-
-impl ToPayload<Vec<u8>> for ResponseMotorControlTarget {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload: Vec<u8> = Vec::new();
-        payload.extend(self.request_id.to_payload());
-        payload.extend(self.response_code.to_payload());
-        payload
-    }
-}
-
-/// Byte-string representation of <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-multiple-targets-specified>
-
-#[derive(Debug, Clone)]
-pub struct MotorControlMultipleTargets {
-    pub command: CommandId,
-    pub id: RequestId,
-    pub timeout: Timeout,
-    pub movement_type: MovementType,
-    pub speed: Speed,
-    pub _reserved_1: u8,
-    pub write_mode: WriteMode,
-    pub target_list: Vec<TargetPosition>,
-}
-
-impl ToPayload<Vec<u8>> for MotorControlMultipleTargets {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload = self.header().to_payload();
-        for target in &self.target_list {
-            payload.extend(&target.to_payload());
-        }
-        payload
-    }
-}
-
-impl Default for MotorControlMultipleTargets {
-    fn default() -> Self {
-        Self {
-            command: CommandId::MultiTargetPositions,
-            id: RequestId::new(),
-            timeout: Timeout::default(),
-            movement_type: MovementType::default(),
-            speed: Speed::default(),
-            _reserved_1: 0,
-            write_mode: WriteMode::default(),
-            target_list: vec![TargetPosition::default()],
-        }
-    }
-}
-
-impl MotorControlMultipleTargets {
-    fn header(&self) -> MotorControlMultipleTargetsHeader {
-        MotorControlMultipleTargetsHeader {
-            command: self.command,
-            id: self.id,
-            timeout: self.timeout,
-            movement_type: self.movement_type,
-            speed: self.speed,
-            _reserved_1: self._reserved_1,
-            write_mode: self.write_mode,
-        }
-    }
-}
-
-/// Responses to motor control with multiple targets specified
-/// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-multiple-targets-specified>
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ResponseMotorControlMultipleTargets {
-    pub request_id: RequestId,
-    pub response_code: ResponseCode,
-}
-
-impl ResponseMotorControlMultipleTargets {
-    pub fn new(byte_data: &[u8]) -> Option<Self> {
-        if byte_data.len() < 3 {
-            return None;
-        }
-        if byte_data[0] == CommandId::MultiTargetPositions.response() {
-            Some(Self {
-                request_id: RequestId::received(byte_data[1]),
-                response_code: ResponseCode::from(byte_data[2]),
-            })
-        } else {
-            None
-        }
-    }
-}
-
-impl ToPayload<Vec<u8>> for ResponseMotorControlMultipleTargets {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload: Vec<u8> = Vec::new();
-        payload.extend(self.request_id.to_payload());
-        payload.extend(self.response_code.to_payload());
-        payload
-    }
-}
-
 /// Header part of `MotorControlTarget`
 ///
-/// This struct is NOT public
 #[derive(Debug)]
-struct MotorControlTargetHeader {
-    command: CommandId,
-    id: RequestId,
-    timeout: Timeout,
-    movement_type: MovementType,
-    speed: Speed,
-    _reserved_1: u8,
+pub(crate) struct _MotorControlTargetHeader {
+    pub(crate) command: CommandId,
+    pub(crate) id: RequestId,
+    pub(crate) timeout: Timeout,
+    pub(crate) movement_type: MovementType,
+    pub(crate) speed: Speed,
+    pub(crate) _reserved_1: u8,
 }
 
-impl ToPayload<Vec<u8>> for MotorControlTargetHeader {
+impl ToPayload<Vec<u8>> for _MotorControlTargetHeader {
     fn to_payload(self) -> Vec<u8> {
         let mut payload: Vec<u8> = Vec::new();
         payload.extend(self.command.to_payload());
@@ -203,19 +31,18 @@ impl ToPayload<Vec<u8>> for MotorControlTargetHeader {
 
 /// Header part of `MotorControlMultipleTargets`
 ///
-/// This struct is NOT public.
 #[derive(Debug)]
-struct MotorControlMultipleTargetsHeader {
-    command: CommandId,
-    id: RequestId,
-    timeout: Timeout,
-    movement_type: MovementType,
-    speed: Speed,
-    _reserved_1: u8,
-    write_mode: WriteMode,
+pub(crate) struct _MotorControlMultipleTargetsHeader {
+    pub(crate) command: CommandId,
+    pub(crate) id: RequestId,
+    pub(crate) timeout: Timeout,
+    pub(crate) movement_type: MovementType,
+    pub(crate) speed: Speed,
+    pub(crate) _reserved_1: u8,
+    pub(crate) write_mode: WriteMode,
 }
 
-impl ToPayload<Vec<u8>> for MotorControlMultipleTargetsHeader {
+impl ToPayload<Vec<u8>> for _MotorControlMultipleTargetsHeader {
     fn to_payload(self) -> Vec<u8> {
         //bincode::serialize(&self).unwrap()
         let mut payload: Vec<u8> = Vec::new();
@@ -233,8 +60,9 @@ impl ToPayload<Vec<u8>> for MotorControlMultipleTargetsHeader {
 
 /// Movement type
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MovementType {
+    #[default]
     Curve,
     CurveWithoutReverse,
     Linear,
@@ -247,12 +75,6 @@ impl From<MovementType> for u8 {
             MovementType::CurveWithoutReverse => 1u8,
             MovementType::Linear => 2u8,
         }
-    }
-}
-
-impl Default for MovementType {
-    fn default() -> Self {
-        MovementType::Curve
     }
 }
 
@@ -308,7 +130,6 @@ impl ToPayload<Vec<u8>> for SpeedChangeType {
         payload
     }
 }
-
 
 /// Rotation options on the move
 
@@ -402,6 +223,7 @@ impl ToPayload<Vec<u8>> for WriteMode {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::characteristic::motor::command::{MotorControlTarget, MotorControlMultipleTargets};
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();

@@ -1,4 +1,4 @@
-use super::def::CommandId;
+use crate::characteristic::motor::def::CommandId;
 use crate::payload::ToPayload;
 
 /// Motor Speed information
