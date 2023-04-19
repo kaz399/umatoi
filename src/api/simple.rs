@@ -1,17 +1,15 @@
 //! Simple API
 
-use crate::characteristic::motor::acceleration::{
-    Acceleration, AngleVelocity, MotorControlAcceleration, MovingDirection, Priority,
+use crate::characteristic::motor::command::{
+    MotorControl, MotorControlAcceleration, MotorControlMultipleTargets, MotorControlTarget,
+    MotorControlWithSpecifiedDuration,
 };
-use crate::characteristic::motor::control::{MotorControl, MotorControlWithSpecifiedDuration};
-use crate::characteristic::motor::def::Period;
-use crate::characteristic::motor::target::TargetPosition;
-use crate::characteristic::motor::target::{
-    MotorControlMultipleTargets, MotorControlTarget, Speed,
+use crate::characteristic::motor::def::{
+    Acceleration, AngleVelocity, MovingDirection, Period, Priority, Speed, TargetPosition,
 };
 use crate::characteristic::CoreCubeUuid;
-use crate::interface::CubeInterface;
 use crate::integer_converter::{i_to_i16, i_to_u8};
+use crate::interface::CubeInterface;
 use crate::payload::ToPayload;
 use async_trait::async_trait;
 use std::error::Error;
@@ -72,8 +70,7 @@ impl Simple for dyn CubeInterface + Send + Sync + 'static {
     ) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         match period_ms {
             0 => {
-                let motor: MotorControl =
-                    MotorControl::set_value(i_to_i16(left), i_to_i16(right))?;
+                let motor: MotorControl = MotorControl::set_value(i_to_i16(left), i_to_i16(right))?;
                 self.write(CoreCubeUuid::MotorCtrl.uuid(), &motor.to_payload())
                     .await?;
             }

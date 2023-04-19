@@ -3,15 +3,9 @@
 use crate::characteristic::CoreCubeUuid;
 use crate::interface::CubeInterface;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BatteryInformation {
     pub level: usize,
-}
-
-impl Default for BatteryInformation {
-    fn default() -> Self {
-        Self { level: 0 }
-    }
 }
 
 impl BatteryInformation {

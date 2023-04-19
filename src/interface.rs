@@ -1,13 +1,13 @@
 pub mod ble;
 
-use std::pin::Pin;
+use crate::characteristic::NotificationData;
+use crate::notification_manager::HandlerFunction;
 use async_trait::async_trait;
+use std::future::Future;
+use std::pin::Pin;
+use std::time::Duration;
 use std::vec::Vec;
 use uuid::Uuid;
-use std::time::Duration;
-use std::future::Future;
-use crate::notification_manager::HandlerFunction;
-use crate::characteristic::NotificationData;
 
 use btleplug::api::BDAddr;
 
@@ -57,17 +57,26 @@ pub trait CubeScanner {
         &self,
         num: usize,
         wait: Duration,
-    ) -> Result<Vec<Box<dyn CubeInterface + Send + Sync + 'static>>, Box<dyn std::error::Error + Send + Sync + 'static>>;
+    ) -> Result<
+        Vec<Box<dyn CubeInterface + Send + Sync + 'static>>,
+        Box<dyn std::error::Error + Send + Sync + 'static>,
+    >;
 
     async fn scan_with_address(
         &self,
         address_list: &[BDAddr],
         wait: Duration,
-    ) -> Result<Vec<Box<dyn CubeInterface + Send + Sync + 'static>>, Box<dyn std::error::Error + Send + Sync + 'static>>;
+    ) -> Result<
+        Vec<Box<dyn CubeInterface + Send + Sync + 'static>>,
+        Box<dyn std::error::Error + Send + Sync + 'static>,
+    >;
 
     async fn scan_with_name(
         &self,
         name_list: &[&str],
         wait: Duration,
-    ) -> Result<Vec<Box<dyn CubeInterface + Send + Sync + 'static>>, Box<dyn std::error::Error + Send + Sync + 'static>>;
+    ) -> Result<
+        Vec<Box<dyn CubeInterface + Send + Sync + 'static>>,
+        Box<dyn std::error::Error + Send + Sync + 'static>,
+    >;
 }

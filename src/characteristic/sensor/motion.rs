@@ -56,8 +56,9 @@ impl MotionDetectionData {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Posture {
+    #[default]
     Unknown,
     Top,
     Bottom,
@@ -92,12 +93,6 @@ impl From<u8> for Posture {
             6u8 => Posture::Left,
             _ => Posture::Unknown,
         }
-    }
-}
-
-impl Default for Posture {
-    fn default() -> Self {
-        Posture::Unknown
     }
 }
 

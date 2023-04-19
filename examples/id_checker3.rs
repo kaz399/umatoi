@@ -5,11 +5,10 @@ use time::Duration;
 use tokio::time;
 use umatoi::api::Simple;
 use umatoi::characteristic::id_information::IdInformation;
-use umatoi::characteristic::motor::target::TargetPosition;
-use umatoi::characteristic::motor::MotorResponse;
+use umatoi::characteristic::motor;
 use umatoi::characteristic::NotificationData;
-use umatoi::interface::CubeScanner;
 use umatoi::interface::ble::BleScanner;
+use umatoi::interface::CubeScanner;
 use umatoi::position::{CubeLocation, Point};
 
 #[derive(Parser)]
@@ -83,12 +82,12 @@ fn notify_handler2(data: NotificationData) {
 }
 
 fn notify_handler3(data: NotificationData) {
-    if let Some(motor_response) = MotorResponse::new(&data.value) {
+    if let Some(motor_response) = motor::response::MotorResponse::new(&data.value) {
         match motor_response {
-            MotorResponse::MotorControlTarget(res) => {
+            motor::response::MotorResponse::MotorControlTarget(res) => {
                 println!("ResponseMotorControlTarget: {:?}", res.response_code);
             }
-            MotorResponse::MotorControlMultipleTargets(res) => {
+            motor::response::MotorResponse::MotorControlMultipleTargets(res) => {
                 println!(
                     "ResponseMotorControlMultipleTargets: {:?}",
                     res.response_code
@@ -119,12 +118,12 @@ pub async fn main() {
 
     // cube.motor_control(50, 50, 2000).await.unwrap();
 
-    let target: TargetPosition = TargetPosition {
+    let target: motor::def::TargetPosition = motor::def::TargetPosition {
         cube_location: CubeLocation {
             point: Point { x: 360, y: 170 },
             angle: 180,
         },
-        ..TargetPosition::default()
+        ..motor::def::TargetPosition::default()
     };
     cube.motor_control_target(30, target).await.unwrap();
 

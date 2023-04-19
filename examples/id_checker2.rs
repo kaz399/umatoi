@@ -5,8 +5,8 @@ use time::Duration;
 use tokio::time;
 use umatoi::characteristic::id_information::IdInformation;
 use umatoi::characteristic::NotificationData;
-use umatoi::device_interface::ble::{BleCube, BleScanner};
-use umatoi::device_interface::CubeInterface;
+use umatoi::interface::ble::BleScanner;
+use umatoi::interface::CubeScanner;
 
 #[derive(Parser)]
 #[clap(
@@ -82,11 +82,11 @@ fn notify_handler2(data: NotificationData) {
 pub async fn main() {
     let _arg: AppArg = AppArg::parse();
     let scanner = BleScanner;
-    let found_interfaces = scanner.scan(1, Duration::from_secs(5)).await.unwrap();
+    let mut cubes = scanner.scan(1, Duration::from_secs(5)).await.unwrap();
 
-    assert!(!found_interfaces.is_empty());
+    assert!(!cubes.is_empty());
 
-    let mut cube = BleCube::new(found_interfaces[0].clone());
+    let cube = &mut cubes[0];
     cube.connect().await.unwrap();
 
     let notification_receiver = cube.create_notification_receiver(Box::new(vec![

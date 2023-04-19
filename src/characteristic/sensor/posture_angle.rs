@@ -101,8 +101,9 @@ impl PostureAngleQuaternionsData {
 
 /// Posture data type
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PostureDataType {
+    #[default]
     Euler,
     Quaternions,
 }
@@ -113,12 +114,6 @@ impl From<PostureDataType> for u8 {
             PostureDataType::Euler => 1u8,
             PostureDataType::Quaternions => 2u8,
         }
-    }
-}
-
-impl Default for PostureDataType {
-    fn default() -> Self {
-        PostureDataType::Euler
     }
 }
 

@@ -126,7 +126,7 @@ mod tests {
     #[test]
     fn notification_manager_register() {
         _setup();
-        let mut notification_manager: NotificationManager<Vec<u8>> = NotificationManager::new();
+        let notification_manager: NotificationManager<Vec<u8>> = NotificationManager::new();
 
         let _handler1 = notification_manager.register(Box::new(&func1)).unwrap();
         let _handler2 = notification_manager.register(Box::new(&func2)).unwrap();
@@ -140,7 +140,7 @@ mod tests {
     #[test]
     fn notification_manager_unregister1() {
         _setup();
-        let mut notification_manager: NotificationManager<Vec<u8>> = NotificationManager::new();
+        let notification_manager: NotificationManager<Vec<u8>> = NotificationManager::new();
 
         let handler1 = notification_manager.register(Box::new(&func1)).unwrap();
         let handler2 = notification_manager.register(Box::new(&func2)).unwrap();
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn notification_manager_unregister2() {
         _setup();
-        let mut notification_manager: NotificationManager<Vec<u8>> = NotificationManager::new();
+        let notification_manager: NotificationManager<Vec<u8>> = NotificationManager::new();
 
         let handler1 = notification_manager.register(Box::new(&func1)).unwrap();
         let handler2 = notification_manager.register(Box::new(&func2)).unwrap();
@@ -192,7 +192,7 @@ mod tests {
     #[test]
     fn notification_manager_invoke() {
         _setup();
-        let mut notification_manager: NotificationManager<Vec<u8>> = NotificationManager::new();
+        let notification_manager: NotificationManager<Vec<u8>> = NotificationManager::new();
 
         let handler1 = notification_manager.register(Box::new(&func1)).unwrap();
         let handler2 = notification_manager.register(Box::new(&func2)).unwrap();
