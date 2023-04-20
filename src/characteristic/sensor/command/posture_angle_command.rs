@@ -29,7 +29,10 @@ impl ToPayload<Vec<u8>> for RequestPostureAngleDetection {
 
 #[cfg(test)]
 mod test {
-    use crate::characteristic::sensor::PostureAngleEulerInformation;
+    use crate::characteristic::sensor::{
+        PostureAngleEulerInformation, PostureAngleQuaternionsInformation,
+    };
+    use crate::payload::ToPayload;
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
@@ -49,7 +52,7 @@ mod test {
     fn sensor_posture2() {
         _setup();
 
-        let m = PostureAngleQuaternionsData::default();
+        let m = PostureAngleQuaternionsInformation::default();
         println!("{:?}", m);
         let payload = m.to_payload();
         println!("{:?}", payload);
