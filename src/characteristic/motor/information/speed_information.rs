@@ -5,12 +5,12 @@ use crate::payload::ToPayload;
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#obtaining-motor-speed-information>
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ResponseMotorSpeed {
+pub struct MotorSpeedInformation {
     pub left: u8,
     pub right: u8,
 }
 
-impl ResponseMotorSpeed {
+impl MotorSpeedInformation {
     pub fn new(byte_data: &[u8]) -> Option<Self> {
         if byte_data.len() < 3 {
             return None;
@@ -26,7 +26,7 @@ impl ResponseMotorSpeed {
     }
 }
 
-impl ToPayload<Vec<u8>> for ResponseMotorSpeed {
+impl ToPayload<Vec<u8>> for MotorSpeedInformation {
     fn to_payload(self) -> Vec<u8> {
         let payload: Vec<u8> = vec![self.left, self.right];
         payload

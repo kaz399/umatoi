@@ -3,7 +3,7 @@ use once_cell::sync::OnceCell;
 use std::sync::Mutex;
 use time::Duration;
 use tokio::time;
-use umatoi::characteristic::id_information::IdInformation;
+use umatoi::characteristic::id;
 use umatoi::characteristic::NotificationData;
 use umatoi::interface::ble::BleScanner;
 use umatoi::interface::CubeScanner;
@@ -26,9 +26,9 @@ static STANDARD_ID_READ: OnceCell<Mutex<usize>> = OnceCell::new();
 static STANDARD_ID_MISSED: OnceCell<Mutex<usize>> = OnceCell::new();
 
 fn notify_handler1(data: NotificationData) {
-    if let Some(id_data) = IdInformation::new(&data.value) {
+    if let Some(id_data) = id::IdInformation::new(&data.value) {
         match id_data {
-            IdInformation::PositionId(pos_id) => {
+            id::IdInformation::PositionId(pos_id) => {
                 let mut update = POSITION_ID_READ
                     .get_or_init(|| Mutex::new(0))
                     .lock()
@@ -36,7 +36,7 @@ fn notify_handler1(data: NotificationData) {
                 *update += 1;
                 println!("position id: {:?}", pos_id);
             }
-            IdInformation::StandardId(std_id) => {
+            id::IdInformation::StandardId(std_id) => {
                 let mut update = STANDARD_ID_READ
                     .get_or_init(|| Mutex::new(0))
                     .lock()
@@ -55,9 +55,9 @@ fn notify_handler1(data: NotificationData) {
 }
 
 fn notify_handler2(data: NotificationData) {
-    if let Some(id_data) = IdInformation::new(&data.value) {
+    if let Some(id_data) = id::IdInformation::new(&data.value) {
         match id_data {
-            IdInformation::PositionIdMissed => {
+            id::IdInformation::PositionIdMissed => {
                 let mut update = POSITION_ID_MISSED
                     .get_or_init(|| Mutex::new(0))
                     .lock()
@@ -65,7 +65,7 @@ fn notify_handler2(data: NotificationData) {
                 *update += 1;
                 println!("position id missed");
             }
-            IdInformation::StandardIdMissed => {
+            id::IdInformation::StandardIdMissed => {
                 let mut update = STANDARD_ID_MISSED
                     .get_or_init(|| Mutex::new(0))
                     .lock()

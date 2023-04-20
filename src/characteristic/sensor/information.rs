@@ -1,17 +1,25 @@
-use super::def::CommandId;
-use super::magnetic::MagneticSensorData;
-use super::motion::MotionDetectionData;
-use super::posture_angle::{PostureAngleEulerData, PostureAngleQuaternionsData, PostureDataType};
+pub(crate) mod magnetic_information;
+pub(crate) mod motion_information;
+pub(crate) mod posture_angle_information;
+
+
+
+pub use self::magnetic_information::MagneticSensorInformation;
+pub use self::motion_information::MotionDetectionInformation;
+pub use self::posture_angle_information::{PostureAngleEulerInformation, PostureAngleQuaternionsInformation};
+
+use super::def::common_def::CommandId;
+use super::def::posture_angle_def::PostureDataType;
 use crate::payload::ToPayload;
 
 /// Sensor response
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Response {
-    MotionDetection(MotionDetectionData),
-    PostureAngleEuler(PostureAngleEulerData),
-    PostureAngleQuaternion(PostureAngleQuaternionsData),
-    MagneticSensor(MagneticSensorData),
+    MotionDetection(MotionDetectionInformation),
+    PostureAngleEuler(PostureAngleEulerInformation),
+    PostureAngleQuaternion(PostureAngleQuaternionsInformation),
+    MagneticSensor(MagneticSensorInformation),
 }
 
 impl Response {
@@ -19,16 +27,16 @@ impl Response {
         if byte_data.is_empty() {
             return None;
         }
-        if let Some(response_data) = MotionDetectionData::new(byte_data) {
+        if let Some(response_data) = MotionDetectionInformation::new(byte_data) {
             return Some(Response::MotionDetection(response_data));
         }
-        if let Some(response_data) = MagneticSensorData::new(byte_data) {
+        if let Some(response_data) = MagneticSensorInformation::new(byte_data) {
             return Some(Response::MagneticSensor(response_data));
         }
-        if let Some(response_data) = PostureAngleEulerData::new(byte_data) {
+        if let Some(response_data) = PostureAngleEulerInformation::new(byte_data) {
             return Some(Response::PostureAngleEuler(response_data));
         }
-        if let Some(response_data) = PostureAngleQuaternionsData::new(byte_data) {
+        if let Some(response_data) = PostureAngleQuaternionsInformation::new(byte_data) {
             return Some(Response::PostureAngleQuaternion(response_data));
         }
         None

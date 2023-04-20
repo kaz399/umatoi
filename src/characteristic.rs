@@ -3,7 +3,7 @@ mod characteristic_uuid;
 pub mod battery;
 pub mod button;
 pub mod configuration;
-pub mod id_information;
+pub mod id;
 pub mod indicator;
 pub mod motor;
 pub mod sensor;

@@ -2,7 +2,11 @@
 
 pub mod command;
 pub mod def;
-pub mod response;
+pub mod information;
+
+pub use self::command::*;
+pub use self::def::*;
+pub use self::information::*;
 
 #[cfg(test)]
 mod test {

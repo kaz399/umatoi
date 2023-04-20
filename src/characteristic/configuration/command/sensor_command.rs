@@ -1,7 +1,7 @@
-use super::def::ConfigurationType;
-use crate::characteristic::sensor::posture_angle::PostureDataType;
+use super::super::def::common_def::ConfigurationType;
+use super::super::def::sensor_def::{MagnetFunction, MagnetNotificationCondition, PostureAngleNotificationCondition};
+use crate::characteristic::sensor::def::posture_angle_def::PostureDataType;
 use serde::Serialize;
-use serde::Serializer;
 
 /// Horizontal detection threshold setting
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#horizontal-detection-threshold-settings>
@@ -27,13 +27,13 @@ impl SetHorizontalDetectionThreshold {
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#collision-detection-threshold-settings>
 
 #[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
-pub struct SetCollisionDetectionTreshold {
+pub struct SetCollisionDetectionThreshold {
     pub configuration_type: ConfigurationType,
     pub _reserved: u8,
     pub threshold: u8,
 }
 
-impl SetCollisionDetectionTreshold {
+impl SetCollisionDetectionThreshold {
     pub fn new(threshold: u8) -> Self {
         Self {
             configuration_type: ConfigurationType::CollisionDetectionTheshold,
@@ -91,85 +91,6 @@ impl SetMagneticSensor {
     }
 }
 
-/// Magnet function
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum MagnetFunction {
-    Disable,
-    MagnetState,
-    MagnetForce,
-}
-
-impl From<MagnetFunction> for u8 {
-    fn from(function_type: MagnetFunction) -> u8 {
-        match function_type {
-            MagnetFunction::Disable => 0x00u8,
-            MagnetFunction::MagnetState => 0x01u8,
-            MagnetFunction::MagnetForce => 0x02u8,
-        }
-    }
-}
-
-impl Serialize for MagnetFunction {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
-    }
-}
-
-/// Magnet condition
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum MagnetNotificationCondition {
-    Always,
-    AtChange,
-}
-
-impl From<MagnetNotificationCondition> for u8 {
-    fn from(function_type: MagnetNotificationCondition) -> u8 {
-        match function_type {
-            MagnetNotificationCondition::Always => 0x00u8,
-            MagnetNotificationCondition::AtChange => 0x01u8,
-        }
-    }
-}
-
-impl Serialize for MagnetNotificationCondition {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
-    }
-}
-
-/// Response to magnetic sensor settings
-/// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#responses-to-magnetic-sensor-settings>
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ResponseMagneticSensorData {
-    pub result: bool,
-}
-
-impl ResponseMagneticSensorData {
-    pub fn new(byte_data: &[u8]) -> Option<Self> {
-        if byte_data.len() < 3 {
-            return None;
-        }
-        if byte_data[0] == ConfigurationType::MagneticSensor.response() {
-            Some(Self {
-                result: byte_data[2] == 0x00u8,
-            })
-        } else {
-            None
-        }
-    }
-}
-
 /// Posture angle detection settings
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#posture-angle-detection-settings->
 
@@ -198,19 +119,3 @@ impl SetPostureAngleDetection {
     }
 }
 
-/// Posture notify condition
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum PostureAngleNotificationCondition {
-    Always,
-    AtChange,
-}
-
-impl From<PostureAngleNotificationCondition> for u8 {
-    fn from(condition: PostureAngleNotificationCondition) -> u8 {
-        match condition {
-            PostureAngleNotificationCondition::Always => 0x00u8,
-            PostureAngleNotificationCondition::AtChange => 0x01u8,
-        }
-    }
-}

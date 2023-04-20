@@ -4,7 +4,7 @@ use std::sync::Mutex;
 use time::Duration;
 use tokio::time;
 use umatoi::api::Simple;
-use umatoi::characteristic::id_information::IdInformation;
+use umatoi::characteristic::id;
 use umatoi::characteristic::motor;
 use umatoi::characteristic::NotificationData;
 use umatoi::interface::ble::BleScanner;
@@ -29,9 +29,9 @@ static STANDARD_ID_READ: OnceCell<Mutex<usize>> = OnceCell::new();
 static STANDARD_ID_MISSED: OnceCell<Mutex<usize>> = OnceCell::new();
 
 fn notify_handler1(data: NotificationData) {
-    if let Some(id_data) = IdInformation::new(&data.value) {
+    if let Some(id_data) = id::IdInformation::new(&data.value) {
         match id_data {
-            IdInformation::PositionId(pos_id) => {
+            id::IdInformation::PositionId(pos_id) => {
                 let mut update = POSITION_ID_READ
                     .get_or_init(|| Mutex::new(0))
                     .lock()
@@ -39,7 +39,7 @@ fn notify_handler1(data: NotificationData) {
                 *update += 1;
                 println!("position id: {:?}", pos_id);
             }
-            IdInformation::StandardId(std_id) => {
+            id::IdInformation::StandardId(std_id) => {
                 let mut update = STANDARD_ID_READ
                     .get_or_init(|| Mutex::new(0))
                     .lock()
@@ -58,9 +58,9 @@ fn notify_handler1(data: NotificationData) {
 }
 
 fn notify_handler2(data: NotificationData) {
-    if let Some(id_data) = IdInformation::new(&data.value) {
+    if let Some(id_data) = id::IdInformation::new(&data.value) {
         match id_data {
-            IdInformation::PositionIdMissed => {
+            id::IdInformation::PositionIdMissed => {
                 let mut update = POSITION_ID_MISSED
                     .get_or_init(|| Mutex::new(0))
                     .lock()
@@ -68,7 +68,7 @@ fn notify_handler2(data: NotificationData) {
                 *update += 1;
                 println!("position id missed");
             }
-            IdInformation::StandardIdMissed => {
+            id::IdInformation::StandardIdMissed => {
                 let mut update = STANDARD_ID_MISSED
                     .get_or_init(|| Mutex::new(0))
                     .lock()
@@ -82,12 +82,12 @@ fn notify_handler2(data: NotificationData) {
 }
 
 fn notify_handler3(data: NotificationData) {
-    if let Some(motor_response) = motor::response::MotorResponse::new(&data.value) {
+    if let Some(motor_response) = motor::MotorInformation::new(&data.value) {
         match motor_response {
-            motor::response::MotorResponse::MotorControlTarget(res) => {
+            motor::MotorInformation::MotorControlTarget(res) => {
                 println!("ResponseMotorControlTarget: {:?}", res.response_code);
             }
-            motor::response::MotorResponse::MotorControlMultipleTargets(res) => {
+            motor::MotorInformation::MotorControlMultipleTargets(res) => {
                 println!(
                     "ResponseMotorControlMultipleTargets: {:?}",
                     res.response_code
@@ -118,12 +118,12 @@ pub async fn main() {
 
     // cube.motor_control(50, 50, 2000).await.unwrap();
 
-    let target: motor::def::TargetPosition = motor::def::TargetPosition {
+    let target: motor::TargetPosition = motor::TargetPosition {
         cube_location: CubeLocation {
             point: Point { x: 360, y: 170 },
             angle: 180,
         },
-        ..motor::def::TargetPosition::default()
+        ..motor::TargetPosition::default()
     };
     cube.motor_control_target(30, target).await.unwrap();
 
