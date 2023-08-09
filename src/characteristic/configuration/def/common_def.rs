@@ -1,5 +1,4 @@
-use serde::Serialize;
-use serde::Serializer;
+use crate::payload::ToPayload;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ConfigurationType {
@@ -30,18 +29,15 @@ impl From<ConfigurationType> for u8 {
     }
 }
 
-impl Serialize for ConfigurationType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
-    }
-}
-
 impl ConfigurationType {
     pub fn response(self) -> u8 {
         u8::from(self) | 0x80u8
+    }
+}
+
+impl ToPayload<Vec<u8>> for ConfigurationType {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }

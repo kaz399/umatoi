@@ -1,6 +1,8 @@
-use crate::{payload::ToPayload, position::CubeLocation, position::Point};
 use super::super::def::id_def::{PositionIdData, StandardIdData};
-
+use crate::{
+    payload::ToPayload,
+    position::{CubeLocation, Point},
+};
 
 /// Id information
 /// Position ID
@@ -120,10 +122,10 @@ impl ToPayload<Vec<u8>> for IdInformation {
         let mut payload: Vec<u8> = vec![u8::from(self)];
         match self {
             IdInformation::PositionId(st) => {
-                payload.extend(bincode::serialize(&st).unwrap());
+                payload.extend(st.to_payload());
             }
             IdInformation::StandardId(st) => {
-                payload.extend(bincode::serialize(&st).unwrap());
+                payload.extend(st.to_payload());
             }
             IdInformation::PositionIdMissed => (),
             IdInformation::StandardIdMissed => (),

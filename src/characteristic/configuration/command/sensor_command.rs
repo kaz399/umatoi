@@ -1,12 +1,13 @@
 use super::super::def::common_def::ConfigurationType;
-use super::super::def::sensor_def::{MagnetFunction, MagnetNotificationCondition, PostureAngleNotificationCondition};
+use super::super::def::sensor_def::{
+    MagnetFunction, MagnetNotificationCondition, PostureAngleNotificationCondition,
+};
 use crate::characteristic::sensor::def::posture_angle_def::PostureDataType;
-use serde::Serialize;
 
 /// Horizontal detection threshold setting
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#horizontal-detection-threshold-settings>
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetHorizontalDetectionThreshold {
     pub configuration_type: ConfigurationType,
     pub _reserved: u8,
@@ -26,7 +27,7 @@ impl SetHorizontalDetectionThreshold {
 /// Collision detection threshold settings
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#collision-detection-threshold-settings>
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetCollisionDetectionThreshold {
     pub configuration_type: ConfigurationType,
     pub _reserved: u8,
@@ -46,7 +47,7 @@ impl SetCollisionDetectionThreshold {
 /// Double tap detection time interval settings
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#double-tap-detection-time-interval-settings>
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetDoubleTapDetectionTimeInterval {
     pub configuration_type: ConfigurationType,
     pub _reserved: u8,
@@ -66,7 +67,7 @@ impl SetDoubleTapDetectionTimeInterval {
 /// Set magnetic sensor
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#magnetic-sensor-settings->
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetMagneticSensor {
     pub configuration_type: ConfigurationType,
     pub _reserved: u8,
@@ -118,4 +119,3 @@ impl SetPostureAngleDetection {
         }
     }
 }
-

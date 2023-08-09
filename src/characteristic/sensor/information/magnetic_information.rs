@@ -1,12 +1,12 @@
 use super::super::def::common_def::CommandId;
-use serde::Serialize;
+use crate::payload::ToPayload;
 use std::i8;
 use std::u8;
 
 /// Posture angle information (euler)
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_high_precision_tilt_sensor#obtaining-posture-angle-information-notifications-in-euler-angles>
 
-#[derive(Serialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MagneticSensorInformation {
     pub state: u8,
     pub strength: u8,
@@ -31,5 +31,15 @@ impl MagneticSensorInformation {
         } else {
             None
         }
+    }
+}
+
+impl ToPayload<Vec<u8>> for MagneticSensorInformation {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload: Vec<u8> = vec![self.state, self.strength];
+        payload.extend(self.x.to_le_bytes().to_vec());
+        payload.extend(self.y.to_le_bytes().to_vec());
+        payload.extend(self.z.to_le_bytes().to_vec());
+        payload
     }
 }

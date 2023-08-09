@@ -1,7 +1,6 @@
 use super::common_def::{CommandId, RequestId, Timeout};
 use crate::payload::ToPayload;
 use crate::position::CubeLocation;
-use byteorder::WriteBytesExt;
 
 /// Header part of `MotorControlTarget`
 ///
@@ -23,7 +22,7 @@ impl ToPayload<Vec<u8>> for _MotorControlTargetHeader {
         payload.extend(self.timeout.to_payload());
         payload.extend(self.movement_type.to_payload());
         payload.extend(self.speed.to_payload());
-        payload.write_u8(self._reserved_1).unwrap();
+        payload.push(self._reserved_1);
 
         payload
     }
@@ -44,14 +43,13 @@ pub(crate) struct _MotorControlMultipleTargetsHeader {
 
 impl ToPayload<Vec<u8>> for _MotorControlMultipleTargetsHeader {
     fn to_payload(self) -> Vec<u8> {
-        //bincode::serialize(&self).unwrap()
         let mut payload: Vec<u8> = Vec::new();
         payload.extend(self.command.to_payload());
         payload.extend(self.id.to_payload());
         payload.extend(self.timeout.to_payload());
         payload.extend(self.movement_type.to_payload());
         payload.extend(self.speed.to_payload());
-        payload.write_u8(self._reserved_1).unwrap();
+        payload.push(self._reserved_1);
         payload.extend(self.write_mode.to_payload());
 
         payload
@@ -223,7 +221,7 @@ impl ToPayload<Vec<u8>> for WriteMode {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::characteristic::motor::command::{MotorControlTarget, MotorControlMultipleTargets};
+    use crate::characteristic::motor::command::{MotorControlMultipleTargets, MotorControlTarget};
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();

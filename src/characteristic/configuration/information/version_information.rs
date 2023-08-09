@@ -1,10 +1,9 @@
 use super::super::def::common_def::ConfigurationType;
-use serde::Serialize;
 
 /// Obtaining the BLE protocol version
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#obtaining-the-ble-protocol-version>
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResponseBleProtocolVersionData {
     pub version: [u8; 5],
 }

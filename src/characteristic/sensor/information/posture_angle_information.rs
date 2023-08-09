@@ -1,22 +1,15 @@
 use super::super::def::common_def::CommandId;
 use super::super::def::posture_angle_def::PostureDataType;
 use crate::payload::ToPayload;
-use serde::Serialize;
 
 /// Posture angle information (euler)
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_high_precision_tilt_sensor#obtaining-posture-angle-information-notifications-in-euler-angles>
 
-#[derive(Serialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PostureAngleEulerInformation {
     pub roll: i16,
     pub pitch: i16,
     pub yaw: i16,
-}
-
-impl ToPayload<Vec<u8>> for PostureAngleEulerInformation {
-    fn to_payload(self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
-    }
 }
 
 impl PostureAngleEulerInformation {
@@ -38,21 +31,25 @@ impl PostureAngleEulerInformation {
     }
 }
 
+impl ToPayload<Vec<u8>> for PostureAngleEulerInformation {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload: Vec<u8> = Vec::new();
+        payload.extend(self.roll.to_le_bytes().to_vec());
+        payload.extend(self.pitch.to_le_bytes().to_vec());
+        payload.extend(self.yaw.to_le_bytes().to_vec());
+        payload
+    }
+}
+
 /// Posture angle information (quaternions)
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_high_precision_tilt_sensor#obtaining-posture-angle-information-notifications-in-quaternions>
 
-#[derive(Serialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct PostureAngleQuaternionsInformation {
     pub w: i16,
     pub x: i16,
     pub y: i16,
     pub z: i16,
-}
-
-impl ToPayload<Vec<u8>> for PostureAngleQuaternionsInformation {
-    fn to_payload(self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
-    }
 }
 
 impl PostureAngleQuaternionsInformation {
@@ -75,3 +72,13 @@ impl PostureAngleQuaternionsInformation {
     }
 }
 
+impl ToPayload<Vec<u8>> for PostureAngleQuaternionsInformation {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload: Vec<u8> = Vec::new();
+        payload.extend(self.w.to_le_bytes().to_vec());
+        payload.extend(self.x.to_le_bytes().to_vec());
+        payload.extend(self.y.to_le_bytes().to_vec());
+        payload.extend(self.z.to_le_bytes().to_vec());
+        payload
+    }
+}

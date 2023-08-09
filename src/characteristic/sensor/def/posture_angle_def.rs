@@ -1,6 +1,4 @@
-use serde::Serialize;
-use serde::Serializer;
-
+use crate::payload::ToPayload;
 
 /// Posture data type
 
@@ -20,13 +18,9 @@ impl From<PostureDataType> for u8 {
     }
 }
 
-impl Serialize for PostureDataType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for PostureDataType {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
-

@@ -1,12 +1,13 @@
 //! Official Specification: <https://toio.github.io/toio-spec/docs/hardware_position_id>
 
-use serde::Serialize;
 use std::convert::{From, TryFrom};
 use std::ops::{Add, Sub};
 
+use crate::payload::ToPayload;
+
 /// Point
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Point {
     pub x: isize,
     pub y: isize,
@@ -74,9 +75,18 @@ impl Point {
     }
 }
 
+impl ToPayload<Vec<u8>> for Point {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload: Vec<u8> = Vec::new();
+        payload.extend(self.x.to_le_bytes().to_vec());
+        payload.extend(self.y.to_le_bytes().to_vec());
+        payload
+    }
+}
+
 /// Location information of a cube
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct CubeLocation {
     pub point: Point,
     pub angle: u16,
@@ -123,6 +133,15 @@ impl Sub for CubeLocation {
                 }
             },
         }
+    }
+}
+
+impl ToPayload<Vec<u8>> for CubeLocation {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload: Vec<u8> = Vec::new();
+        payload.extend(self.point.to_payload().to_vec());
+        payload.extend(self.angle.to_le_bytes().to_vec());
+        payload
     }
 }
 

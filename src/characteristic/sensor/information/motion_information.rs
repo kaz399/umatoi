@@ -1,11 +1,11 @@
 use super::super::def::common_def::CommandId;
 use super::super::def::motion_def::Posture;
-use serde::Serialize;
+use crate::payload::ToPayload;
 
 /// Motion detection information
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_sensor#obtaining-motion-detection-information>
 
-#[derive(Serialize, Default, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MotionDetectionInformation {
     pub horizontal: bool,
     pub collision: bool,
@@ -33,3 +33,18 @@ impl MotionDetectionInformation {
     }
 }
 
+impl ToPayload<Vec<u8>> for MotionDetectionInformation {
+    fn to_payload(self) -> Vec<u8> {
+        let horizontal: u8 = if self.horizontal { 1 } else { 0 };
+        let collision: u8 = if self.collision { 1 } else { 0 };
+        let double_tap: u8 = if self.double_tap { 1 } else { 0 };
+        let payload: Vec<u8> = vec![
+            horizontal,
+            collision,
+            double_tap,
+            self.posture.into(),
+            self.shake,
+        ];
+        payload
+    }
+}

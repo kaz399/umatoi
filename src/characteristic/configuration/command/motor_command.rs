@@ -1,10 +1,9 @@
 use super::super::def::ConfigurationType;
-use serde::Serialize;
 
 /// Enable motor speed information
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#motor-speed-information-acquisition-settings>
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct EnableMotorSpeed {
     pub configuration_type: ConfigurationType,
     pub _reserved: u8,

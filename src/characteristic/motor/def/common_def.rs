@@ -1,5 +1,4 @@
 use crate::payload::ToPayload;
-use byteorder::WriteBytesExt;
 use once_cell::sync::OnceCell;
 use std::error::Error;
 use std::sync::Mutex;
@@ -320,7 +319,7 @@ impl ToPayload<Vec<u8>> for Velocity {
     fn to_payload(self) -> Vec<u8> {
         let mut payload: Vec<u8> = Vec::new();
         payload.extend(self.direction.to_payload());
-        payload.write_u8(self.speed).unwrap();
+        payload.push(self.speed);
         payload
     }
 }

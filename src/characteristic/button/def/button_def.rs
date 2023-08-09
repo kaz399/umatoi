@@ -26,4 +26,3 @@ impl From<u8> for ButtonState {
         }
     }
 }
-

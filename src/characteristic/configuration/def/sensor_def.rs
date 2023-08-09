@@ -1,5 +1,4 @@
-use serde::Serialize;
-use serde::Serializer;
+use crate::payload::ToPayload;
 
 /// Magnet function
 
@@ -20,13 +19,10 @@ impl From<MagnetFunction> for u8 {
     }
 }
 
-impl Serialize for MagnetFunction {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for MagnetFunction {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
 
@@ -47,13 +43,10 @@ impl From<MagnetNotificationCondition> for u8 {
     }
 }
 
-impl Serialize for MagnetNotificationCondition {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for MagnetNotificationCondition {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }
 
@@ -71,5 +64,12 @@ impl From<PostureAngleNotificationCondition> for u8 {
             PostureAngleNotificationCondition::Always => 0x00u8,
             PostureAngleNotificationCondition::AtChange => 0x01u8,
         }
+    }
+}
+
+impl ToPayload<Vec<u8>> for PostureAngleNotificationCondition {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }

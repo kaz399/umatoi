@@ -1,5 +1,4 @@
 use crate::payload::ToPayload;
-use byteorder::{LittleEndian, WriteBytesExt};
 
 /// Acceleration
 
@@ -36,9 +35,7 @@ impl Default for AngleVelocity {
 impl ToPayload<Vec<u8>> for AngleVelocity {
     fn to_payload(self) -> Vec<u8> {
         let mut payload: Vec<u8> = Vec::new();
-        payload
-            .write_u16::<LittleEndian>(self.rotation_velocity)
-            .unwrap();
+        payload.extend(self.rotation_velocity.to_le_bytes().to_vec());
         payload.extend(self.rotation_direction.to_payload());
         payload
     }

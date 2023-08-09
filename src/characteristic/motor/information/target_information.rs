@@ -71,9 +71,9 @@ impl ToPayload<Vec<u8>> for ResponseMotorControlMultipleTargets {
 
 #[cfg(test)]
 mod test {
-    use crate::payload::ToPayload;
+    use crate::characteristic::motor::command::{MotorControlMultipleTargets, MotorControlTarget};
     use crate::characteristic::motor::def::*;
-    use crate::characteristic::motor::command::{MotorControlTarget,  MotorControlMultipleTargets};
+    use crate::payload::ToPayload;
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();

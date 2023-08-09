@@ -1,6 +1,4 @@
-use serde::Serialize;
-use serde::Serializer;
-
+use crate::payload::ToPayload;
 
 #[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Posture {
@@ -42,12 +40,9 @@ impl From<u8> for Posture {
     }
 }
 
-impl Serialize for Posture {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let byte_string: u8 = u8::from(*self);
-        serializer.serialize_u8(byte_string)
+impl ToPayload<Vec<u8>> for Posture {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
     }
 }

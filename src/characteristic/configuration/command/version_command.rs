@@ -1,10 +1,9 @@
 use super::super::def::common_def::ConfigurationType;
-use serde::Serialize;
 
 /// Requesting the BLE protocol version
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#requesting-the-ble-protocol-version>
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct RequestBleProtocolVersion {
     pub configuration_type: ConfigurationType,
     pub _reserved: u8,
@@ -24,4 +23,3 @@ impl RequestBleProtocolVersion {
         Self::default()
     }
 }
-

@@ -1,12 +1,9 @@
-use serde::Serialize;
-
 use super::super::def::common_def::ConfigurationType;
-
 
 /// Response to
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#responses-to-identification-sensor-id-notification-settings>
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResponseIdSensorNotificationData {
     pub result: bool,
 }
@@ -26,7 +23,7 @@ impl ResponseIdSensorNotificationData {
 /// Response to Id sensor missed notification settings
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#responses-to-identification-sensor-id-missed-notification-settings>
 
-#[derive(Serialize, Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ResponseIdSensorMissedNotificationData {
     pub result: bool,
 }

@@ -18,7 +18,8 @@ impl MotorInformation {
         if byte_data.is_empty() {
             return None;
         }
-        if let Some(response_data) = target_information::ResponseMotorControlTarget::new(byte_data) {
+        if let Some(response_data) = target_information::ResponseMotorControlTarget::new(byte_data)
+        {
             return Some(MotorInformation::MotorControlTarget(response_data));
         }
         if let Some(response_data) =
