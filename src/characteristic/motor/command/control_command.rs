@@ -24,16 +24,6 @@ impl Default for MotorControl {
     }
 }
 
-impl ToPayload<Vec<u8>> for MotorControl {
-    /// convert to BLE payload
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload: Vec<u8> = Vec::new();
-        payload.extend(self.command.to_payload());
-        payload.extend(self.left.to_payload());
-        payload.extend(self.right.to_payload());
-        payload
-    }
-}
 impl MotorControl {
     /// create new struct from primitive type parameters
     pub fn set_value(
@@ -49,6 +39,18 @@ impl MotorControl {
         })
     }
 }
+
+impl ToPayload<Vec<u8>> for MotorControl {
+    /// convert to BLE payload
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload: Vec<u8> = Vec::new();
+        payload.extend(self.command.to_payload());
+        payload.extend(self.left.to_payload());
+        payload.extend(self.right.to_payload());
+        payload
+    }
+}
+
 
 /// Motor control with specified duration
 /// <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-specified-duration>

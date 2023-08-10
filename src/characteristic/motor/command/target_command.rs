@@ -67,16 +67,6 @@ pub struct MotorControlMultipleTargets {
     pub target_list: Vec<TargetPosition>,
 }
 
-impl ToPayload<Vec<u8>> for MotorControlMultipleTargets {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload = self.header().to_payload();
-        for target in &self.target_list {
-            payload.extend(&target.to_payload());
-        }
-        payload
-    }
-}
-
 impl Default for MotorControlMultipleTargets {
     fn default() -> Self {
         Self {
@@ -105,6 +95,17 @@ impl MotorControlMultipleTargets {
         }
     }
 }
+
+impl ToPayload<Vec<u8>> for MotorControlMultipleTargets {
+    fn to_payload(self) -> Vec<u8> {
+        let mut payload = self.header().to_payload();
+        for target in &self.target_list {
+            payload.extend(&target.to_payload());
+        }
+        payload
+    }
+}
+
 
 #[cfg(test)]
 mod test {

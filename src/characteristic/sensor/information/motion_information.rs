@@ -1,6 +1,6 @@
 use super::super::def::common_def::CommandId;
 use super::super::def::motion_def::Posture;
-use crate::payload::ToPayload;
+use crate::payload::FromPayload;
 
 /// Motion detection information
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_sensor#obtaining-motion-detection-information>
@@ -33,18 +33,21 @@ impl MotionDetectionInformation {
     }
 }
 
-impl ToPayload<Vec<u8>> for MotionDetectionInformation {
-    fn to_payload(self) -> Vec<u8> {
-        let horizontal: u8 = if self.horizontal { 1 } else { 0 };
-        let collision: u8 = if self.collision { 1 } else { 0 };
-        let double_tap: u8 = if self.double_tap { 1 } else { 0 };
-        let payload: Vec<u8> = vec![
-            horizontal,
-            collision,
-            double_tap,
-            self.posture.into(),
-            self.shake,
-        ];
-        payload
+impl FromPayload<&[u8]> for MotionDetectionInformation {
+    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+        if payload.len() < 6 {
+            return None;
+        }
+        if payload[0] == CommandId::Motion.response() {
+            Some(Self {
+                horizontal: payload[1] != 0,
+                collision: payload[2] != 0,
+                double_tap: payload[3] != 0,
+                posture: Posture::from(payload[4]),
+                shake: payload[5],
+            })
+        } else {
+            None
+        }
     }
 }

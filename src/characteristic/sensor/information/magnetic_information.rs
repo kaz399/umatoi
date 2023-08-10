@@ -1,5 +1,5 @@
 use super::super::def::common_def::CommandId;
-use crate::payload::ToPayload;
+use crate::payload::FromPayload;
 use std::i8;
 use std::u8;
 
@@ -15,18 +15,18 @@ pub struct MagneticSensorInformation {
     pub z: i8,
 }
 
-impl MagneticSensorInformation {
-    pub fn new(byte_data: &[u8]) -> Option<Self> {
-        if byte_data.len() < 6 {
+impl FromPayload<&[u8]> for MagneticSensorInformation {
+    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+        if payload.len() < 6 {
             return None;
         }
-        if byte_data[0] == CommandId::MagneticSensor.response() {
+        if payload[0] == CommandId::MagneticSensor.response() {
             Some(Self {
-                state: byte_data[1],
-                strength: byte_data[2],
-                x: i8::from_le_bytes([byte_data[3]]),
-                y: i8::from_le_bytes([byte_data[4]]),
-                z: i8::from_le_bytes([byte_data[5]]),
+                state: payload[1],
+                strength: payload[2],
+                x: i8::from_le_bytes([payload[3]]),
+                y: i8::from_le_bytes([payload[4]]),
+                z: i8::from_le_bytes([payload[5]]),
             })
         } else {
             None
@@ -34,12 +34,3 @@ impl MagneticSensorInformation {
     }
 }
 
-impl ToPayload<Vec<u8>> for MagneticSensorInformation {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload: Vec<u8> = vec![self.state, self.strength];
-        payload.extend(self.x.to_le_bytes().to_vec());
-        payload.extend(self.y.to_le_bytes().to_vec());
-        payload.extend(self.z.to_le_bytes().to_vec());
-        payload
-    }
-}

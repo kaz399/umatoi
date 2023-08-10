@@ -1,4 +1,5 @@
 use super::super::def::ConfigurationType;
+use crate::payload::ToPayload;
 
 /// Enable motor speed information
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#motor-speed-information-acquisition-settings>
@@ -20,3 +21,10 @@ impl EnableMotorSpeed {
     }
 }
 
+impl ToPayload<Vec<u8>> for EnableMotorSpeed {
+    fn to_payload(self) -> Vec<u8> {
+        let enable: u8 = if self.enable { 1 } else { 0 };
+        let payload: Vec<u8> = vec![self.configuration_type.into(), self._reserved, enable];
+        payload
+    }
+}

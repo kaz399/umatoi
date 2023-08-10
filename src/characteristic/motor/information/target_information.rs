@@ -1,5 +1,5 @@
 use crate::characteristic::motor::def::{CommandId, RequestId, ResponseCode};
-use crate::payload::ToPayload;
+use crate::payload::FromPayload;
 
 /// Response to motor control with target specified
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-target-specified>
@@ -10,15 +10,15 @@ pub struct ResponseMotorControlTarget {
     pub response_code: ResponseCode,
 }
 
-impl ResponseMotorControlTarget {
-    pub fn new(byte_data: &[u8]) -> Option<Self> {
-        if byte_data.len() < 3 {
+impl FromPayload<&[u8]> for ResponseMotorControlTarget {
+    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+        if payload.len() < 3 {
             return None;
         }
-        if byte_data[0] == CommandId::TargetPosition.response() {
+        if payload[0] == CommandId::TargetPosition.response() {
             Some(Self {
-                request_id: RequestId::received(byte_data[1]),
-                response_code: ResponseCode::from(byte_data[2]),
+                request_id: RequestId::received(payload[1]),
+                response_code: ResponseCode::from(payload[2]),
             })
         } else {
             None
@@ -26,14 +26,6 @@ impl ResponseMotorControlTarget {
     }
 }
 
-impl ToPayload<Vec<u8>> for ResponseMotorControlTarget {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload: Vec<u8> = Vec::new();
-        payload.extend(self.request_id.to_payload());
-        payload.extend(self.response_code.to_payload());
-        payload
-    }
-}
 
 /// Responses to motor control with multiple targets specified
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-multiple-targets-specified>
@@ -44,15 +36,15 @@ pub struct ResponseMotorControlMultipleTargets {
     pub response_code: ResponseCode,
 }
 
-impl ResponseMotorControlMultipleTargets {
-    pub fn new(byte_data: &[u8]) -> Option<Self> {
-        if byte_data.len() < 3 {
+impl FromPayload<&[u8]> for ResponseMotorControlMultipleTargets {
+    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+       if payload.len() < 3 {
             return None;
         }
-        if byte_data[0] == CommandId::MultiTargetPositions.response() {
+        if payload[0] == CommandId::MultiTargetPositions.response() {
             Some(Self {
-                request_id: RequestId::received(byte_data[1]),
-                response_code: ResponseCode::from(byte_data[2]),
+                request_id: RequestId::received(payload[1]),
+                response_code: ResponseCode::from(payload[2]),
             })
         } else {
             None
@@ -60,14 +52,6 @@ impl ResponseMotorControlMultipleTargets {
     }
 }
 
-impl ToPayload<Vec<u8>> for ResponseMotorControlMultipleTargets {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload: Vec<u8> = Vec::new();
-        payload.extend(self.request_id.to_payload());
-        payload.extend(self.response_code.to_payload());
-        payload
-    }
-}
 
 #[cfg(test)]
 mod test {

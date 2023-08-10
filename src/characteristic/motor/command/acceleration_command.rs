@@ -16,6 +16,19 @@ pub struct MotorControlAcceleration {
     pub period: Period,
 }
 
+impl Default for MotorControlAcceleration {
+    fn default() -> Self {
+        Self {
+            command: CommandId::Acceleration,
+            acceleration: Acceleration::default(),
+            angle_velocity: AngleVelocity::default(),
+            moving_direction: MovingDirection::Forward,
+            priority: Priority::TranslationalSpeed,
+            period: Period::default(),
+        }
+    }
+}
+
 impl ToPayload<Vec<u8>> for MotorControlAcceleration {
     fn to_payload(self) -> Vec<u8> {
         let mut payload: Vec<u8> = Vec::new();
@@ -29,18 +42,6 @@ impl ToPayload<Vec<u8>> for MotorControlAcceleration {
     }
 }
 
-impl Default for MotorControlAcceleration {
-    fn default() -> Self {
-        Self {
-            command: CommandId::Acceleration,
-            acceleration: Acceleration::default(),
-            angle_velocity: AngleVelocity::default(),
-            moving_direction: MovingDirection::Forward,
-            priority: Priority::TranslationalSpeed,
-            period: Period::default(),
-        }
-    }
-}
 
 #[cfg(test)]
 mod test {

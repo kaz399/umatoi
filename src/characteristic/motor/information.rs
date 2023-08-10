@@ -2,7 +2,7 @@ mod speed_information;
 mod target_information;
 
 use crate::characteristic::motor::def::CommandId;
-use crate::payload::ToPayload;
+use crate::payload::FromPayload;
 
 /// Combined motor response
 
@@ -13,21 +13,21 @@ pub enum MotorInformation {
     MotorSpeed(speed_information::MotorSpeedInformation),
 }
 
-impl MotorInformation {
-    pub fn new(byte_data: &[u8]) -> Option<Self> {
-        if byte_data.is_empty() {
+impl FromPayload<&[u8]> for MotorInformation {
+    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+        if payload.is_empty() {
             return None;
         }
-        if let Some(response_data) = target_information::ResponseMotorControlTarget::new(byte_data)
+        if let Some(response_data) = target_information::ResponseMotorControlTarget::from_payload(payload)
         {
             return Some(MotorInformation::MotorControlTarget(response_data));
         }
         if let Some(response_data) =
-            target_information::ResponseMotorControlMultipleTargets::new(byte_data)
+            target_information::ResponseMotorControlMultipleTargets::from_payload(payload)
         {
             return Some(MotorInformation::MotorControlMultipleTargets(response_data));
         }
-        if let Some(response_data) = speed_information::MotorSpeedInformation::new(byte_data) {
+        if let Some(response_data) = speed_information::MotorSpeedInformation::from_payload(payload) {
             return Some(MotorInformation::MotorSpeed(response_data));
         }
         None
@@ -46,23 +46,6 @@ impl From<MotorInformation> for u8 {
     }
 }
 
-impl ToPayload<Vec<u8>> for MotorInformation {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload: Vec<u8> = vec![u8::from(self)];
-        match self {
-            MotorInformation::MotorControlTarget(st) => {
-                payload.extend(st.to_payload());
-            }
-            MotorInformation::MotorControlMultipleTargets(st) => {
-                payload.extend(st.to_payload());
-            }
-            MotorInformation::MotorSpeed(st) => {
-                payload.extend(st.to_payload());
-            }
-        }
-        payload
-    }
-}
 
 #[cfg(test)]
 mod test {

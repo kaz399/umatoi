@@ -1,6 +1,6 @@
 use super::super::def::id_def::{PositionIdData, StandardIdData};
 use crate::{
-    payload::ToPayload,
+    payload::FromPayload,
     position::{CubeLocation, Point},
 };
 
@@ -31,20 +31,21 @@ impl From<IdInformation> for u8 {
     }
 }
 
-impl IdInformation {
-    pub fn new(byte_code: &[u8]) -> Option<IdInformation> {
-        if byte_code.is_empty() {
+
+impl FromPayload<&[u8]> for IdInformation {
+    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+        if payload.is_empty() {
             return None;
         }
-        match byte_code[0] {
+        match payload[0] {
             0x01u8 => {
-                if byte_code.len() >= 13 {
+                if payload.len() >= 13 {
                     Some(IdInformation::PositionId(PositionIdData {
                         center: CubeLocation {
                             point: Point {
                                 x: isize::from_le_bytes([
-                                    byte_code[1],
-                                    byte_code[2],
+                                    payload[1],
+                                    payload[2],
                                     0,
                                     0,
                                     0,
@@ -53,8 +54,8 @@ impl IdInformation {
                                     0,
                                 ]),
                                 y: isize::from_le_bytes([
-                                    byte_code[3],
-                                    byte_code[4],
+                                    payload[3],
+                                    payload[4],
                                     0,
                                     0,
                                     0,
@@ -63,13 +64,13 @@ impl IdInformation {
                                     0,
                                 ]),
                             },
-                            angle: u16::from_le_bytes([byte_code[5], byte_code[6]]),
+                            angle: u16::from_le_bytes([payload[5], payload[6]]),
                         },
                         sensor: CubeLocation {
                             point: Point {
                                 x: isize::from_le_bytes([
-                                    byte_code[7],
-                                    byte_code[8],
+                                    payload[7],
+                                    payload[8],
                                     0,
                                     0,
                                     0,
@@ -78,8 +79,8 @@ impl IdInformation {
                                     0,
                                 ]),
                                 y: isize::from_le_bytes([
-                                    byte_code[9],
-                                    byte_code[10],
+                                    payload[9],
+                                    payload[10],
                                     0,
                                     0,
                                     0,
@@ -88,7 +89,7 @@ impl IdInformation {
                                     0,
                                 ]),
                             },
-                            angle: u16::from_le_bytes([byte_code[11], byte_code[12]]),
+                            angle: u16::from_le_bytes([payload[11], payload[12]]),
                         },
                     }))
                 } else {
@@ -96,15 +97,15 @@ impl IdInformation {
                 }
             }
             0x02u8 => {
-                if byte_code.len() >= 4 {
+                if payload.len() >= 4 {
                     Some(IdInformation::StandardId(StandardIdData {
                         value: u32::from_le_bytes([
-                            byte_code[1],
-                            byte_code[2],
-                            byte_code[3],
-                            byte_code[4],
+                            payload[1],
+                            payload[2],
+                            payload[3],
+                            payload[4],
                         ]),
-                        angle: u16::from_le_bytes([byte_code[5], byte_code[6]]),
+                        angle: u16::from_le_bytes([payload[5], payload[6]]),
                     }))
                 } else {
                     None
@@ -117,23 +118,6 @@ impl IdInformation {
     }
 }
 
-impl ToPayload<Vec<u8>> for IdInformation {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload: Vec<u8> = vec![u8::from(self)];
-        match self {
-            IdInformation::PositionId(st) => {
-                payload.extend(st.to_payload());
-            }
-            IdInformation::StandardId(st) => {
-                payload.extend(st.to_payload());
-            }
-            IdInformation::PositionIdMissed => (),
-            IdInformation::StandardIdMissed => (),
-            IdInformation::Unknown(_) => (),
-        }
-        payload
-    }
-}
 
 #[cfg(test)]
 mod test {

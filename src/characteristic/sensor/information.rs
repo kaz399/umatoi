@@ -3,8 +3,7 @@ mod motion_information;
 mod posture_angle_information;
 
 use crate::characteristic::sensor::def::CommandId;
-use crate::characteristic::sensor::def::PostureDataType;
-use crate::payload::ToPayload;
+use crate::payload::FromPayload;
 
 /// Sensor response
 
@@ -16,26 +15,26 @@ pub enum SensorInformation {
     MagneticSensor(magnetic_information::MagneticSensorInformation),
 }
 
-impl SensorInformation {
-    pub fn new(byte_data: &[u8]) -> Option<Self> {
-        if byte_data.is_empty() {
+impl FromPayload<&[u8]> for SensorInformation {
+    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+        if payload.is_empty() {
             return None;
         }
-        if let Some(response_data) = motion_information::MotionDetectionInformation::new(byte_data)
+        if let Some(response_data) = motion_information::MotionDetectionInformation::from_payload(payload)
         {
             return Some(SensorInformation::MotionDetection(response_data));
         }
-        if let Some(response_data) = magnetic_information::MagneticSensorInformation::new(byte_data)
+        if let Some(response_data) = magnetic_information::MagneticSensorInformation::from_payload(payload)
         {
             return Some(SensorInformation::MagneticSensor(response_data));
         }
         if let Some(response_data) =
-            posture_angle_information::PostureAngleEulerInformation::new(byte_data)
+            posture_angle_information::PostureAngleEulerInformation::from_payload(payload)
         {
             return Some(SensorInformation::PostureAngleEuler(response_data));
         }
         if let Some(response_data) =
-            posture_angle_information::PostureAngleQuaternionsInformation::new(byte_data)
+            posture_angle_information::PostureAngleQuaternionsInformation::from_payload(payload)
         {
             return Some(SensorInformation::PostureAngleQuaternion(response_data));
         }
@@ -54,26 +53,3 @@ impl From<SensorInformation> for u8 {
     }
 }
 
-impl ToPayload<Vec<u8>> for SensorInformation {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload: Vec<u8> = vec![u8::from(self)];
-        match self {
-            SensorInformation::MotionDetection(st) => {
-                payload.extend(st.to_payload());
-            }
-            SensorInformation::PostureAngleEuler(st) => {
-                payload.push(PostureDataType::Euler.into());
-                payload.extend(st.to_payload());
-            }
-            SensorInformation::PostureAngleQuaternion(st) => {
-                payload.push(PostureDataType::Quaternions.into());
-                payload.extend(st.to_payload());
-            }
-            SensorInformation::MagneticSensor(st) => {
-                payload.extend(st.to_payload());
-            }
-        }
-
-        payload
-    }
-}

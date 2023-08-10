@@ -1,4 +1,6 @@
 use super::super::def::common_def::ConfigurationType;
+use crate::payload::FromPayload;
+
 
 /// Obtaining the BLE protocol version
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#obtaining-the-ble-protocol-version>
@@ -8,18 +10,18 @@ pub struct ResponseBleProtocolVersionData {
     pub version: [u8; 5],
 }
 
-impl ResponseBleProtocolVersionData {
-    pub fn new(byte_data: &[u8]) -> Option<Self> {
-        if byte_data.len() != 7 {
+impl FromPayload<&[u8]> for ResponseBleProtocolVersionData {
+    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+        if payload.len() != 7 {
             return None;
         }
-        if byte_data[0] == ConfigurationType::BleProtocolVersion.response() {
+        if payload[0] == ConfigurationType::BleProtocolVersion.response() {
             let version: [u8; 5] = [
-                byte_data[2],
-                byte_data[3],
-                byte_data[4],
-                byte_data[5],
-                byte_data[6],
+                payload[2],
+                payload[3],
+                payload[4],
+                payload[5],
+                payload[6],
             ];
             Some(Self { version })
         } else {

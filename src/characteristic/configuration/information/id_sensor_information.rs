@@ -1,4 +1,5 @@
 use super::super::def::common_def::ConfigurationType;
+use crate::payload::FromPayload;
 
 /// Response to
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#responses-to-identification-sensor-id-notification-settings>
@@ -8,11 +9,11 @@ pub struct ResponseIdSensorNotificationData {
     pub result: bool,
 }
 
-impl ResponseIdSensorNotificationData {
-    pub fn new(byte_data: &[u8]) -> Option<Self> {
-        if byte_data[0] == ConfigurationType::IdSensorNotification.response() {
+impl FromPayload<&[u8]> for ResponseIdSensorNotificationData {
+    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+        if payload[0] == ConfigurationType::IdSensorNotification.response() {
             Some(Self {
-                result: byte_data[2] == 0x00u8,
+                result: payload[2] == 0x00u8,
             })
         } else {
             None
@@ -28,14 +29,15 @@ pub struct ResponseIdSensorMissedNotificationData {
     pub result: bool,
 }
 
-impl ResponseIdSensorMissedNotificationData {
-    pub fn new(byte_data: &[u8]) -> Option<Self> {
-        if byte_data[0] == ConfigurationType::IdSensorMissedNotification.response() {
+impl FromPayload<&[u8]> for ResponseIdSensorMissedNotificationData {
+    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+        if payload[0] == ConfigurationType::IdSensorMissedNotification.response() {
             Some(Self {
-                result: byte_data[2] == 0x00u8,
+                result: payload[2] == 0x00u8,
             })
         } else {
             None
         }
     }
 }
+

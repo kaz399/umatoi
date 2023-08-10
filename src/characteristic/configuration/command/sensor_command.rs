@@ -3,6 +3,7 @@ use super::super::def::sensor_def::{
     MagnetFunction, MagnetNotificationCondition, PostureAngleNotificationCondition,
 };
 use crate::characteristic::sensor::def::posture_angle_def::PostureDataType;
+use crate::payload::ToPayload;
 
 /// Horizontal detection threshold setting
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#horizontal-detection-threshold-settings>
@@ -21,6 +22,13 @@ impl SetHorizontalDetectionThreshold {
             _reserved: 0,
             threshold,
         }
+    }
+}
+
+impl ToPayload<Vec<u8>> for SetHorizontalDetectionThreshold {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.configuration_type.into(), self._reserved, self.threshold];
+        payload
     }
 }
 
@@ -44,6 +52,13 @@ impl SetCollisionDetectionThreshold {
     }
 }
 
+impl ToPayload<Vec<u8>> for SetCollisionDetectionThreshold {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.configuration_type.into(), self._reserved, self.threshold];
+        payload
+    }
+}
+
 /// Double tap detection time interval settings
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#double-tap-detection-time-interval-settings>
 
@@ -61,6 +76,13 @@ impl SetDoubleTapDetectionTimeInterval {
             _reserved: 0,
             interval,
         }
+    }
+}
+
+impl ToPayload<Vec<u8>> for SetDoubleTapDetectionTimeInterval {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.configuration_type.into(), self._reserved, self.interval];
+        payload
     }
 }
 
@@ -92,6 +114,20 @@ impl SetMagneticSensor {
     }
 }
 
+impl ToPayload<Vec<u8>> for SetMagneticSensor {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![
+            self.configuration_type.into(),
+            self._reserved,
+            self.function_type.into(),
+            self.interval,
+            self.condition.into(),
+        ];
+        payload
+    }
+}
+
+
 /// Posture angle detection settings
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#posture-angle-detection-settings->
 
@@ -119,3 +155,17 @@ impl SetPostureAngleDetection {
         }
     }
 }
+
+impl ToPayload<Vec<u8>> for SetPostureAngleDetection {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![
+            self.configuration_type.into(),
+            self._reserved,
+            self.data_type.into(),
+            self.interval,
+            self.condition.into(),
+        ];
+        payload
+    }
+}
+

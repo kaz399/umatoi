@@ -1,4 +1,5 @@
 use super::super::def::common_def::ConfigurationType;
+use crate::payload::ToPayload;
 
 /// Requesting the BLE protocol version
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#requesting-the-ble-protocol-version>
@@ -23,3 +24,11 @@ impl RequestBleProtocolVersion {
         Self::default()
     }
 }
+
+impl ToPayload<Vec<u8>> for RequestBleProtocolVersion {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.configuration_type.into(), self._reserved];
+        payload
+    }
+}
+
