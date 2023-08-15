@@ -10,6 +10,7 @@ use umatoi::characteristic::NotificationData;
 use umatoi::interface::ble::BleScanner;
 use umatoi::interface::CubeScanner;
 use umatoi::position::{CubeLocation, Point};
+use umatoi::payload::FromPayload;
 
 #[derive(Parser)]
 #[clap(
@@ -29,7 +30,7 @@ static STANDARD_ID_READ: OnceCell<Mutex<usize>> = OnceCell::new();
 static STANDARD_ID_MISSED: OnceCell<Mutex<usize>> = OnceCell::new();
 
 fn notify_handler1(data: NotificationData) {
-    if let Some(id_data) = id::IdInformation::new(&data.value) {
+    if let Some(id_data) = id::IdInformation::from_payload(&data.value) {
         match id_data {
             id::IdInformation::PositionId(pos_id) => {
                 let mut update = POSITION_ID_READ
@@ -58,7 +59,7 @@ fn notify_handler1(data: NotificationData) {
 }
 
 fn notify_handler2(data: NotificationData) {
-    if let Some(id_data) = id::IdInformation::new(&data.value) {
+    if let Some(id_data) = id::IdInformation::from_payload(&data.value) {
         match id_data {
             id::IdInformation::PositionIdMissed => {
                 let mut update = POSITION_ID_MISSED
@@ -82,7 +83,7 @@ fn notify_handler2(data: NotificationData) {
 }
 
 fn notify_handler3(data: NotificationData) {
-    if let Some(motor_response) = motor::MotorInformation::new(&data.value) {
+    if let Some(motor_response) = motor::MotorInformation::from_payload(&data.value) {
         match motor_response {
             motor::MotorInformation::MotorControlTarget(res) => {
                 println!("ResponseMotorControlTarget: {:?}", res.response_code);

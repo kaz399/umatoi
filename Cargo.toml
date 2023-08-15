@@ -1,6 +1,6 @@
 [package]
 name = "umatoi"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["yabe_z <Kazuhiro.Yabe@gmail.com>"]
 edition = "2021"
 license-file = "LICENSE"
