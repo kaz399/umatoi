@@ -1,4 +1,4 @@
-use super::super::def::common_def::ConfigurationType;
+use super::super::def::command_id_def::CommandId;
 use crate::payload::ToPayload;
 
 /// Requesting the BLE protocol version
@@ -6,14 +6,14 @@ use crate::payload::ToPayload;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct RequestBleProtocolVersion {
-    pub configuration_type: ConfigurationType,
+    pub configuration_type: CommandId,
     pub _reserved: u8,
 }
 
 impl Default for RequestBleProtocolVersion {
     fn default() -> Self {
         Self {
-            configuration_type: ConfigurationType::BleProtocolVersion,
+            configuration_type: CommandId::BleProtocolVersion,
             _reserved: 0,
         }
     }
@@ -31,4 +31,3 @@ impl ToPayload<Vec<u8>> for RequestBleProtocolVersion {
         payload
     }
 }
-

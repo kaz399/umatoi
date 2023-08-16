@@ -1,4 +1,5 @@
-use super::common_def::{CommandId, RequestId, Timeout};
+use super::command_id_def::CommandId;
+use super::motor_params_def::{RequestId, Timeout};
 use crate::payload::ToPayload;
 use crate::position::CubeLocation;
 
@@ -183,13 +184,11 @@ impl Default for TargetPosition {
 
 impl ToPayload<Vec<u8>> for TargetPosition {
     fn to_payload(self) -> Vec<u8> {
-        let rotation_option: u16 = (self.rotation_option as u16) << 13;
-        let combined_data: [u16; 3] = [
-            self.cube_location.point.x.try_into().unwrap(),
-            self.cube_location.point.y.try_into().unwrap(),
-            (self.cube_location.angle & 0b0001_1111_1111_1111) | rotation_option,
-        ];
-        bincode::serialize(&combined_data).unwrap()
+        let mut payload: Vec<u8> = Vec::new();
+        let rotation_option: u16 = (self.cube_location.angle & 0b0001_1111_1111_1111) | ((self.rotation_option as u16) << 13);
+        payload.extend(self.cube_location.point.to_payload());
+        payload.extend(rotation_option.to_le_bytes().to_vec());
+        payload
     }
 }
 

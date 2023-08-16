@@ -1,4 +1,4 @@
-use super::super::def::common_def::ConfigurationType;
+use super::super::def::command_id_def::CommandId;
 use super::super::def::id_sensor_def::IdSensorNotificationCondition;
 use crate::payload::ToPayload;
 
@@ -7,7 +7,7 @@ use crate::payload::ToPayload;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetIdSensorNotification {
-    pub configuration_type: ConfigurationType,
+    pub configuration_type: CommandId,
     pub _reserved: u8,
     pub minimum_interval: u8,
     pub condition: IdSensorNotificationCondition,
@@ -16,7 +16,7 @@ pub struct SetIdSensorNotification {
 impl SetIdSensorNotification {
     pub fn new(minimum_interval: u8, condition: IdSensorNotificationCondition) -> Self {
         Self {
-            configuration_type: ConfigurationType::BleProtocolVersion,
+            configuration_type: CommandId::BleProtocolVersion,
             _reserved: 0,
             minimum_interval,
             condition,
@@ -40,7 +40,7 @@ impl ToPayload<Vec<u8>> for SetIdSensorNotification {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetIdSensorMissedNotification {
-    pub configuration_type: ConfigurationType,
+    pub configuration_type: CommandId,
     pub _reserved: u8,
     pub sensitivity: u8,
 }
@@ -48,7 +48,7 @@ pub struct SetIdSensorMissedNotification {
 impl SetIdSensorMissedNotification {
     pub fn new(sensitivity: u8) -> Self {
         Self {
-            configuration_type: ConfigurationType::IdSensorMissedNotification,
+            configuration_type: CommandId::IdSensorMissedNotification,
             _reserved: 0,
             sensitivity,
         }

@@ -1,4 +1,4 @@
-use super::super::def::common_def::ConfigurationType;
+use super::super::def::command_id_def::CommandId;
 use super::super::def::sensor_def::{
     MagnetFunction, MagnetNotificationCondition, PostureAngleNotificationCondition,
 };
@@ -10,7 +10,7 @@ use crate::payload::ToPayload;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetHorizontalDetectionThreshold {
-    pub configuration_type: ConfigurationType,
+    pub configuration_type: CommandId,
     pub _reserved: u8,
     pub threshold: u8,
 }
@@ -18,7 +18,7 @@ pub struct SetHorizontalDetectionThreshold {
 impl SetHorizontalDetectionThreshold {
     pub fn new(threshold: u8) -> Self {
         Self {
-            configuration_type: ConfigurationType::HorizontalDetectionThreshold,
+            configuration_type: CommandId::HorizontalDetectionThreshold,
             _reserved: 0,
             threshold,
         }
@@ -27,7 +27,11 @@ impl SetHorizontalDetectionThreshold {
 
 impl ToPayload<Vec<u8>> for SetHorizontalDetectionThreshold {
     fn to_payload(self) -> Vec<u8> {
-        let payload: Vec<u8> = vec![self.configuration_type.into(), self._reserved, self.threshold];
+        let payload: Vec<u8> = vec![
+            self.configuration_type.into(),
+            self._reserved,
+            self.threshold,
+        ];
         payload
     }
 }
@@ -37,7 +41,7 @@ impl ToPayload<Vec<u8>> for SetHorizontalDetectionThreshold {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetCollisionDetectionThreshold {
-    pub configuration_type: ConfigurationType,
+    pub configuration_type: CommandId,
     pub _reserved: u8,
     pub threshold: u8,
 }
@@ -45,7 +49,7 @@ pub struct SetCollisionDetectionThreshold {
 impl SetCollisionDetectionThreshold {
     pub fn new(threshold: u8) -> Self {
         Self {
-            configuration_type: ConfigurationType::CollisionDetectionTheshold,
+            configuration_type: CommandId::CollisionDetectionThreshold,
             _reserved: 0,
             threshold,
         }
@@ -54,7 +58,11 @@ impl SetCollisionDetectionThreshold {
 
 impl ToPayload<Vec<u8>> for SetCollisionDetectionThreshold {
     fn to_payload(self) -> Vec<u8> {
-        let payload: Vec<u8> = vec![self.configuration_type.into(), self._reserved, self.threshold];
+        let payload: Vec<u8> = vec![
+            self.configuration_type.into(),
+            self._reserved,
+            self.threshold,
+        ];
         payload
     }
 }
@@ -64,7 +72,7 @@ impl ToPayload<Vec<u8>> for SetCollisionDetectionThreshold {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetDoubleTapDetectionTimeInterval {
-    pub configuration_type: ConfigurationType,
+    pub configuration_type: CommandId,
     pub _reserved: u8,
     pub interval: u8,
 }
@@ -72,7 +80,7 @@ pub struct SetDoubleTapDetectionTimeInterval {
 impl SetDoubleTapDetectionTimeInterval {
     pub fn new(interval: u8) -> Self {
         Self {
-            configuration_type: ConfigurationType::CollisionDetectionTheshold,
+            configuration_type: CommandId::CollisionDetectionThreshold,
             _reserved: 0,
             interval,
         }
@@ -81,7 +89,11 @@ impl SetDoubleTapDetectionTimeInterval {
 
 impl ToPayload<Vec<u8>> for SetDoubleTapDetectionTimeInterval {
     fn to_payload(self) -> Vec<u8> {
-        let payload: Vec<u8> = vec![self.configuration_type.into(), self._reserved, self.interval];
+        let payload: Vec<u8> = vec![
+            self.configuration_type.into(),
+            self._reserved,
+            self.interval,
+        ];
         payload
     }
 }
@@ -91,7 +103,7 @@ impl ToPayload<Vec<u8>> for SetDoubleTapDetectionTimeInterval {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetMagneticSensor {
-    pub configuration_type: ConfigurationType,
+    pub configuration_type: CommandId,
     pub _reserved: u8,
     pub function_type: MagnetFunction,
     pub interval: u8,
@@ -105,7 +117,7 @@ impl SetMagneticSensor {
         condition: MagnetNotificationCondition,
     ) -> Self {
         Self {
-            configuration_type: ConfigurationType::MagneticSensor,
+            configuration_type: CommandId::MagneticSensor,
             _reserved: 0,
             function_type,
             interval,
@@ -127,13 +139,12 @@ impl ToPayload<Vec<u8>> for SetMagneticSensor {
     }
 }
 
-
 /// Posture angle detection settings
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_configuration#posture-angle-detection-settings->
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SetPostureAngleDetection {
-    pub configuration_type: ConfigurationType,
+    pub configuration_type: CommandId,
     pub _reserved: u8,
     pub data_type: PostureDataType,
     pub interval: u8,
@@ -147,7 +158,7 @@ impl SetPostureAngleDetection {
         condition: PostureAngleNotificationCondition,
     ) -> Self {
         Self {
-            configuration_type: ConfigurationType::PostureAngleDetection,
+            configuration_type: CommandId::PostureAngleDetection,
             _reserved: 0,
             data_type,
             interval,
@@ -168,4 +179,3 @@ impl ToPayload<Vec<u8>> for SetPostureAngleDetection {
         payload
     }
 }
-

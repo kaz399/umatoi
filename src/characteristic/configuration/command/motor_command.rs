@@ -1,4 +1,4 @@
-use super::super::def::ConfigurationType;
+use super::super::def::CommandId;
 use crate::payload::ToPayload;
 
 /// Enable motor speed information
@@ -6,7 +6,7 @@ use crate::payload::ToPayload;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct EnableMotorSpeed {
-    pub configuration_type: ConfigurationType,
+    pub configuration_type: CommandId,
     pub _reserved: u8,
     pub enable: bool,
 }
@@ -14,7 +14,7 @@ pub struct EnableMotorSpeed {
 impl EnableMotorSpeed {
     pub fn new(enable: bool) -> Self {
         Self {
-            configuration_type: ConfigurationType::MotorSpeed,
+            configuration_type: CommandId::MotorSpeed,
             _reserved: 0,
             enable,
         }

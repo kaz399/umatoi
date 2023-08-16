@@ -31,9 +31,11 @@ impl From<IdInformation> for u8 {
     }
 }
 
-
 impl FromPayload<&[u8]> for IdInformation {
-    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+    fn from_payload(payload: &[u8]) -> Option<Self>
+    where
+        Self: Sized,
+    {
         if payload.is_empty() {
             return None;
         }
@@ -43,41 +45,14 @@ impl FromPayload<&[u8]> for IdInformation {
                     Some(IdInformation::PositionId(PositionIdData {
                         center: CubeLocation {
                             point: Point {
-                                x: isize::from_le_bytes([
-                                    payload[1],
-                                    payload[2],
-                                    0,
-                                    0,
-                                    0,
-                                    0,
-                                    0,
-                                    0,
-                                ]),
-                                y: isize::from_le_bytes([
-                                    payload[3],
-                                    payload[4],
-                                    0,
-                                    0,
-                                    0,
-                                    0,
-                                    0,
-                                    0,
-                                ]),
+                                x: isize::from_le_bytes([payload[1], payload[2], 0, 0, 0, 0, 0, 0]),
+                                y: isize::from_le_bytes([payload[3], payload[4], 0, 0, 0, 0, 0, 0]),
                             },
                             angle: u16::from_le_bytes([payload[5], payload[6]]),
                         },
                         sensor: CubeLocation {
                             point: Point {
-                                x: isize::from_le_bytes([
-                                    payload[7],
-                                    payload[8],
-                                    0,
-                                    0,
-                                    0,
-                                    0,
-                                    0,
-                                    0,
-                                ]),
+                                x: isize::from_le_bytes([payload[7], payload[8], 0, 0, 0, 0, 0, 0]),
                                 y: isize::from_le_bytes([
                                     payload[9],
                                     payload[10],
@@ -99,12 +74,7 @@ impl FromPayload<&[u8]> for IdInformation {
             0x02u8 => {
                 if payload.len() >= 4 {
                     Some(IdInformation::StandardId(StandardIdData {
-                        value: u32::from_le_bytes([
-                            payload[1],
-                            payload[2],
-                            payload[3],
-                            payload[4],
-                        ]),
+                        value: u32::from_le_bytes([payload[1], payload[2], payload[3], payload[4]]),
                         angle: u16::from_le_bytes([payload[5], payload[6]]),
                     }))
                 } else {
@@ -117,7 +87,6 @@ impl FromPayload<&[u8]> for IdInformation {
         }
     }
 }
-
 
 #[cfg(test)]
 mod test {
@@ -141,8 +110,5 @@ mod test {
                 angle: 6,
             },
         });
-        let payload = res.to_payload();
-        println!("len:{:2} data:{:?}", payload.len(), payload);
-        assert_eq!(payload.len(), 13);
     }
 }

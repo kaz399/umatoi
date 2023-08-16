@@ -1,6 +1,6 @@
 //! Official Specification:  <https://toio.github.io/toio-spec/en/docs/ble_button>
 
-use super::super::def::button_def::ButtonState;
+use super::super::def::state_def::ButtonState;
 use std::time;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

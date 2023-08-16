@@ -1,4 +1,4 @@
-use super::super::def::common_def::CommandId;
+use super::super::def::command_id_def::CommandId;
 use super::super::def::motion_def::Posture;
 use crate::payload::FromPayload;
 
@@ -34,7 +34,10 @@ impl MotionDetectionInformation {
 }
 
 impl FromPayload<&[u8]> for MotionDetectionInformation {
-    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+    fn from_payload(payload: &[u8]) -> Option<Self>
+    where
+        Self: Sized,
+    {
         if payload.len() < 6 {
             return None;
         }

@@ -1,4 +1,4 @@
-use super::super::def::common_def::ConfigurationType;
+use super::super::def::command_id_def::CommandId;
 use crate::payload::FromPayload;
 
 /// Response to motor speed information\
@@ -10,11 +10,14 @@ pub struct ResponseEnableMotorSpeedData {
 }
 
 impl FromPayload<&[u8]> for ResponseEnableMotorSpeedData {
-    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+    fn from_payload(payload: &[u8]) -> Option<Self>
+    where
+        Self: Sized,
+    {
         if payload.len() < 3 {
             return None;
         }
-        if payload[0] == ConfigurationType::MotorSpeed.response() {
+        if payload[0] == CommandId::MotorSpeed.response() {
             Some(Self {
                 result: payload[2] == 0x00u8,
             })

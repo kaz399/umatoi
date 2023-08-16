@@ -1,4 +1,4 @@
-use super::super::def::common_def::ConfigurationType;
+use super::super::def::command_id_def::CommandId;
 use crate::payload::FromPayload;
 
 /// Response to
@@ -10,8 +10,11 @@ pub struct ResponseIdSensorNotificationData {
 }
 
 impl FromPayload<&[u8]> for ResponseIdSensorNotificationData {
-    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
-        if payload[0] == ConfigurationType::IdSensorNotification.response() {
+    fn from_payload(payload: &[u8]) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if payload[0] == CommandId::IdSensorNotification.response() {
             Some(Self {
                 result: payload[2] == 0x00u8,
             })
@@ -30,8 +33,11 @@ pub struct ResponseIdSensorMissedNotificationData {
 }
 
 impl FromPayload<&[u8]> for ResponseIdSensorMissedNotificationData {
-    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
-        if payload[0] == ConfigurationType::IdSensorMissedNotification.response() {
+    fn from_payload(payload: &[u8]) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if payload[0] == CommandId::IdSensorMissedNotification.response() {
             Some(Self {
                 result: payload[2] == 0x00u8,
             })
@@ -40,4 +46,3 @@ impl FromPayload<&[u8]> for ResponseIdSensorMissedNotificationData {
         }
     }
 }
-

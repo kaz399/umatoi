@@ -1,4 +1,4 @@
-use super::super::def::common_def::CommandId;
+use super::super::def::command_id_def::CommandId;
 use crate::payload::ToPayload;
 
 /// Request motion sensor information

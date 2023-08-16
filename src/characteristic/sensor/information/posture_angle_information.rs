@@ -1,4 +1,4 @@
-use super::super::def::common_def::CommandId;
+use super::super::def::command_id_def::CommandId;
 use super::super::def::posture_angle_def::PostureDataType;
 use crate::payload::FromPayload;
 
@@ -13,7 +13,10 @@ pub struct PostureAngleEulerInformation {
 }
 
 impl FromPayload<&[u8]> for PostureAngleEulerInformation {
-    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+    fn from_payload(payload: &[u8]) -> Option<Self>
+    where
+        Self: Sized,
+    {
         if payload.len() < 8 {
             return None;
         }
@@ -31,7 +34,6 @@ impl FromPayload<&[u8]> for PostureAngleEulerInformation {
     }
 }
 
-
 /// Posture angle information (quaternions)
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_high_precision_tilt_sensor#obtaining-posture-angle-information-notifications-in-quaternions>
 
@@ -43,9 +45,11 @@ pub struct PostureAngleQuaternionsInformation {
     pub z: i16,
 }
 
-
 impl FromPayload<&[u8]> for PostureAngleQuaternionsInformation {
-    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+    fn from_payload(payload: &[u8]) -> Option<Self>
+    where
+        Self: Sized,
+    {
         if payload.len() < 8 {
             return None;
         }
@@ -63,4 +67,3 @@ impl FromPayload<&[u8]> for PostureAngleQuaternionsInformation {
         }
     }
 }
-

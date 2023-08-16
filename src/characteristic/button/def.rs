@@ -1,3 +1,3 @@
-pub(crate) mod button_def;
+pub(crate) mod state_def;
 
-pub use self::button_def::ButtonState;
+pub use self::state_def::ButtonState;

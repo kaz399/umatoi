@@ -1,4 +1,4 @@
-use super::super::def::common_def::CommandId;
+use super::super::def::command_id_def::CommandId;
 use crate::payload::FromPayload;
 use std::i8;
 use std::u8;
@@ -16,7 +16,10 @@ pub struct MagneticSensorInformation {
 }
 
 impl FromPayload<&[u8]> for MagneticSensorInformation {
-    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+    fn from_payload(payload: &[u8]) -> Option<Self>
+    where
+        Self: Sized,
+    {
         if payload.len() < 6 {
             return None;
         }
@@ -33,4 +36,3 @@ impl FromPayload<&[u8]> for MagneticSensorInformation {
         }
     }
 }
-
