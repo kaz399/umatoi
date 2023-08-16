@@ -1,6 +1,6 @@
 //! Official Specification:  <https://toio.github.io/toio-spec/en/docs/ble_sound#midi-note-number-and-note-name>
 
-pub use crate::characteristic::motor::def::motor_params_def::Period;
+pub use crate::characteristic::motor::def::params::Period;
 use crate::payload::ToPayload;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

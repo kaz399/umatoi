@@ -1,4 +1,4 @@
-use super::super::def::command_id_def::CommandId;
+use super::super::def::command_id::CommandId;
 use crate::payload::FromPayload;
 use std::i8;
 use std::u8;

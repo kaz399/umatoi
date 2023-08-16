@@ -1,3 +1,3 @@
-pub(crate) mod id_def;
+pub(crate) mod id_type;
 
-pub use self::id_def::{PositionIdData, StandardIdData};
+pub use self::id_type::{PositionIdData, StandardIdData};

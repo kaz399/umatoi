@@ -2,8 +2,8 @@
 
 use crate::payload::ToPayload;
 
-use super::super::def::command_id_def::CommandId;
-use super::super::def::params_def::IndicatorParam;
+use super::super::def::command_id::CommandId;
+use super::super::def::params::IndicatorParam;
 use crate::integer_converter::u_to_u8;
 
 /// TurningOnAndOff

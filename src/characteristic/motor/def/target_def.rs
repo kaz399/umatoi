@@ -169,6 +169,7 @@ impl ToPayload<Vec<u8>> for WriteMode {
 mod test {
     use super::*;
     use crate::characteristic::motor::command::{MotorControlMultipleTargets, MotorControlTarget};
+    use crate::characteristic::motor::def::Timeout;
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();

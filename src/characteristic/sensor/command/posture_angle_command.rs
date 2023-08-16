@@ -1,5 +1,5 @@
-use super::super::def::command_id_def::CommandId;
-use crate::characteristic::sensor::def::posture_angle_def::PostureDataType;
+use super::super::def::command_id::CommandId;
+use crate::characteristic::sensor::def::posture_angle::PostureDataType;
 use crate::payload::ToPayload;
 
 /// Request posture angle information
@@ -31,9 +31,8 @@ impl ToPayload<Vec<u8>> for RequestPostureAngleDetection {
 
 #[cfg(test)]
 mod test {
-    use crate::characteristic::sensor::{
-        PostureAngleEulerInformation, PostureAngleQuaternionsInformation,
-    };
+    use crate::characteristic::sensor::information::SensorInformation;
+    use crate::payload::FromPayload;
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
@@ -43,7 +42,9 @@ mod test {
     fn sensor_posture1() {
         _setup();
 
-        let m = PostureAngleEulerInformation::default();
+        let payload: [u8; 8] = [0x03, 0x01, 0xb4, 0x00, 0x00, 0x00, 0x4e, 0xff];
+        let m = SensorInformation::from_payload(&payload);
+
         println!("{:?}", m);
     }
 
@@ -51,7 +52,9 @@ mod test {
     fn sensor_posture2() {
         _setup();
 
-        let m = PostureAngleQuaternionsInformation::default();
+        let payload: [u8; 10] = [0x03, 0x02, 0x00, 0x00, 0x10, 0x27, 0x00, 0x00, 0x01, 0x00];
+        let m = SensorInformation::from_payload(&payload);
+
         println!("{:?}", m);
     }
 }

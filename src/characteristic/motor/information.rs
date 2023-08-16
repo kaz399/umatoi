@@ -53,9 +53,9 @@ impl From<MotorInformation> for u8 {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::characteristic::motor::def::RequestId;
+    use crate::characteristic::motor::information::MotorInformation;
     use crate::characteristic::motor::def::ResponseCode;
+    use crate::payload::FromPayload;
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
@@ -65,41 +65,42 @@ mod test {
     fn motor_response1() {
         _setup();
 
-        let res = MotorInformation::MotorSpeed(speed_information::MotorSpeedInformation {
-            left: 10,
-            right: 11,
-        });
-        let payload = res.to_payload();
-        println!("len:{:2} data:{:?}", payload.len(), payload);
-        assert_eq!(payload.len(), 3);
+        let payload: [u8; 3] = [0xe0, 0x32, 0x00];
+        let m = MotorInformation::from_payload(&payload);
+        if let Some(MotorInformation::MotorSpeed(speed)) = m {
+            println!("{:?}", speed);
+            assert_eq!(speed.left, 0x32);
+            assert_eq!(speed.right, 0x00);
+        } else {
+            unreachable!();
+        }
     }
 
     #[test]
     fn motor_response2() {
         _setup();
 
-        let res =
-            MotorInformation::MotorControlTarget(target_information::ResponseMotorControlTarget {
-                request_id: RequestId::new(),
-                response_code: ResponseCode::ErrorTimeout,
-            });
-        let payload = res.to_payload();
-        println!("len:{:2} data:{:?}", payload.len(), payload);
-        assert_eq!(payload.len(), 3);
+        let payload: [u8; 3] = [0x83, 0x00, 0x00];
+        let m = MotorInformation::from_payload(&payload);
+        if let Some(MotorInformation::MotorControlTarget(result)) = m {
+            println!("{:?}", result);
+            assert_eq!(result.response_code, ResponseCode::Success);
+        } else {
+            unreachable!();
+        }
     }
 
     #[test]
     fn motor_response3() {
         _setup();
 
-        let res = MotorInformation::MotorControlMultipleTargets(
-            target_information::ResponseMotorControlMultipleTargets {
-                request_id: RequestId::new(),
-                response_code: ResponseCode::ErrorInvalidParameter,
-            },
-        );
-        let payload = res.to_payload();
-        println!("len:{:2} data:{:?}", payload.len(), payload);
-        assert_eq!(payload.len(), 3);
+        let payload: [u8; 3] = [0x84, 0x00, 0x00];
+        let m = MotorInformation::from_payload(&payload);
+        if let Some(MotorInformation::MotorControlMultipleTargets(result)) = m {
+            println!("{:?}", result);
+            assert_eq!(result.response_code, ResponseCode::Success);
+        } else {
+            unreachable!();
+        }
     }
 }

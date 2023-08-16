@@ -1,4 +1,4 @@
-use crate::characteristic::motor::def::acceleration_def::{
+use crate::characteristic::motor::def::acceleration::{
     Acceleration, AngleVelocity, MovingDirection, Priority,
 };
 use crate::characteristic::motor::def::{CommandId, Period};
@@ -45,7 +45,7 @@ impl ToPayload<Vec<u8>> for MotorControlAcceleration {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::characteristic::motor::def::acceleration_def::{
+    use crate::characteristic::motor::def::acceleration::{
         Acceleration, AngleVelocity, MovingDirection, Priority, RotationDirection,
     };
 

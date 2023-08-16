@@ -1,5 +1,5 @@
 /// Indicator color
-pub use crate::characteristic::motor::def::motor_params_def::Period;
+pub use crate::characteristic::motor::def::params::Period;
 use crate::payload::ToPayload;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]

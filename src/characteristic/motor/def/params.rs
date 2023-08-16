@@ -118,6 +118,11 @@ impl RequestId {
     pub fn received(id: u8) -> Self {
         Self { id }
     }
+
+    pub fn reset() {
+        let mut request_id = REQUEST_ID.get_or_init(|| Mutex::new(0u8)).lock().unwrap();
+        *request_id = 0;
+    }
 }
 
 /// Timeout
@@ -331,8 +336,10 @@ mod test {
     fn motor_def_request_id() {
         _setup();
 
+        RequestId::reset();
         for ct in 0usize..=300usize {
             let req = RequestId::new();
+            log::info!("{} {}", ct, req.id);
             assert_eq!(req.id as usize, ct % (1 + u8::MAX as usize));
         }
     }

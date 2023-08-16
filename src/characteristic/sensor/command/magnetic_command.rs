@@ -1,4 +1,4 @@
-use super::super::def::command_id_def::CommandId;
+use super::super::def::command_id::CommandId;
 use crate::payload::ToPayload;
 use std::u8;
 
@@ -27,7 +27,8 @@ impl ToPayload<Vec<u8>> for RequestMagneticSensor {
 
 #[cfg(test)]
 mod test {
-    use crate::characteristic::sensor::SensorInformation::MagneticSensor;
+    use crate::characteristic::sensor::SensorInformation;
+    use crate::payload::FromPayload;
 
     fn _setup() {
         let _ = env_logger::builder().is_test(true).try_init();
@@ -37,7 +38,9 @@ mod test {
     fn sensor_magnetic1() {
         _setup();
 
-        let m = MagneticSensor::default();
+        let payload: [u8; 6] = [0x02, 0x00, 0x00, 0x00, 0x00, 0x00];
+        let m = SensorInformation::from_payload(&payload);
+
         println!("{:?}", m);
     }
 }

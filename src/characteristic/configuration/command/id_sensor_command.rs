@@ -1,5 +1,5 @@
-use super::super::def::command_id_def::CommandId;
-use super::super::def::id_sensor_def::IdSensorNotificationCondition;
+use super::super::def::command_id::CommandId;
+use super::super::def::condition::IdSensorNotificationCondition;
 use crate::payload::ToPayload;
 
 /// Id sensor notification settings

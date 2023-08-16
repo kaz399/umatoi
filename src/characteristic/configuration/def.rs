@@ -1,6 +1,9 @@
-pub(crate) mod command_id_def;
-pub(crate) mod id_sensor_def;
-pub(crate) mod sensor_def;
+pub(crate) mod command_id;
+pub(crate) mod condition;
+pub(crate) mod function_type;
 
-pub use self::command_id_def::CommandId;
-pub use self::id_sensor_def::IdSensorNotificationCondition;
+pub use self::command_id::CommandId;
+pub use self::condition::{
+    IdSensorNotificationCondition, MagnetNotificationCondition, PostureAngleNotificationCondition,
+};
+pub use self::function_type::MagnetFunction;

@@ -1,31 +1,5 @@
 use crate::payload::ToPayload;
 
-/// Magnet function
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum MagnetFunction {
-    Disable,
-    MagnetState,
-    MagnetForce,
-}
-
-impl From<MagnetFunction> for u8 {
-    fn from(function_type: MagnetFunction) -> u8 {
-        match function_type {
-            MagnetFunction::Disable => 0x00u8,
-            MagnetFunction::MagnetState => 0x01u8,
-            MagnetFunction::MagnetForce => 0x02u8,
-        }
-    }
-}
-
-impl ToPayload<Vec<u8>> for MagnetFunction {
-    fn to_payload(self) -> Vec<u8> {
-        let payload: Vec<u8> = vec![self.into()];
-        payload
-    }
-}
-
 /// Magnet condition
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -68,6 +42,32 @@ impl From<PostureAngleNotificationCondition> for u8 {
 }
 
 impl ToPayload<Vec<u8>> for PostureAngleNotificationCondition {
+    fn to_payload(self) -> Vec<u8> {
+        let payload: Vec<u8> = vec![self.into()];
+        payload
+    }
+}
+
+/// Id sensor notification condition
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum IdSensorNotificationCondition {
+    Always,
+    AtChange,
+    Sleep300WithNoChange,
+}
+
+impl From<IdSensorNotificationCondition> for u8 {
+    fn from(condition: IdSensorNotificationCondition) -> u8 {
+        match condition {
+            IdSensorNotificationCondition::Always => 0x00u8,
+            IdSensorNotificationCondition::AtChange => 0x01u8,
+            IdSensorNotificationCondition::Sleep300WithNoChange => 0xffu8,
+        }
+    }
+}
+
+impl ToPayload<Vec<u8>> for IdSensorNotificationCondition {
     fn to_payload(self) -> Vec<u8> {
         let payload: Vec<u8> = vec![self.into()];
         payload

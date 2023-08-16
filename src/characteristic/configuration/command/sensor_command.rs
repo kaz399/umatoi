@@ -1,8 +1,9 @@
-use super::super::def::command_id_def::CommandId;
-use super::super::def::sensor_def::{
-    MagnetFunction, MagnetNotificationCondition, PostureAngleNotificationCondition,
+use super::super::def::command_id::CommandId;
+use super::super::def::condition::{
+    MagnetNotificationCondition, PostureAngleNotificationCondition,
 };
-use crate::characteristic::sensor::def::posture_angle_def::PostureDataType;
+use super::super::def::function_type::MagnetFunction;
+use crate::characteristic::sensor::def::posture_angle::PostureDataType;
 use crate::payload::ToPayload;
 
 /// Horizontal detection threshold setting

@@ -1,4 +1,4 @@
-use super::super::def::id_def::{PositionIdData, StandardIdData};
+use super::super::def::id_type::{PositionIdData, StandardIdData};
 use crate::{
     payload::FromPayload,
     position::{CubeLocation, Point},

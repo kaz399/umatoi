@@ -1,5 +1,5 @@
-use super::super::def::command_id_def::CommandId;
-use super::super::def::posture_angle_def::PostureDataType;
+use super::super::def::command_id::CommandId;
+use super::super::def::posture_angle::PostureDataType;
 use crate::payload::FromPayload;
 
 /// Posture angle information (euler)

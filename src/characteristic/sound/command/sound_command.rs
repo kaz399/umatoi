@@ -3,8 +3,8 @@
 use crate::payload::ToPayload;
 use std::cmp;
 
-use super::super::def::command_id_def::CommandId;
-use super::super::def::midi_note_def::MidiNote;
+use super::super::def::command_id::CommandId;
+use super::super::def::midi_note::MidiNote;
 use super::super::def::sound_effect_id::SoundEffectId;
 
 // PlaySoundEffect

@@ -1,4 +1,4 @@
-use super::super::def::command_id_def::CommandId;
+use super::super::def::command_id::CommandId;
 use crate::payload::ToPayload;
 
 /// Requesting the BLE protocol version

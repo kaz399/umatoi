@@ -1,5 +1,5 @@
-use super::super::def::command_id_def::CommandId;
-use super::super::def::motion_def::Posture;
+use super::super::def::command_id::CommandId;
+use super::super::def::motion::Posture;
 use crate::payload::FromPayload;
 
 /// Motion detection information
