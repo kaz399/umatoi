@@ -14,11 +14,15 @@ pub enum MotorInformation {
 }
 
 impl FromPayload<&[u8]> for MotorInformation {
-    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+    fn from_payload(payload: &[u8]) -> Option<Self>
+    where
+        Self: Sized,
+    {
         if payload.is_empty() {
             return None;
         }
-        if let Some(response_data) = target_information::ResponseMotorControlTarget::from_payload(payload)
+        if let Some(response_data) =
+            target_information::ResponseMotorControlTarget::from_payload(payload)
         {
             return Some(MotorInformation::MotorControlTarget(response_data));
         }
@@ -27,7 +31,8 @@ impl FromPayload<&[u8]> for MotorInformation {
         {
             return Some(MotorInformation::MotorControlMultipleTargets(response_data));
         }
-        if let Some(response_data) = speed_information::MotorSpeedInformation::from_payload(payload) {
+        if let Some(response_data) = speed_information::MotorSpeedInformation::from_payload(payload)
+        {
             return Some(MotorInformation::MotorSpeed(response_data));
         }
         None
@@ -45,7 +50,6 @@ impl From<MotorInformation> for u8 {
         }
     }
 }
-
 
 #[cfg(test)]
 mod test {

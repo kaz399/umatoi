@@ -1,6 +1,5 @@
 use crate::characteristic::motor::def::target_def::{
-    MovementType, Speed, TargetPosition, WriteMode, _MotorControlMultipleTargetsHeader,
-    _MotorControlTargetHeader,
+    MovementType, Speed, TargetPosition, WriteMode,
 };
 use crate::characteristic::motor::def::{CommandId, RequestId, Timeout};
 use crate::payload::ToPayload;
@@ -32,22 +31,15 @@ impl Default for MotorControlTarget {
     }
 }
 
-impl MotorControlTarget {
-    fn header(&self) -> _MotorControlTargetHeader {
-        _MotorControlTargetHeader {
-            command: self.command,
-            id: self.id,
-            timeout: self.timeout,
-            movement_type: self.movement_type,
-            speed: self.speed,
-            _reserved_1: self._reserved_1,
-        }
-    }
-}
-
 impl ToPayload<Vec<u8>> for MotorControlTarget {
     fn to_payload(self) -> Vec<u8> {
-        let mut payload = self.header().to_payload();
+        let mut payload: Vec<u8> = Vec::new();
+        payload.extend(self.command.to_payload());
+        payload.extend(self.id.to_payload());
+        payload.extend(self.timeout.to_payload());
+        payload.extend(self.movement_type.to_payload());
+        payload.extend(self.speed.to_payload());
+        payload.push(self._reserved_1);
         payload.extend(&self.target.to_payload());
         payload
     }
@@ -82,30 +74,22 @@ impl Default for MotorControlMultipleTargets {
     }
 }
 
-impl MotorControlMultipleTargets {
-    fn header(&self) -> _MotorControlMultipleTargetsHeader {
-        _MotorControlMultipleTargetsHeader {
-            command: self.command,
-            id: self.id,
-            timeout: self.timeout,
-            movement_type: self.movement_type,
-            speed: self.speed,
-            _reserved_1: self._reserved_1,
-            write_mode: self.write_mode,
-        }
-    }
-}
-
 impl ToPayload<Vec<u8>> for MotorControlMultipleTargets {
     fn to_payload(self) -> Vec<u8> {
-        let mut payload = self.header().to_payload();
+        let mut payload: Vec<u8> = Vec::new();
+        payload.extend(self.command.to_payload());
+        payload.extend(self.id.to_payload());
+        payload.extend(self.timeout.to_payload());
+        payload.extend(self.movement_type.to_payload());
+        payload.extend(self.speed.to_payload());
+        payload.push(self._reserved_1);
+        payload.extend(self.write_mode.to_payload());
         for target in &self.target_list {
             payload.extend(&target.to_payload());
         }
         payload
     }
 }
-
 
 #[cfg(test)]
 mod test {

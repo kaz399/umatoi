@@ -11,7 +11,10 @@ pub struct MotorSpeedInformation {
 }
 
 impl FromPayload<&[u8]> for MotorSpeedInformation {
-    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+    fn from_payload(payload: &[u8]) -> Option<Self>
+    where
+        Self: Sized,
+    {
         if payload.len() < 3 {
             return None;
         }

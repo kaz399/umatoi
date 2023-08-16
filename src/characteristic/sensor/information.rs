@@ -16,15 +16,20 @@ pub enum SensorInformation {
 }
 
 impl FromPayload<&[u8]> for SensorInformation {
-    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+    fn from_payload(payload: &[u8]) -> Option<Self>
+    where
+        Self: Sized,
+    {
         if payload.is_empty() {
             return None;
         }
-        if let Some(response_data) = motion_information::MotionDetectionInformation::from_payload(payload)
+        if let Some(response_data) =
+            motion_information::MotionDetectionInformation::from_payload(payload)
         {
             return Some(SensorInformation::MotionDetection(response_data));
         }
-        if let Some(response_data) = magnetic_information::MagneticSensorInformation::from_payload(payload)
+        if let Some(response_data) =
+            magnetic_information::MagneticSensorInformation::from_payload(payload)
         {
             return Some(SensorInformation::MagneticSensor(response_data));
         }
@@ -52,4 +57,3 @@ impl From<SensorInformation> for u8 {
         }
     }
 }
-

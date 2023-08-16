@@ -42,7 +42,6 @@ impl ToPayload<Vec<u8>> for MotorControlAcceleration {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;

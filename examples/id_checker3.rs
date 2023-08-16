@@ -9,8 +9,8 @@ use umatoi::characteristic::motor;
 use umatoi::characteristic::NotificationData;
 use umatoi::interface::ble::BleScanner;
 use umatoi::interface::CubeScanner;
-use umatoi::position::{CubeLocation, Point};
 use umatoi::payload::FromPayload;
+use umatoi::position::{CubeLocation, Point};
 
 #[derive(Parser)]
 #[clap(

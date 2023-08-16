@@ -1,61 +1,5 @@
-use super::command_id_def::CommandId;
-use super::motor_params_def::{RequestId, Timeout};
 use crate::payload::ToPayload;
 use crate::position::CubeLocation;
-
-/// Header part of `MotorControlTarget`
-///
-#[derive(Debug)]
-pub(crate) struct _MotorControlTargetHeader {
-    pub(crate) command: CommandId,
-    pub(crate) id: RequestId,
-    pub(crate) timeout: Timeout,
-    pub(crate) movement_type: MovementType,
-    pub(crate) speed: Speed,
-    pub(crate) _reserved_1: u8,
-}
-
-impl ToPayload<Vec<u8>> for _MotorControlTargetHeader {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload: Vec<u8> = Vec::new();
-        payload.extend(self.command.to_payload());
-        payload.extend(self.id.to_payload());
-        payload.extend(self.timeout.to_payload());
-        payload.extend(self.movement_type.to_payload());
-        payload.extend(self.speed.to_payload());
-        payload.push(self._reserved_1);
-
-        payload
-    }
-}
-
-/// Header part of `MotorControlMultipleTargets`
-///
-#[derive(Debug)]
-pub(crate) struct _MotorControlMultipleTargetsHeader {
-    pub(crate) command: CommandId,
-    pub(crate) id: RequestId,
-    pub(crate) timeout: Timeout,
-    pub(crate) movement_type: MovementType,
-    pub(crate) speed: Speed,
-    pub(crate) _reserved_1: u8,
-    pub(crate) write_mode: WriteMode,
-}
-
-impl ToPayload<Vec<u8>> for _MotorControlMultipleTargetsHeader {
-    fn to_payload(self) -> Vec<u8> {
-        let mut payload: Vec<u8> = Vec::new();
-        payload.extend(self.command.to_payload());
-        payload.extend(self.id.to_payload());
-        payload.extend(self.timeout.to_payload());
-        payload.extend(self.movement_type.to_payload());
-        payload.extend(self.speed.to_payload());
-        payload.push(self._reserved_1);
-        payload.extend(self.write_mode.to_payload());
-
-        payload
-    }
-}
 
 /// Movement type
 
@@ -185,8 +129,12 @@ impl Default for TargetPosition {
 impl ToPayload<Vec<u8>> for TargetPosition {
     fn to_payload(self) -> Vec<u8> {
         let mut payload: Vec<u8> = Vec::new();
-        let rotation_option: u16 = (self.cube_location.angle & 0b0001_1111_1111_1111) | ((self.rotation_option as u16) << 13);
-        payload.extend(self.cube_location.point.to_payload());
+        let rotation_option: u16 = (self.cube_location.angle & 0b0001_1111_1111_1111)
+            | ((self.rotation_option as u16) << 13);
+        let target_x: u16 = self.cube_location.point.x.try_into().unwrap();
+        let target_y: u16 = self.cube_location.point.y.try_into().unwrap();
+        payload.extend(target_x.to_le_bytes().to_vec());
+        payload.extend(target_y.to_le_bytes().to_vec());
         payload.extend(rotation_option.to_le_bytes().to_vec());
         payload
     }

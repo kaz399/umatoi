@@ -51,7 +51,6 @@ impl ToPayload<Vec<u8>> for MotorControl {
     }
 }
 
-
 /// Motor control with specified duration
 /// <https://toio.github.io/toio-spec/en/docs/ble_motor/#motor-control-with-specified-duration>
 

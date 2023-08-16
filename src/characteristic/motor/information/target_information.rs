@@ -11,7 +11,10 @@ pub struct ResponseMotorControlTarget {
 }
 
 impl FromPayload<&[u8]> for ResponseMotorControlTarget {
-    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
+    fn from_payload(payload: &[u8]) -> Option<Self>
+    where
+        Self: Sized,
+    {
         if payload.len() < 3 {
             return None;
         }
@@ -26,7 +29,6 @@ impl FromPayload<&[u8]> for ResponseMotorControlTarget {
     }
 }
 
-
 /// Responses to motor control with multiple targets specified
 /// ref:<https://toio.github.io/toio-spec/en/docs/ble_motor/#responses-to-motor-control-with-multiple-targets-specified>
 
@@ -37,8 +39,11 @@ pub struct ResponseMotorControlMultipleTargets {
 }
 
 impl FromPayload<&[u8]> for ResponseMotorControlMultipleTargets {
-    fn from_payload(payload: &[u8]) -> Option<Self> where Self: Sized {
-       if payload.len() < 3 {
+    fn from_payload(payload: &[u8]) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if payload.len() < 3 {
             return None;
         }
         if payload[0] == CommandId::MultiTargetPositions.response() {
@@ -51,7 +56,6 @@ impl FromPayload<&[u8]> for ResponseMotorControlMultipleTargets {
         }
     }
 }
-
 
 #[cfg(test)]
 mod test {

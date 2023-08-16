@@ -5,5 +5,7 @@ pub trait ToPayload<T> {
 }
 
 pub trait FromPayload<T> {
-    fn from_payload(payload: T) -> Option<Self> where Self: Sized;
+    fn from_payload(payload: T) -> Option<Self>
+    where
+        Self: Sized;
 }
