@@ -100,7 +100,7 @@ mod test {
     fn id_information1() {
         _setup();
 
-        let res = IdInformation::PositionId(PositionIdData {
+        let _res = IdInformation::PositionId(PositionIdData {
             center: CubeLocation {
                 point: Point { x: 1, y: 2 },
                 angle: 3,
@@ -112,3 +112,4 @@ mod test {
         });
     }
 }
+ 
