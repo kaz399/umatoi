@@ -41,7 +41,6 @@ impl ToPayload<Vec<u8>> for Color {
 #[derive(Default, Debug, Copy, Clone)]
 pub struct IndicatorParam {
     pub duration: Period,
-    pub id: u8,
     pub color: Color,
 }
 
@@ -50,7 +49,7 @@ impl ToPayload<Vec<u8>> for IndicatorParam {
         let mut payload: Vec<u8> = Vec::new();
         payload.extend(self.duration.to_payload());
         payload.push(1u8);
-        payload.push(self.id);
+        payload.push(1u8);
         payload.extend(self.color.to_payload());
         payload
     }

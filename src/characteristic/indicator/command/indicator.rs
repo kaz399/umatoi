@@ -12,7 +12,6 @@ use crate::integer_converter::u_to_u8;
 #[derive(Debug, Copy, Clone)]
 pub struct TurningOnAndOff {
     pub command: CommandId,
-    pub id: u8,
     pub param: IndicatorParam,
 }
 
@@ -20,7 +19,6 @@ impl Default for TurningOnAndOff {
     fn default() -> Self {
         Self {
             command: CommandId::TurningOnAndOff,
-            id: 1,
             param: IndicatorParam::default(),
         }
     }
@@ -41,7 +39,6 @@ impl ToPayload<Vec<u8>> for TurningOnAndOff {
 pub struct RepeatedTuringOnAndOff {
     pub command: CommandId,
     pub repeat: u8,
-    pub id: u8,
     pub param_list: Vec<IndicatorParam>,
 }
 
@@ -50,7 +47,6 @@ impl Default for RepeatedTuringOnAndOff {
         Self {
             command: CommandId::RepeatedTuringOnAndOff,
             repeat: 1,
-            id: 1,
             param_list: Vec::new(),
         }
     }
