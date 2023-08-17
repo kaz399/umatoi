@@ -1,3 +1,3 @@
-mod id_information;
+mod id;
 
-pub use self::id_information::IdInformation;
+pub use self::id::IdInformation;

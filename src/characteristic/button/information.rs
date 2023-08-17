@@ -1,3 +1,3 @@
-mod button_information;
+mod button;
 
-pub use self::button_information::ButtonInformation;
+pub use self::button::ButtonInformation;

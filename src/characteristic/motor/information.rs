@@ -1,5 +1,5 @@
-mod speed_information;
-mod target_information;
+mod speed;
+mod target;
 
 use crate::characteristic::motor::def::CommandId;
 use crate::payload::FromPayload;
@@ -8,9 +8,9 @@ use crate::payload::FromPayload;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MotorInformation {
-    MotorControlTarget(target_information::ResponseMotorControlTarget),
-    MotorControlMultipleTargets(target_information::ResponseMotorControlMultipleTargets),
-    MotorSpeed(speed_information::MotorSpeedInformation),
+    MotorControlTarget(target::ResponseMotorControlTarget),
+    MotorControlMultipleTargets(target::ResponseMotorControlMultipleTargets),
+    MotorSpeed(speed::MotorSpeedInformation),
 }
 
 impl FromPayload<&[u8]> for MotorInformation {
@@ -21,18 +21,15 @@ impl FromPayload<&[u8]> for MotorInformation {
         if payload.is_empty() {
             return None;
         }
-        if let Some(response_data) =
-            target_information::ResponseMotorControlTarget::from_payload(payload)
-        {
+        if let Some(response_data) = target::ResponseMotorControlTarget::from_payload(payload) {
             return Some(MotorInformation::MotorControlTarget(response_data));
         }
         if let Some(response_data) =
-            target_information::ResponseMotorControlMultipleTargets::from_payload(payload)
+            target::ResponseMotorControlMultipleTargets::from_payload(payload)
         {
             return Some(MotorInformation::MotorControlMultipleTargets(response_data));
         }
-        if let Some(response_data) = speed_information::MotorSpeedInformation::from_payload(payload)
-        {
+        if let Some(response_data) = speed::MotorSpeedInformation::from_payload(payload) {
             return Some(MotorInformation::MotorSpeed(response_data));
         }
         None
@@ -53,8 +50,8 @@ impl From<MotorInformation> for u8 {
 
 #[cfg(test)]
 mod test {
-    use crate::characteristic::motor::information::MotorInformation;
     use crate::characteristic::motor::def::ResponseCode;
+    use crate::characteristic::motor::information::MotorInformation;
     use crate::payload::FromPayload;
 
     fn _setup() {

@@ -1,6 +1,6 @@
-mod magnetic_information;
-mod motion_information;
-mod posture_angle_information;
+mod magnetic;
+mod motion;
+mod posture_angle;
 
 use crate::characteristic::sensor::def::CommandId;
 use crate::payload::FromPayload;
@@ -9,10 +9,10 @@ use crate::payload::FromPayload;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SensorInformation {
-    MotionDetection(motion_information::MotionDetectionInformation),
-    PostureAngleEuler(posture_angle_information::PostureAngleEulerInformation),
-    PostureAngleQuaternion(posture_angle_information::PostureAngleQuaternionsInformation),
-    MagneticSensor(magnetic_information::MagneticSensorInformation),
+    MotionDetection(motion::MotionDetectionInformation),
+    PostureAngleEuler(posture_angle::PostureAngleEulerInformation),
+    PostureAngleQuaternion(posture_angle::PostureAngleQuaternionsInformation),
+    MagneticSensor(magnetic::MagneticSensorInformation),
 }
 
 impl FromPayload<&[u8]> for SensorInformation {
@@ -23,23 +23,19 @@ impl FromPayload<&[u8]> for SensorInformation {
         if payload.is_empty() {
             return None;
         }
-        if let Some(response_data) =
-            motion_information::MotionDetectionInformation::from_payload(payload)
-        {
+        if let Some(response_data) = motion::MotionDetectionInformation::from_payload(payload) {
             return Some(SensorInformation::MotionDetection(response_data));
         }
-        if let Some(response_data) =
-            magnetic_information::MagneticSensorInformation::from_payload(payload)
-        {
+        if let Some(response_data) = magnetic::MagneticSensorInformation::from_payload(payload) {
             return Some(SensorInformation::MagneticSensor(response_data));
         }
         if let Some(response_data) =
-            posture_angle_information::PostureAngleEulerInformation::from_payload(payload)
+            posture_angle::PostureAngleEulerInformation::from_payload(payload)
         {
             return Some(SensorInformation::PostureAngleEuler(response_data));
         }
         if let Some(response_data) =
-            posture_angle_information::PostureAngleQuaternionsInformation::from_payload(payload)
+            posture_angle::PostureAngleQuaternionsInformation::from_payload(payload)
         {
             return Some(SensorInformation::PostureAngleQuaternion(response_data));
         }

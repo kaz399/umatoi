@@ -1,3 +1,3 @@
-mod battery_information;
+mod battery;
 
-pub use self::battery_information::BatteryInformation;
+pub use self::battery::BatteryInformation;

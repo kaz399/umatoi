@@ -1,7 +1,7 @@
-mod acceleration_command;
-mod control_command;
-mod target_command;
+mod acceleration;
+mod control;
+mod target;
 
-pub use self::acceleration_command::MotorControlAcceleration;
-pub use self::control_command::{MotorControl, MotorControlWithSpecifiedDuration};
-pub use self::target_command::{MotorControlMultipleTargets, MotorControlTarget};
+pub use self::acceleration::MotorControlAcceleration;
+pub use self::control::{MotorControl, MotorControlWithSpecifiedDuration};
+pub use self::target::{MotorControlMultipleTargets, MotorControlTarget};

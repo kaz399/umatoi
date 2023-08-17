@@ -1,11 +1,11 @@
-mod id_sensor_information;
-mod motor_information;
-mod sensor_information;
-mod version_information;
+mod id_sensor;
+mod motor;
+mod sensor;
+mod version;
 
-pub use self::id_sensor_information::{
+pub use self::id_sensor::{
     ResponseIdSensorMissedNotificationData, ResponseIdSensorNotificationData,
 };
-pub use self::motor_information::ResponseEnableMotorSpeedData;
-pub use self::sensor_information::ResponseMagneticSensorData;
-pub use self::version_information::ResponseBleProtocolVersionData;
+pub use self::motor::ResponseEnableMotorSpeedData;
+pub use self::sensor::ResponseMagneticSensorData;
+pub use self::version::ResponseBleProtocolVersionData;

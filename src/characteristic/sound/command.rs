@@ -1,1 +1,1 @@
-mod sound_command;
+mod sound;

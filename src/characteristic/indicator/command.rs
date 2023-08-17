@@ -1,3 +1,3 @@
-mod indicator_command;
+mod indicator;
 
-pub use self::indicator_command::{RepeatedTuringOnAndOff, TurnOff, TurnOffAll, TurningOnAndOff};
+pub use self::indicator::{RepeatedTuringOnAndOff, TurnOff, TurnOffAll, TurningOnAndOff};
