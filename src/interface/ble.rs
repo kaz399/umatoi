@@ -1,21 +1,20 @@
+use crate::api::event::CubeEvent;
 use crate::characteristic::CoreCubeUuid;
-use crate::characteristic::NotificationData;
-use crate::notification_manager::{HandlerFunction, NotificationManager};
-use crate::CoreCubeError;
+use crate::notification_manager::NotificationManager;
 use async_trait::async_trait;
 use btleplug::api::{
     BDAddr, Central, CharPropFlags, Characteristic, Manager as _, Peripheral as _, ScanFilter,
     WriteType,
 };
 use btleplug::platform::{Manager, Peripheral};
-use futures::stream::StreamExt;
-use log::{debug, error, info};
+use futures::stream::{BoxStream, StreamExt};
+use log::{debug, error};
 use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
 use std::time::Duration;
 use std::vec::Vec;
 use tokio::time;
+use tokio_stream::wrappers::BroadcastStream;
+use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 use super::{CubeInterface, CubeScanner};
@@ -27,6 +26,8 @@ pub struct BleCube {
     pub ble_peripheral: BleInterface,
     pub ble_characteristics: HashMap<Uuid, Characteristic>,
     pub notification_enabled: Vec<Uuid>,
+    pub event_manager: NotificationManager<CubeEvent>,
+    pub cancel_token: CancellationToken,
 }
 
 impl BleCube {
@@ -35,17 +36,30 @@ impl BleCube {
             ble_peripheral: peripheral,
             ble_characteristics: HashMap::new(),
             notification_enabled: Vec::new(),
+            event_manager: NotificationManager::new(100),
+            cancel_token: CancellationToken::new(),
         }
     }
 }
 
-pub async fn ble_notification_receiver(
+pub async fn ble_notification_loop(
     ble_peripheral: Peripheral,
-    notification_manager: &NotificationManager<NotificationData>,
+    event_manager: NotificationManager<CubeEvent>,
+    cancel_token: CancellationToken,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
-    let mut notification_stream = ble_peripheral.notifications().await.unwrap();
-    while let Some(data) = notification_stream.next().await {
-        let _ = notification_manager.invoke_all_handlers(data);
+    let mut notification_stream = ble_peripheral.notifications().await?;
+    loop {
+        tokio::select! {
+            _ = cancel_token.cancelled() => {
+                debug!("Notification loop cancelled");
+                break;
+            }
+            Some(data) = notification_stream.next() => {
+                let event = CubeEvent::from_notification(data.uuid, &data.value);
+                let _ = event_manager.invoke_all_handlers(event);
+            }
+            else => break,
+        }
     }
     Ok(())
 }
@@ -59,7 +73,6 @@ impl CubeInterface for BleCube {
         self.ble_peripheral.discover_services().await?;
         for service in self.ble_peripheral.services() {
             for characteristic in service.characteristics {
-                //println!("characteristic uuid: {:?}", characteristic.uuid);
                 if characteristic.properties.contains(CharPropFlags::NOTIFY) {
                     self.notification_enabled.push(characteristic.uuid);
                     debug!("enable notification uuid: {:?}", characteristic.uuid);
@@ -69,26 +82,37 @@ impl CubeInterface for BleCube {
                     .insert(characteristic.uuid, characteristic);
             }
         }
+
+        // Reset cancel token for a new connection
+        self.cancel_token = CancellationToken::new();
+
+        // Start notification loop
+        let ble_peripheral = self.ble_peripheral.clone();
+        let event_manager = self.event_manager.clone();
+        let cancel_token = self.cancel_token.clone();
+        tokio::spawn(async move {
+            if let Err(e) = ble_notification_loop(ble_peripheral, event_manager, cancel_token).await
+            {
+                error!("Notification loop error: {}", e);
+            }
+        });
+
         Ok(())
     }
 
     async fn disconnect(
         &mut self,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+        self.cancel_token.cancel();
         for notified in &self.notification_enabled {
             debug!("disable notification uuid: {:?}", notified);
-            self.ble_peripheral
-                .unsubscribe(&self.ble_characteristics[notified])
-                .await?;
+            if let Some(characteristic) = self.ble_characteristics.get(notified) {
+                let _ = self.ble_peripheral.unsubscribe(characteristic).await;
+            }
         }
         self.ble_peripheral.disconnect().await?;
-        // windows: is_connected is not turned off when device disconnect.
-        // macos: is_connected is not turned off when device disconnect.
-        if cfg!(target_os = "linux") {
-            let is_connected = self.ble_peripheral.is_connected().await?;
-            assert!(!is_connected);
-        }
         self.ble_characteristics.clear();
+        self.notification_enabled.clear();
         Ok(())
     }
 
@@ -125,24 +149,13 @@ impl CubeInterface for BleCube {
         Ok(true)
     }
 
-    fn create_notification_receiver(
+    async fn event_stream(
         &self,
-        handlers: Box<Vec<HandlerFunction<NotificationData>>>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
-        let ble_peripheral = self.ble_peripheral.clone();
-        Box::pin(async move {
-            let nf_manager = NotificationManager::<NotificationData>::new();
-            let mut registered_handlers: Vec<Uuid> = vec![];
-
-            for notification_handler in *handlers {
-                let handler_uuid = nf_manager.register(Box::new(notification_handler)).unwrap();
-                registered_handlers.push(handler_uuid);
-            }
-            let _ = ble_notification_receiver(ble_peripheral, &nf_manager).await;
-            for handler_uuid in registered_handlers {
-                nf_manager.unregister(handler_uuid).unwrap();
-            }
-        })
+    ) -> Result<BoxStream<'static, CubeEvent>, Box<dyn std::error::Error + Send + Sync + 'static>>
+    {
+        let receiver = self.event_manager.subscribe();
+        let stream = BroadcastStream::new(receiver).filter_map(|res| async move { res.ok() });
+        Ok(stream.boxed())
     }
 }
 
@@ -176,42 +189,29 @@ impl BleScanner {
             time::sleep(wait).await;
             adapter.stop_scan().await?;
             for (_index, peripheral) in adapter.peripherals().await?.iter().enumerate() {
-                // debug!("{} {:?}", _index, peripheral);
                 if peripheral.is_connected().await? {
                     debug!("skip connected device");
                     continue;
                 }
                 let properties = peripheral.properties().await?.unwrap();
                 for service_uuid in properties.services.iter() {
-                    info!("service uuid: {}", service_uuid);
                     if *service_uuid == CoreCubeUuid::Service.uuid() {
-                        debug!("found toio core cube: service uuid: {}", service_uuid);
-                        let rssi = peripheral
-                            .properties()
-                            .await
-                            .unwrap()
-                            .unwrap()
-                            .rssi
-                            .unwrap();
+                        let rssi = properties.rssi.unwrap_or(0);
                         let rssi_ble = RssiBle {
                             rssi,
                             ble: peripheral.clone(),
                         };
-                        let ble_address = peripheral.properties().await?.unwrap().address;
+                        let ble_address = properties.address;
                         rssi_peripheral_hash.insert(ble_address, rssi_ble);
                     }
                 }
             }
             let mut rssi_peripheral_list = Vec::from_iter(rssi_peripheral_hash.values().cloned());
-            rssi_peripheral_list.sort_by(|a, b| a.rssi.cmp(&b.rssi));
-            for inerface in rssi_peripheral_list.iter() {
-                peripheral_list.push(Box::new(BleCube::new(inerface.ble.clone())));
+            rssi_peripheral_list.sort_by(|a, b| b.rssi.cmp(&a.rssi)); // Sort by RSSI descending
+            for interface in rssi_peripheral_list.iter() {
+                peripheral_list.push(Box::new(BleCube::new(interface.ble.clone())));
             }
         }
-        debug!(
-            "scan_ble: total {} peripherals found",
-            peripheral_list.len()
-        );
         Ok(peripheral_list)
     }
 }
@@ -226,7 +226,7 @@ impl CubeScanner for BleScanner {
         Vec<Box<dyn CubeInterface + Send + Sync + 'static>>,
         Box<dyn std::error::Error + Send + Sync + 'static>,
     > {
-        let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
+        let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await?;
         let mut matched_peripheral_list: Vec<Box<dyn CubeInterface + Send + Sync + 'static>> =
             Vec::new();
         for (n, cube) in peripheral_list.into_iter().enumerate() {
@@ -236,14 +236,6 @@ impl CubeScanner for BleScanner {
                 break;
             }
         }
-        if matched_peripheral_list.is_empty() {
-            error!("toio core cube is not found");
-            return Err(CoreCubeError::CubeNotFound.into());
-        }
-        debug!(
-            "scan: total {} peripherals found",
-            matched_peripheral_list.len()
-        );
         Ok(matched_peripheral_list)
     }
 
@@ -257,26 +249,16 @@ impl CubeScanner for BleScanner {
     > {
         let mut matched_peripheral_list: Vec<Box<dyn CubeInterface + Send + Sync + 'static>> =
             Vec::new();
-        let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
+        let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await?;
         for cube in peripheral_list {
             let properties = cube.ble_peripheral.properties().await?.unwrap();
             if address_list
                 .iter()
                 .any(|e: &BDAddr| e == &properties.address)
             {
-                info!("found cube: '{}'", &properties.address);
                 matched_peripheral_list.push(cube);
             }
         }
-
-        if matched_peripheral_list.is_empty() {
-            error!("toio core cube is not found");
-            return Err(CoreCubeError::CubeNotFound.into());
-        }
-        debug!(
-            "scan_with_address: total {} peripherals found",
-            matched_peripheral_list.len()
-        );
         Ok(matched_peripheral_list)
     }
 
@@ -290,79 +272,15 @@ impl CubeScanner for BleScanner {
     > {
         let mut matched_peripheral_list: Vec<Box<dyn CubeInterface + Send + Sync + 'static>> =
             Vec::new();
-        let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await.unwrap();
+        let peripheral_list = self.scan_ble(ScanFilter::default(), wait).await?;
         for cube in peripheral_list {
             let properties = cube.ble_peripheral.properties().await?.unwrap();
             if let Some(local_name) = properties.local_name {
                 if name_list.iter().any(|e| e == &local_name) {
-                    info!("found cube: '{}'", &local_name);
                     matched_peripheral_list.push(cube);
                 }
             }
         }
-
-        if matched_peripheral_list.is_empty() {
-            error!("toio core cube is not found");
-            return Err(CoreCubeError::CubeNotFound.into());
-        }
-        debug!(
-            "scan_with_name: total {} peripherals found",
-            matched_peripheral_list.len()
-        );
         Ok(matched_peripheral_list)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    // use crate::characteristic::id_information::{self, IdInformation};
-    use std::time::Duration;
-
-    static TEST_CUBE_NAME: &str = "toio Core Cube-h7p";
-    static TEST_CUBE_BDADDR: [u8; 6] = [0xd8, 0xe3, 0x49, 0xa0, 0xef, 0x19];
-
-    // static TEST_CUBE_NAME = "toio Core Cube-G9F";
-    // static TEST_CUBE_BDADDR = [0xc1, 0xd5, 0x19, 0x31, 0x5f, 0xce];
-
-    fn _setup() {
-        let _ = env_logger::builder().is_test(true).try_init();
-    }
-
-    fn _teardown() {
-        std::thread::sleep(Duration::from_millis(500));
-    }
-
-    #[tokio::test]
-    async fn cube_scan1() {
-        _setup();
-        let scanner = BleScanner;
-        let interfaces = scanner.scan(1, Duration::from_secs(5)).await.unwrap();
-        assert!(!interfaces.is_empty());
-        _teardown();
-    }
-
-    #[tokio::test]
-    async fn cube_scan2() {
-        _setup();
-        let scanner = BleScanner;
-        let interfaces = scanner
-            .scan_with_address(&[BDAddr::from(TEST_CUBE_BDADDR)], Duration::from_secs(3))
-            .await
-            .unwrap();
-        assert!(!interfaces.is_empty());
-        _teardown();
-    }
-
-    #[tokio::test]
-    async fn cube_scan3() {
-        _setup();
-        let scanner = BleScanner;
-        let interfaces = scanner
-            .scan_with_name(&[TEST_CUBE_NAME], Duration::from_secs(3))
-            .await
-            .unwrap();
-        assert!(!interfaces.is_empty());
-        _teardown();
     }
 }

@@ -1,6 +1,6 @@
-mod magnetic;
-mod motion;
-mod posture_angle;
+pub mod magnetic;
+pub mod motion;
+pub mod posture_angle;
 
 use crate::characteristic::sensor::def::CommandId;
 use crate::payload::FromPayload;

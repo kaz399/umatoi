@@ -1,21 +1,18 @@
 pub mod ble;
 
-use crate::characteristic::NotificationData;
-use crate::notification_manager::HandlerFunction;
+use crate::api::event::CubeEvent;
+use crate::characteristic::battery::BatteryInformation;
+use crate::characteristic::button::ButtonInformation;
+use crate::characteristic::id::IdInformation;
+use crate::characteristic::motor::information::MotorInformation;
+use crate::characteristic::sensor::information::SensorInformation;
 use async_trait::async_trait;
-use std::future::Future;
-use std::pin::Pin;
+use futures::stream::{BoxStream, StreamExt};
 use std::time::Duration;
 use std::vec::Vec;
 use uuid::Uuid;
 
 use btleplug::api::BDAddr;
-
-pub enum CoreCubeNotificationControl {
-    Run,
-    Pause,
-    Quit,
-}
 
 #[async_trait]
 pub trait CubeInterface {
@@ -45,10 +42,103 @@ pub trait CubeInterface {
         bytes: &[u8],
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync + 'static>>;
 
-    fn create_notification_receiver(
+    // get event stream
+    async fn event_stream(
         &self,
-        handlers: Box<Vec<HandlerFunction<NotificationData>>>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send>>;
+    ) -> Result<BoxStream<'static, CubeEvent>, Box<dyn std::error::Error + Send + Sync + 'static>>;
+
+    // get ID stream
+    async fn id_stream(
+        &self,
+    ) -> Result<BoxStream<'static, IdInformation>, Box<dyn std::error::Error + Send + Sync + 'static>>
+    {
+        let stream = self.event_stream().await?;
+        Ok(stream
+            .filter_map(|e| async move {
+                if let CubeEvent::Id(id) = e {
+                    Some(id)
+                } else {
+                    None
+                }
+            })
+            .boxed())
+    }
+
+    // get button stream
+    async fn button_stream(
+        &self,
+    ) -> Result<
+        BoxStream<'static, ButtonInformation>,
+        Box<dyn std::error::Error + Send + Sync + 'static>,
+    > {
+        let stream = self.event_stream().await?;
+        Ok(stream
+            .filter_map(|e| async move {
+                if let CubeEvent::Button(info) = e {
+                    Some(info)
+                } else {
+                    None
+                }
+            })
+            .boxed())
+    }
+
+    // get battery stream
+    async fn battery_stream(
+        &self,
+    ) -> Result<
+        BoxStream<'static, BatteryInformation>,
+        Box<dyn std::error::Error + Send + Sync + 'static>,
+    > {
+        let stream = self.event_stream().await?;
+        Ok(stream
+            .filter_map(|e| async move {
+                if let CubeEvent::Battery(info) = e {
+                    Some(info)
+                } else {
+                    None
+                }
+            })
+            .boxed())
+    }
+
+    // get sensor stream
+    async fn sensor_stream(
+        &self,
+    ) -> Result<
+        BoxStream<'static, SensorInformation>,
+        Box<dyn std::error::Error + Send + Sync + 'static>,
+    > {
+        let stream = self.event_stream().await?;
+        Ok(stream
+            .filter_map(|e| async move {
+                if let CubeEvent::Sensor(info) = e {
+                    Some(info)
+                } else {
+                    None
+                }
+            })
+            .boxed())
+    }
+
+    // get motor stream
+    async fn motor_stream(
+        &self,
+    ) -> Result<
+        BoxStream<'static, MotorInformation>,
+        Box<dyn std::error::Error + Send + Sync + 'static>,
+    > {
+        let stream = self.event_stream().await?;
+        Ok(stream
+            .filter_map(|e| async move {
+                if let CubeEvent::Motor(info) = e {
+                    Some(info)
+                } else {
+                    None
+                }
+            })
+            .boxed())
+    }
 }
 
 #[async_trait]
