@@ -24,7 +24,7 @@ impl CubeEvent {
                 return CubeEvent::Id(info);
             }
         } else if uuid == CoreCubeUuid::ButtonInfo.uuid() {
-            if let Some(info) = ButtonInformation::new(data) {
+            if let Some(info) = crate::payload::FromPayload::from_payload(data) {
                 return CubeEvent::Button(info);
             }
         } else if uuid == CoreCubeUuid::BatteryInfo.uuid() {

@@ -50,7 +50,7 @@ impl FromPayload<&[u8]> for PostureAngleQuaternionsInformation {
     where
         Self: Sized,
     {
-        if payload.len() < 8 {
+        if payload.len() < 10 {
             return None;
         }
         if (payload[0] == CommandId::PostureAngle.response())

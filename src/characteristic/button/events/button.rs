@@ -1,5 +1,6 @@
 //! Official Specification:  <https://toio.github.io/toio-spec/en/docs/ble_button>
 
+use crate::payload::FromPayload;
 use super::super::def::button_state::ButtonState;
 use std::time;
 
@@ -18,15 +19,18 @@ impl Default for ButtonInformation {
     }
 }
 
-impl ButtonInformation {
-    pub fn new(byte_data: &[u8]) -> Option<ButtonInformation> {
-        if byte_data.len() < 2 {
+impl FromPayload<&[u8]> for ButtonInformation {
+    fn from_payload(payload: &[u8]) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if payload.len() < 2 {
             return None;
         }
-        match byte_data[0] {
+        match payload[0] {
             0x01u8 => Some(ButtonInformation {
                 time: time::Instant::now(),
-                state: ButtonState::from(byte_data[1]),
+                state: ButtonState::from(payload[1]),
             }),
             _ => None,
         }

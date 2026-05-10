@@ -12,11 +12,16 @@ impl FromPayload<&[u8]> for BatteryInformation {
     where
         Self: Sized,
     {
-        if payload.is_empty() {
+        if payload.len() < 2 {
+            log::warn!("Unexpected battery payload length: {:02X?}", payload);
             return None;
         }
-        Some(BatteryInformation {
-            level: payload[1].into(),
-        })
+        if payload[0] == 0x00u8 {
+            Some(BatteryInformation {
+                level: payload[1].into(),
+            })
+        } else {
+            None
+        }
     }
 }

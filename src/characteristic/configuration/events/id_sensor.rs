@@ -14,6 +14,9 @@ impl FromPayload<&[u8]> for ResponseIdSensorNotificationData {
     where
         Self: Sized,
     {
+        if payload.len() < 3 {
+            return None;
+        }
         if payload[0] == CommandId::IdSensorNotification.response() {
             Some(Self {
                 result: payload[2] == 0x00u8,
@@ -37,6 +40,9 @@ impl FromPayload<&[u8]> for ResponseIdSensorMissedNotificationData {
     where
         Self: Sized,
     {
+        if payload.len() < 3 {
+            return None;
+        }
         if payload[0] == CommandId::IdSensorMissedNotification.response() {
             Some(Self {
                 result: payload[2] == 0x00u8,

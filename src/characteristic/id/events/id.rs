@@ -72,7 +72,7 @@ impl FromPayload<&[u8]> for IdInformation {
                 }
             }
             0x02u8 => {
-                if payload.len() >= 4 {
+                if payload.len() >= 7 {
                     Some(IdInformation::StandardId(StandardIdData {
                         value: u32::from_le_bytes([payload[1], payload[2], payload[3], payload[4]]),
                         angle: u16::from_le_bytes([payload[5], payload[6]]),
