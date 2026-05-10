@@ -1,12 +1,12 @@
 //! Official Specification: <https://toio.github.io/toio-spec/en/docs/ble_motor>
 
-pub mod command;
+pub mod commands;
 pub mod def;
-pub mod information;
+pub mod events;
 
-pub use self::command::*;
+pub use self::commands::*;
 pub use self::def::*;
-pub use self::information::*;
+pub use self::events::*;
 
 #[cfg(test)]
 mod test {

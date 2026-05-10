@@ -1,8 +1,8 @@
 use crate::characteristic::battery::BatteryInformation;
 use crate::characteristic::button::ButtonInformation;
 use crate::characteristic::id::IdInformation;
-use crate::characteristic::motor::information::MotorInformation;
-use crate::characteristic::sensor::information::SensorInformation;
+use crate::characteristic::motor::events::MotorInformation;
+use crate::characteristic::sensor::events::SensorInformation;
 use crate::characteristic::CoreCubeUuid;
 use uuid::Uuid;
 

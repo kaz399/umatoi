@@ -59,7 +59,7 @@ impl FromPayload<&[u8]> for ResponseMotorControlMultipleTargets {
 
 #[cfg(test)]
 mod test {
-    use crate::characteristic::motor::command::{MotorControlMultipleTargets, MotorControlTarget};
+    use crate::characteristic::motor::commands::{MotorControlMultipleTargets, MotorControlTarget};
     use crate::characteristic::motor::def::*;
     use crate::payload::ToPayload;
 

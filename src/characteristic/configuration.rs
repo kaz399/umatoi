@@ -1,7 +1,7 @@
-pub(crate) mod command;
+pub(crate) mod commands;
 pub(crate) mod def;
-pub(crate) mod information;
+pub(crate) mod events;
 
-pub use self::command::*;
+pub use self::commands::*;
 pub use self::def::*;
-pub use self::information::*;
+pub use self::events::*;

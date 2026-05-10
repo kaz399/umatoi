@@ -51,7 +51,7 @@ impl From<MotorInformation> for u8 {
 #[cfg(test)]
 mod test {
     use crate::characteristic::motor::def::ResponseCode;
-    use crate::characteristic::motor::information::MotorInformation;
+    use crate::characteristic::motor::events::MotorInformation;
     use crate::payload::FromPayload;
 
     fn _setup() {

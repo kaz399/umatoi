@@ -1,5 +1,5 @@
 pub(crate) mod def;
-pub(crate) mod information;
+pub(crate) mod events;
 
 pub use self::def::*;
-pub use self::information::*;
+pub use self::events::*;

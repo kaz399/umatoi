@@ -168,7 +168,7 @@ impl ToPayload<Vec<u8>> for WriteMode {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::characteristic::motor::command::{MotorControlMultipleTargets, MotorControlTarget};
+    use crate::characteristic::motor::commands::{MotorControlMultipleTargets, MotorControlTarget};
     use crate::characteristic::motor::def::Timeout;
 
     fn _setup() {

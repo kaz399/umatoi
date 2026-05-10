@@ -1,6 +1,6 @@
 //! Simple API
 
-use crate::characteristic::motor::command::{
+use crate::characteristic::motor::commands::{
     MotorControl, MotorControlAcceleration, MotorControlMultipleTargets, MotorControlTarget,
     MotorControlWithSpecifiedDuration,
 };

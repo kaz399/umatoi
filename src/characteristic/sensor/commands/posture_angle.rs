@@ -31,7 +31,7 @@ impl ToPayload<Vec<u8>> for RequestPostureAngleDetection {
 
 #[cfg(test)]
 mod test {
-    use crate::characteristic::sensor::information::SensorInformation;
+    use crate::characteristic::sensor::events::SensorInformation;
     use crate::payload::FromPayload;
 
     fn _setup() {
