@@ -12,14 +12,14 @@ use umatoi::interface::CubeScanner;
 use umatoi::position::{CubeLocation, Point};
 
 #[derive(Parser)]
-#[clap(
+#[command(
     name = "id_checker",
     author = "YABE.Kazuhiro",
     version = "v0.0.1",
     about = "toio ID checker"
 )]
 struct AppArg {
-    #[clap(short, long)]
+    #[arg(short, long)]
     run: bool,
 }
 

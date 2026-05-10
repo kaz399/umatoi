@@ -10,25 +10,22 @@ repository = "https://github.com/kaz399/umatoi.rs/"
 homepage = "https://github.com/kaz399/umatoi.rs/"
 
 [dependencies]
-futures = "0.3.28"
-async-trait = "0.1.73"
-thiserror = "1.0.47"
-env_logger = "0.10.0"
-log = "0.4.20"
-uuid = { version = "1.4.1", features = ["v4"] }
-tokio = { version = "1.39", features = ["rt", "rt-multi-thread", "sync", "macros", "signal", "full"] }
-btleplug = "0.11.0"
-serde = { version = "1.0.188", features = ["derive"] }
-once_cell = "1.18.0"
-byteorder = "1.4.3"
-tokio-stream = { version = "0.1.18", features = ["sync"] }
-tokio-util = "0.7.18"
+futures = "0.3"
+async-trait = "0.1"
+thiserror = "2.0"
+env_logger = "0.11"
+log = "0.4"
+uuid = { version = "1.15", features = ["v4"] }
+tokio = { version = "1.52", features = ["rt", "rt-multi-thread", "sync", "macros", "signal", "full"] }
+btleplug = "0.12"
+serde = { version = "1.0", features = ["derive"] }
+once_cell = "1.20"
+byteorder = "1.5"
+tokio-stream = { version = "0.1", features = ["sync"] }
+tokio-util = "0.7"
 
 [dev-dependencies]
-lazy_static = "1.4.0"
-ctrlc = { version = "3.4.0", features = ["termination"] }
-clap = { version = "3.2.25", features = ["derive"]}
-rand = "0.8.5"
-pixels = "0.9.0"
-winit = "0.27.5"
-winit_input_helper = "0.13.0"
+lazy_static = "1.5"
+ctrlc = { version = "3.4", features = ["termination"] }
+clap = { version = "4.6", features = ["derive"]}
+rand = "0.8"

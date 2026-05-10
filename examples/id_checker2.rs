@@ -8,14 +8,14 @@ use umatoi::interface::ble::BleScanner;
 use umatoi::interface::CubeScanner;
 
 #[derive(Parser)]
-#[clap(
+#[command(
     name = "id_checker",
     author = "YABE.Kazuhiro",
     version = "v0.0.1",
     about = "toio ID checker"
 )]
 struct AppArg {
-    #[clap(short, long)]
+    #[arg(short, long)]
     run: bool,
 }
 
